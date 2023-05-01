@@ -102,23 +102,52 @@ pub unsafe trait FreeNullable {
 
 
 
-/// Allocation size query:<br>
-/// <code>[alloc_size](Self::alloc_size)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
+/// Allocation size query (reliable for `self`-owned allocations):<br>
+/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
 /// <br>
 ///
 /// ### Safety
 /// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
-/// Such an implementor would generally rely on the `ptr[..a.alloc_size(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
+/// Such an implementor would generally rely on the `ptr[..a.size_of(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
 /// By implementing this trait, you pinky promise that such a size is valid.
-pub unsafe trait SizeAlloc {
-    type Error : core::fmt::Debug;
-
+pub unsafe trait SizeOf {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn alloc_size(&self, ptr: AllocNN) -> Result<usize, Self::Error>;
+    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize>;
 }
 
-// TODO: SizeAllocDebug - like SizeAlloc, but developer-info only / falliable?
+
+
+/// Allocation size query (unreliable / for debug purpouses only):<br>
+/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
+/// <br>
+///
+/// This trait may fail (returning [`None`]) even if `ptr` is a thin allocation belonging to `self`.
+/// This is intended for size queries where the system may or may not be able to query the underlying system allocator for sizes.
+///
+/// If all the following hold:
+/// * `ptr` is a valid allocation belonging to `self`
+/// * <code>[Some]\(size\)</code> was returned
+/// * no `&mut T` references alias `ptr[..size]` (hard to verify!)
+///
+/// It should be valid to construct:
+/// ```
+/// # use ialloc::thin::*;
+/// # use core::mem::*;
+/// # use core::ptr::*;
+/// # fn wrap(alloc: &impl SizeOfDebug, ptr: NonNull<MaybeUninit<u8>>) {
+/// let Some(size) = (unsafe{ alloc.size_of(ptr) }) else { return };
+/// let slice : &[MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) };
+/// # }
+/// ```
+pub unsafe trait SizeOfDebug {
+    /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
+    ///
+    /// ### Safety
+    /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
+    /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
+    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize>;
+}
