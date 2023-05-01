@@ -65,5 +65,14 @@ pub trait Free {
 /// <br>
 pub unsafe trait Realloc : Alloc + Free {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error>;
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error>;
+
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
+        let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
+        if old_layout.size() < new_layout.size() {
+            let all             = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size().get()) };
+            let (_copied, new)  = all.split_at_mut(old_layout.size().get());
+            new.fill(MaybeUninit::new(0u8));
+        }
+        Ok(alloc.cast())
+    }
 }
