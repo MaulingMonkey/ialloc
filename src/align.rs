@@ -29,7 +29,10 @@ impl Alignment {
     /// Returns [`None`] unless `align` is a valid power of 2 (which also implies nonzero)
     pub const fn new(align: usize) -> Option<Self> { Self::try_from_usize(align) }
 
-    ///
+    /// Returns the [`Alignment`] of `T`.
+    pub const fn of<T>() -> Self { unsafe { Self::new_unchecked(core::mem::align_of::<T>()) } }
+
+    /// Get the alignment as a [`usize`] (the nicheless underlying type)
     pub const fn get(self) -> usize { self.to_usize() }
 
     /// **Undefined behavior** unless `align` is a valid power of 2 (which also implies nonzero)
