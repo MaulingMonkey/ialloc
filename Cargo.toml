@@ -18,3 +18,13 @@ categories                  = ["memory-management", "no-std::no-alloc"] # https:
 
 [lib]
 path                        = "src/_ialloc.rs"
+
+[features]
+default                     = []
+nightly                     = [] # should have no effect on anything but examples
+
+[dependencies]
+# none yet
+
+[dev-dependencies]
+libc                        = "0.2"
