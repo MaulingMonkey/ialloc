@@ -15,15 +15,11 @@ use core::ptr::NonNull;
 /// Allocation functions:<br>
 /// <code>[alloc_uninit](Self::alloc_uninit)(layout: [Layout]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <code>[alloc_zeroed](Self::alloc_zeroed)(layout: [Layout]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <code>[alloc_at_least_uninit](Self::alloc_at_least_uninit)(layout: &mut [Layout]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <code>[alloc_at_least_zeroed](Self::alloc_at_least_zeroed)(layout: &mut [Layout]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Alloc {
     type Error;
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error>;
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error>;
-    fn alloc_at_least_uninit(&self, layout: &mut Layout) -> Result<AllocNN, Self::Error> { self.alloc_uninit(*layout) }
-    fn alloc_at_least_zeroed(&self, layout: &mut Layout) -> Result<AllocNN0, Self::Error> { self.alloc_zeroed(*layout) }
 }
 
 /// Deallocation function:<br>
@@ -71,26 +67,6 @@ unsafe impl<A: nzst::Alloc> Alloc for A {
             nzst::Alloc::alloc_zeroed(self, layout)
         } else { // Zero sized alloc
             Ok(dangling(layout))
-        }
-    }
-
-    fn alloc_at_least_uninit(&self, layout: &mut Layout) -> Result<AllocNN, Self::Error> {
-        if let Ok(mut layoutnz) = LayoutNZ::from_layout(*layout) {
-            let r = nzst::Alloc::alloc_at_least_uninit(self, &mut layoutnz);
-            *layout = *layoutnz;
-            r
-        } else { // Zero sized alloc
-            Ok(dangling(*layout))
-        }
-    }
-
-    fn alloc_at_least_zeroed(&self, layout: &mut Layout) -> Result<AllocNN0, Self::Error> {
-        if let Ok(mut layoutnz) = LayoutNZ::from_layout(*layout) {
-            let r = nzst::Alloc::alloc_at_least_zeroed(self, &mut layoutnz);
-            *layout = *layoutnz;
-            r
-        } else { // Zero sized alloc
-            Ok(dangling(*layout))
         }
     }
 }

@@ -33,8 +33,6 @@ use core::mem::MaybeUninit;
 /// Allocation functions:<br>
 /// <code>[alloc_uninit](Self::alloc_uninit)(layout: [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <code>[alloc_zeroed](Self::alloc_zeroed)(layout: [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <code>[alloc_at_least_uninit](Self::alloc_at_least_uninit)(layout: &mut [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <code>[alloc_at_least_zeroed](Self::alloc_at_least_zeroed)(layout: &mut [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Alloc {
     type Error;
@@ -46,9 +44,6 @@ pub unsafe trait Alloc {
         unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), layout.size().get()) }.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
     }
-
-    fn alloc_at_least_uninit(&self, layout: &mut LayoutNZ) -> Result<AllocNN,  Self::Error> { self.alloc_uninit(*layout) }
-    fn alloc_at_least_zeroed(&self, layout: &mut LayoutNZ) -> Result<AllocNN0, Self::Error> { self.alloc_zeroed(*layout) }
 }
 
 /// Deallocation function:<br>
