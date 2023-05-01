@@ -103,7 +103,7 @@ pub unsafe trait FreeNullable {
 
 
 /// Allocation size query (reliable for `self`-owned allocations):<br>
-/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
+/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
 /// <br>
 ///
 /// ### Safety
