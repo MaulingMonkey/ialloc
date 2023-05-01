@@ -85,10 +85,6 @@ pub trait Free {
     unsafe fn free(&self, ptr: AllocNN);
 }
 
-impl<A: thin::Free> nzst::Free for A {
-    unsafe fn free(&self, ptr: AllocNN, _layout: LayoutNZ) { unsafe { thin::Free::free(self, ptr) } }
-}
-
 
 
 /// Deallocation function (implies [`Free`]):<br>
@@ -102,10 +98,6 @@ pub trait FreeNullable {
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
     unsafe fn free(&self, ptr: *mut MaybeUninit<u8>);
-}
-
-impl<A: FreeNullable> thin::Free for A {
-    unsafe fn free(&self, ptr: AllocNN) { unsafe { FreeNullable::free(self, ptr.as_ptr()) } }
 }
 
 

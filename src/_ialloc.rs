@@ -7,6 +7,8 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 
 
 
+#[path = "auto/_auto.rs"]   mod auto;
+
 mod align;                  pub use align::*;
 mod layout;                 pub use layout::*;
 pub mod nzst;
