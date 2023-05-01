@@ -26,6 +26,8 @@ const _ : () = assert!(align_of::<Alignment>() == align_of::<NonZeroUsize>());
 const _ : () = assert!(size_of ::<Alignment>() == size_of ::<NonZeroUsize>());
 
 impl Alignment {
+    #[track_caller] const fn constant(align: usize) -> Self { match Self::new(align) { Some(a) => a, None => panic!("Alignment::constant::<A>(): invalid constant") } }
+
     /// Returns [`None`] unless `align` is a valid power of 2 (which also implies nonzero)
     pub const fn new(align: usize) -> Option<Self> { Self::try_from_usize(align) }
 
@@ -88,7 +90,7 @@ impl Debug for Alignment {
 
 macro_rules! constants {
     ( $($id:ident = $value:expr),* $(,)? ) => {$(
-        #[doc(hidden)] pub const $id : Alignment = if let Some(a) = Alignment::new($value) { a } else { panic!(concat!("invalid alignment for constant ", stringify!($id))) };
+        #[doc(hidden)] pub const $id : Alignment = Alignment::constant($value);
     )*};
 }
 
