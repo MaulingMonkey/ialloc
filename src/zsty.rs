@@ -23,10 +23,10 @@ pub unsafe trait Alloc {
 }
 
 /// Deallocation function:<br>
-/// <code>[dealloc](Self::dealloc)(ptr: [NonNull]&lt;\_&gt;, layout: [Layout])</code><br>
+/// <code>[free](Self::free)(ptr: [NonNull]&lt;\_&gt;, layout: [Layout])</code><br>
 /// <br>
 pub trait Free {
-    unsafe fn dealloc(&self, ptr: AllocNN, layout: Layout);
+    unsafe fn free(&self, ptr: AllocNN, layout: Layout);
 }
 
 /// Reallocation function:<br>
@@ -72,9 +72,9 @@ unsafe impl<A: nzst::Alloc> Alloc for A {
 }
 
 impl<A: nzst::Free> Free for A {
-    unsafe fn dealloc(&self, ptr: AllocNN, layout: Layout) {
+    unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         match LayoutNZ::from_layout(layout) {
-            Ok(layout) => unsafe { nzst::Free::dealloc(self, ptr, layout) },
+            Ok(layout) => unsafe { nzst::Free::free(self, ptr, layout) },
             Err(_zsty) =>        { debug_assert_eq!(ptr, dangling(layout)) },
         }
     }
@@ -85,7 +85,7 @@ unsafe impl<A: nzst::Realloc> Realloc for A {
         match (LayoutNZ::from_layout(old_layout), LayoutNZ::from_layout(new_layout)) {
             (Err(_old_zsty), Ok(new_layout)) =>        { debug_assert_eq!(ptr, dangling( old_layout)); nzst::Alloc::alloc_uninit(self, new_layout) },
             (Ok(old_layout), Ok(new_layout)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Realloc::realloc_uninit(self, ptr, old_layout, new_layout) },
-            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Free::dealloc(self, ptr, old_layout); Ok(dangling(new_layout)) },
+            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Free::free(self, ptr, old_layout); Ok(dangling(new_layout)) },
             (Err(_old_zsty), Err(_new_zsty)) =>        { debug_assert_eq!(ptr, dangling( old_layout)); Ok(dangling(new_layout)) },
         }
     }
@@ -94,7 +94,7 @@ unsafe impl<A: nzst::Realloc> Realloc for A {
         match (LayoutNZ::from_layout(old_layout), LayoutNZ::from_layout(new_layout)) {
             (Err(_old_zsty), Ok(new_layout)) =>        { debug_assert_eq!(ptr, dangling( old_layout)); Ok(nzst::Alloc::alloc_zeroed(self, new_layout)?.cast()) },
             (Ok(old_layout), Ok(new_layout)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Realloc::realloc_zeroed(self, ptr, old_layout, new_layout) },
-            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Free::dealloc(self, ptr, old_layout); Ok(dangling(new_layout)) },
+            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(*old_layout)); nzst::Free::free(self, ptr, old_layout); Ok(dangling(new_layout)) },
             (Err(_old_zsty), Err(_new_zsty)) =>        { debug_assert_eq!(ptr, dangling( old_layout)); Ok(dangling(new_layout)) },
         }
     }

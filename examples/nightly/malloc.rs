@@ -50,7 +50,7 @@ unsafe impl nzst::Realloc for Malloc {
     }
 }
 impl nzst::Free for Malloc {
-    unsafe fn dealloc(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
         assert!(_layout.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
         assert!(_layout.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");
 
@@ -70,7 +70,7 @@ unsafe impl<A: zsty::Alloc + zsty::Free> alloc::Allocator for ToAllocator<A> whe
     }
 
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
-        zsty::Free::dealloc(&self.0, ptr.cast(), layout)
+        zsty::Free::free(&self.0, ptr.cast(), layout)
     }
 
     // TODO: leverage zst::Realloc ?

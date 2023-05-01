@@ -47,10 +47,10 @@ pub unsafe trait Alloc {
 }
 
 /// Deallocation function:<br>
-/// <code>[dealloc](Self::dealloc)(ptr: [NonNull]&lt;\_&gt;, layout: [LayoutNZ])</code><br>
+/// <code>[free](Self::free)(ptr: [NonNull]&lt;\_&gt;, layout: [LayoutNZ])</code><br>
 /// <br>
 pub trait Free {
-    unsafe fn dealloc(&self, ptr: AllocNN, layout: LayoutNZ);
+    unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ);
 }
 
 /// Reallocation function:<br>

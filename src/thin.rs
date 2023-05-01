@@ -1,6 +1,6 @@
 //! C/C++y allocator traits operating on thin pointers, implying alignment, etc.
 //!
-//! C and C++ allocators often merely accept a pointer for dealloc/realloc/size queries.
+//! C and C++ allocators often merely accept a pointer for free/realloc/size queries.
 //! This module provides traits for such functionality.
 
 use crate::*;
@@ -58,12 +58,12 @@ pub unsafe trait Alloc {
 
     /// Allocate at least `size` bytes of uninitialized memory.
     ///
-    /// The resulting allocation can typically be freed with <code>[Free]::[dealloc](Free::dealloc)</code>
+    /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
 
     /// Allocate at least `size` bytes of zeroed memory.
     ///
-    /// The resulting allocation can typically be freed with <code>[Free]::[dealloc](Free::dealloc)</code>
+    /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> {
         let alloc = self.alloc_uninit(size)?;
         unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size.get()) }.fill(MaybeUninit::new(0u8));
@@ -74,25 +74,25 @@ pub unsafe trait Alloc {
 
 
 /// Deallocation function:<br>
-/// <code>[dealloc](Self::dealloc)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code><br>
+/// <code>[free](Self::free)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
 pub trait Free {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
     /// *   `ptr` must belong to `self`
-    /// *   `ptr` will no longer be accessible after dealloc
-    unsafe fn dealloc(&self, ptr: AllocNN);
+    /// *   `ptr` will no longer be accessible after free
+    unsafe fn free(&self, ptr: AllocNN);
 }
 
 impl<A: thin::Free> nzst::Free for A {
-    unsafe fn dealloc(&self, ptr: AllocNN, _layout: LayoutNZ) { unsafe { thin::Free::dealloc(self, ptr) } }
+    unsafe fn free(&self, ptr: AllocNN, _layout: LayoutNZ) { unsafe { thin::Free::free(self, ptr) } }
 }
 
 
 
 /// Deallocation function (implies [`Free`]):<br>
-/// <code>[dealloc](Self::dealloc)(ptr: *mut <[MaybeUninit]<[u8]>>)</code><br>
+/// <code>[free](Self::free)(ptr: *mut <[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
 pub trait FreeNullable {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
@@ -100,12 +100,12 @@ pub trait FreeNullable {
     /// ### Safety
     /// *   `ptr` may be null, in which case this is a noop
     /// *   `ptr` must belong to `self`
-    /// *   `ptr` will no longer be accessible after dealloc
-    unsafe fn dealloc(&self, ptr: *mut MaybeUninit<u8>);
+    /// *   `ptr` will no longer be accessible after free
+    unsafe fn free(&self, ptr: *mut MaybeUninit<u8>);
 }
 
 impl<A: FreeNullable> thin::Free for A {
-    unsafe fn dealloc(&self, ptr: AllocNN) { unsafe { FreeNullable::dealloc(self, ptr.as_ptr()) } }
+    unsafe fn free(&self, ptr: AllocNN) { unsafe { FreeNullable::free(self, ptr.as_ptr()) } }
 }
 
 
