@@ -28,7 +28,7 @@ unsafe impl<A: nzst::Alloc> zsty::Alloc for A {
     }
 }
 
-impl<A: nzst::Free> zsty::Free for A {
+unsafe impl<A: nzst::Free> zsty::Free for A {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         match LayoutNZ::from_layout(layout) {
             Ok(layout) => unsafe { nzst::Free::free(self, ptr, layout) },

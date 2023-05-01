@@ -49,7 +49,7 @@ pub unsafe trait Alloc {
 /// Deallocation function:<br>
 /// <code>[free](Self::free)(ptr: [NonNull]&lt;\_&gt;, layout: [LayoutNZ])</code><br>
 /// <br>
-pub trait Free {
+pub unsafe trait Free {
     unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ);
 }
 

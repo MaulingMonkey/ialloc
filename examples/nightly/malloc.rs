@@ -49,7 +49,7 @@ unsafe impl nzst::Realloc for Malloc {
         NonNull::new(alloc.cast()).ok_or(AllocError)
     }
 }
-impl nzst::Free for Malloc {
+unsafe impl nzst::Free for Malloc {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
         assert!(_layout.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
         assert!(_layout.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");

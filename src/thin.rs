@@ -76,7 +76,7 @@ pub unsafe trait Alloc {
 /// Deallocation function:<br>
 /// <code>[free](Self::free)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
-pub trait Free {
+pub unsafe trait Free {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
@@ -90,7 +90,7 @@ pub trait Free {
 /// Deallocation function (implies [`Free`]):<br>
 /// <code>[free](Self::free)(ptr: *mut <[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
-pub trait FreeNullable {
+pub unsafe trait FreeNullable {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
