@@ -8,6 +8,7 @@ use crate::*;
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
+#[cfg(doc)] use core::ptr::NonNull;
 
 
 
