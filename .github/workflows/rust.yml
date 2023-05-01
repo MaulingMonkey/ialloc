@@ -20,7 +20,8 @@ jobs:
         rustc -V
         cargo -V
     - name: Test
-      run: cargo test --all-features
+      run: cargo +nightly test --all-features
+      run: cargo test
   build-windows:
     name: Windows 2019 Server
     runs-on: windows-2019
@@ -32,4 +33,4 @@ jobs:
         cargo -V
         cmd /C ver
     - name: Test
-      run: cargo test --all-features
+      run: scripts\build
