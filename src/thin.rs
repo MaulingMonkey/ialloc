@@ -92,7 +92,7 @@ impl<A: thin::Free> nzst::Free for A {
 
 
 /// Deallocation function (implies [`Free`]):<br>
-/// <code>[dealloc](Self::dealloc)(ptr: *const <[MaybeUninit]<[u8]>>)</code><br>
+/// <code>[dealloc](Self::dealloc)(ptr: *mut <[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
 pub trait FreeNullable {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
@@ -101,7 +101,7 @@ pub trait FreeNullable {
     /// *   `ptr` may be null, in which case this is a noop
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after dealloc
-    unsafe fn dealloc(&self, ptr: *const MaybeUninit<u8>);
+    unsafe fn dealloc(&self, ptr: *mut MaybeUninit<u8>);
 }
 
 impl<A: FreeNullable> thin::Free for A {
