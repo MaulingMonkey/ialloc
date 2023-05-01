@@ -11,29 +11,6 @@ use core::num::NonZeroUsize;
 
 
 
-/// Allocation size query:<br>
-/// <code>[alloc_size](Self::alloc_size)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
-/// <br>
-///
-/// ### Safety
-/// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
-/// Such an implementor would generally rely on the `ptr[..a.alloc_size(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
-/// By implementing this trait, you pinky promise that such a size is valid.
-pub unsafe trait SizeAlloc {
-    type Error : core::fmt::Debug;
-
-    /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
-    ///
-    /// ### Safety
-    /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
-    /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn alloc_size(&self, ptr: AllocNN) -> Result<usize, Self::Error>;
-}
-
-// TODO: SizeAllocDebug - like SizeAlloc, but developer-info only / falliable?
-
-
-
 const ALIGN_USIZE : Alignment = Alignment::of::<usize>();
 
 /// Allocation functions with alignment (up to <code>[Alloc]::[MAX_ALIGN](Self::MAX_ALIGN)</code>) implied by size:
@@ -130,3 +107,26 @@ pub trait FreeNullable {
 impl<A: FreeNullable> thin::Free for A {
     unsafe fn dealloc(&self, ptr: AllocNN) { unsafe { FreeNullable::dealloc(self, ptr.as_ptr()) } }
 }
+
+
+
+/// Allocation size query:<br>
+/// <code>[alloc_size](Self::alloc_size)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
+/// <br>
+///
+/// ### Safety
+/// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
+/// Such an implementor would generally rely on the `ptr[..a.alloc_size(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
+/// By implementing this trait, you pinky promise that such a size is valid.
+pub unsafe trait SizeAlloc {
+    type Error : core::fmt::Debug;
+
+    /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
+    ///
+    /// ### Safety
+    /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
+    /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
+    unsafe fn alloc_size(&self, ptr: AllocNN) -> Result<usize, Self::Error>;
+}
+
+// TODO: SizeAllocDebug - like SizeAlloc, but developer-info only / falliable?
