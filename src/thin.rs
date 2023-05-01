@@ -19,7 +19,7 @@ use core::num::NonZeroUsize;
 /// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
 /// Such an implementor would generally rely on the `ptr[..a.alloc_size(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
 /// By implementing this trait, you pinky promise that such a size is valid.
-pub unsafe trait AllocSize {
+pub unsafe trait SizeAlloc {
     type Error : core::fmt::Debug;
 
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
@@ -30,7 +30,7 @@ pub unsafe trait AllocSize {
     unsafe fn alloc_size(&self, ptr: AllocNN) -> Result<usize, Self::Error>;
 }
 
-// TODO: SafeAllocSize - like alloc_size, but a safe fn?
+// TODO: SizeAllocDebug - like SizeAlloc, but developer-info only / falliable?
 
 
 
