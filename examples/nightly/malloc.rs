@@ -1,6 +1,6 @@
 use ialloc::*;
 
-use core::alloc::{self, Layout, LayoutError};
+use core::alloc::{self, AllocError, Layout};
 use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
@@ -15,13 +15,6 @@ fn main() {
     let v2 = v.clone();
     dbg!((v, v2));
 }
-
-
-
-#[derive(Clone, Copy, Debug)] struct AllocError;
-impl From<LayoutError> for AllocError { fn from(_: LayoutError) -> Self { Self } }
-impl From<alloc::AllocError> for AllocError { fn from(_: alloc::AllocError) -> Self { Self } }
-impl From<AllocError> for alloc::AllocError { fn from(_: AllocError) -> Self { alloc::AllocError } }
 
 
 
@@ -69,11 +62,11 @@ impl nzst::Free for Malloc {
 
 // TODO: exile into a crate
 /// Adapt a [`ialloc::zsty`]-style allocator to [`alloc::alloc::Allocator`] (nightl)
-#[derive(Default, Clone, Copy)] struct ToAllocator<A: zsty::Alloc<Error = AllocError> + zsty::Free>(pub A);
-unsafe impl<A: zsty::Alloc<Error = AllocError> + zsty::Free> alloc::Allocator for ToAllocator<A> {
-    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, alloc::AllocError> {
+#[derive(Default, Clone, Copy)] struct ToAllocator<A: zsty::Alloc + zsty::Free>(pub A) where AllocError : From<A::Error>;
+unsafe impl<A: zsty::Alloc + zsty::Free> alloc::Allocator for ToAllocator<A> where AllocError : From<A::Error> {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let alloc = zsty::Alloc::alloc_uninit(&self.0, layout)?;
-        NonNull::new(core::ptr::slice_from_raw_parts_mut(alloc.as_ptr().cast(), layout.size())).ok_or(alloc::AllocError)
+        NonNull::new(core::ptr::slice_from_raw_parts_mut(alloc.as_ptr().cast(), layout.size())).ok_or(AllocError)
     }
 
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {

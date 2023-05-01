@@ -6,7 +6,7 @@
 
 use crate::*;
 
-use core::alloc::{LayoutError, Layout};
+use core::alloc::Layout;
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 
@@ -19,7 +19,7 @@ use core::ptr::NonNull;
 /// <code>[alloc_at_least_zeroed](Self::alloc_at_least_zeroed)(layout: &mut [Layout]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Alloc {
-    type Error : core::fmt::Debug + From<LayoutError>;
+    type Error;
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error>;
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error>;
     fn alloc_at_least_uninit(&self, layout: &mut Layout) -> Result<AllocNN, Self::Error> { self.alloc_uninit(*layout) }
