@@ -11,7 +11,9 @@ use core::num::NonZeroUsize;
 
 
 
-/// <code>[alloc_size](Self::alloc_size)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code>
+/// Allocation size query:<br>
+/// <code>[alloc_size](Self::alloc_size)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Result]<[usize]></code><br>
+/// <br>
 ///
 /// ### Safety
 /// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
@@ -94,7 +96,9 @@ pub unsafe trait Alloc {
 
 
 
-/// <code>[dealloc](Self::dealloc)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code>
+/// Deallocation function:<br>
+/// <code>[dealloc](Self::dealloc)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code><br>
+/// <br>
 pub trait Free {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
@@ -110,12 +114,14 @@ impl<A: thin::Free> nzst::Free for A {
 
 
 
-/// <code>[dealloc](Self::dealloc)(ptr: *const <[MaybeUninit]<[u8]>>)</code>
+/// Deallocation function (implies [`Free`]):<br>
+/// <code>[dealloc](Self::dealloc)(ptr: *const <[MaybeUninit]<[u8]>>)</code><br>
+/// <br>
 pub trait FreeNullable {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
-    /// *   `ptr` may be null, in which case this is a noop.
+    /// *   `ptr` may be null, in which case this is a noop
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after dealloc
     unsafe fn dealloc(&self, ptr: *const MaybeUninit<u8>);
