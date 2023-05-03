@@ -4,6 +4,7 @@
 name                        = "ialloc"
 version                     = "0.0.0-2023-05-03"
 edition                     = "2021"
+rust-version                = "1.69.0" # MSRV: CARGO_BIN_NAME in examples/nightly/stable-main-stub.rs
 
 license                     = "Apache-2.0 OR MIT"
 authors                     = ["MaulingMonkey <git@maulingmonkey.com>"]
