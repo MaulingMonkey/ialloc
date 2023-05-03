@@ -40,6 +40,19 @@ impl Alignment {
     /// **Undefined behavior** unless `align` is a valid power of 2 (which also implies nonzero)
     pub const unsafe fn new_unchecked(align: usize) -> Self { unsafe { core::mem::transmute(align) } }
 
+    /// Minimum representable alignment (e.g. `1`)
+    pub const MIN : Alignment = ALIGN_1;
+
+    /// Maximum representable alignment
+    ///
+    /// | Bits  | MAX                           |
+    /// | ------| ------------------------------|
+    /// | 16    | 2<sup>15</sup> B = 32 KiB     |
+    /// | 32    | 2<sup>31</sup> B = 2 GiB      |
+    /// | 64    | 2<sup>63</sup> B = 8 EiB      |
+    /// | 128   | 2<sup>127</sup> B = ???       |
+    pub const MAX : Alignment = Alignment::constant(usize::MAX/2+1);
+
     #[allow(dead_code)]
     const fn try_from_nzusize(align: NonZeroUsize   ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align.get()) }) } else { None } }
     const fn try_from_usize  (align: usize          ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align      ) }) } else { None } }
