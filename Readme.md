@@ -25,7 +25,6 @@ Allocator interface traits for Rust
 *   Rust-style traits are annoying to adapt to C-style allocators.  This provides more C-friendly traits as options.
 
 ## Out of scope
-*   Actual implementations of these traits, including for `core`/`alloc`/`std`.
 *   NUMA?  Although ask again later.
 *   Physical GPU memory allocation, probably.  Might warrant a related crate?
 *   ID/handle allocation, perhaps.  Might warrant a related crate?
