@@ -1,6 +1,6 @@
 use ialloc::*;
 
-use core::alloc::{self, AllocError, Layout};
+use core::alloc::AllocError;
 use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
@@ -8,7 +8,7 @@ use core::ptr::NonNull;
 
 
 fn main() {
-    let mut v = Vec::new_in(ToAllocator(Malloc));
+    let mut v = Vec::new_in(Malloc);
     v.push(1);
     v.push(2);
     v.push(3);
@@ -58,20 +58,9 @@ unsafe impl nzst::Free for Malloc {
     }
 }
 
-
-
-// TODO: exile into a crate
-/// Adapt a [`ialloc::zsty`]-style allocator to [`alloc::alloc::Allocator`] (nightl)
-#[derive(Default, Clone, Copy)] struct ToAllocator<A: zsty::Alloc + zsty::Free>(pub A) where AllocError : From<A::Error>;
-unsafe impl<A: zsty::Alloc + zsty::Free> alloc::Allocator for ToAllocator<A> where AllocError : From<A::Error> {
-    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let alloc = zsty::Alloc::alloc_uninit(&self.0, layout)?;
-        NonNull::new(core::ptr::slice_from_raw_parts_mut(alloc.as_ptr().cast(), layout.size())).ok_or(AllocError)
+#[no_implicit_prelude] mod cleanroom { // verify `impls!` is hygenic
+    ::ialloc::impls! {
+        unsafe impl core::alloc::GlobalAlloc         for super::Malloc => ialloc::nzst::Realloc;
+        unsafe impl core::alloc::Allocator(unstable) for super::Malloc => ialloc::zsty::Realloc;
     }
-
-    unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
-        zsty::Free::free(&self.0, ptr.cast(), layout)
-    }
-
-    // TODO: leverage zst::Realloc ?
 }
