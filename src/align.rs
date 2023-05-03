@@ -34,11 +34,14 @@ impl Alignment {
     /// Returns the [`Alignment`] of `T`.
     pub const fn of<T>() -> Self { unsafe { Self::new_unchecked(core::mem::align_of::<T>()) } }
 
-    /// Get the alignment as a [`usize`] (the nicheless underlying type)
-    pub const fn get(self) -> usize { self.to_usize() }
-
     /// **Undefined behavior** unless `align` is a valid power of 2 (which also implies nonzero)
     pub const unsafe fn new_unchecked(align: usize) -> Self { unsafe { core::mem::transmute(align) } }
+
+    /// Returns the alignment as a [`usize`] (the nicheless underlying type)
+    pub const fn as_usize   (self) -> usize         { self.0 as usize }
+
+    /// Returns the alignment as a [`NonZeroUsize`]
+    pub const fn as_nonzero (self) -> NonZeroUsize  { unsafe { NonZeroUsize::new_unchecked(self.as_usize()) } }
 
     /// Minimum representable alignment (e.g. `1`)
     pub const MIN : Alignment = ALIGN_1;
@@ -57,12 +60,10 @@ impl Alignment {
     const fn try_from_nzusize(align: NonZeroUsize   ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align.get()) }) } else { None } }
     const fn try_from_usize  (align: usize          ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align      ) }) } else { None } }
 
-    const fn to_nzusize (self) -> NonZeroUsize  { unsafe { NonZeroUsize::new_unchecked(self.to_usize()) } }
-    const fn to_usize   (self) -> usize         { self.0 as usize }
 }
 
-impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.to_usize()   } }
-impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.to_nzusize() } }
+impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
+impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 
 // XXX: u8::try_from(0xFFFF_u16) isn't a const expr
 //type TryFromIntError = core::num::TryFromIntError;
@@ -72,7 +73,7 @@ impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { al
 
 impl Debug for Alignment {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut v = self.to_usize();
+        let mut v = self.as_usize();
         for unit in ["B", "KiB", "MiB", "GiB", "TiB", "PiB"] {
             if v <= 8192 { return write!(f, "{v} {unit}"); }
             v >>= 10;

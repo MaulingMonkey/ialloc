@@ -32,7 +32,7 @@ unsafe impl nzst::Alloc for Malloc {
         assert!(layout.size()  <= Self::MAX_SIZE,  "requested allocation beyond malloc's capabilities");
         assert!(layout.align() <= Self::MAX_ALIGN, "requested allocation beyond malloc's capabilities");
 
-        let size = layout.size().get().next_multiple_of(layout.align().get());
+        let size = layout.size().get().next_multiple_of(layout.align().as_usize());
         let alloc = unsafe { libc::malloc(size) };
         NonNull::new(alloc.cast()).ok_or(AllocError)
     }
@@ -44,7 +44,7 @@ unsafe impl nzst::Realloc for Malloc {
         assert!(new.size()  <= Self::MAX_SIZE,  "requested reallocation beyond malloc's capabilities");
         assert!(new.align() <= Self::MAX_ALIGN, "requested reallocation beyond malloc's capabilities");
 
-        let size = new.size().get().next_multiple_of(new.align().get());
+        let size = new.size().get().next_multiple_of(new.align().as_usize());
         let alloc = unsafe { libc::realloc(ptr.as_ptr().cast(), size) };
         NonNull::new(alloc.cast()).ok_or(AllocError)
     }

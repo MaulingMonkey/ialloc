@@ -11,7 +11,7 @@ use core::ops::Deref;
 
 impl LayoutNZ {
     pub(crate) fn from_layout(layout: Layout) -> Result<Self, LayoutError> { if layout.size() == 0 { Err(ERROR_SIZE_0) } else { Ok(Self(layout)) } }
-    pub fn from_size_align(size: NonZeroUsize, align: Alignment) -> Result<Self, LayoutError> { Self::from_layout(Layout::from_size_align(size.get(), align.get())?) }
+    pub fn from_size_align(size: NonZeroUsize, align: Alignment) -> Result<Self, LayoutError> { Self::from_layout(Layout::from_size_align(size.get(), align.as_usize())?) }
 
     pub fn new<T>() -> Result<Self, LayoutError> { Self::from_layout(Layout::new::<T>()) }
     pub fn for_value<T: ?Sized>(t: &T) -> Result<Self, LayoutError> { Self::from_layout(Layout::for_value(t)) }
