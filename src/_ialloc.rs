@@ -2,6 +2,8 @@
 #![no_std]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+#[cfg(test)] extern crate alloc;
+
 type AllocNN    = core::ptr::NonNull<core::mem::MaybeUninit<u8>>;
 type AllocNN0   = core::ptr::NonNull<u8>;
 
