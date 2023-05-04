@@ -20,11 +20,29 @@ categories                  = ["memory-management", "no-std::no-alloc"] # https:
 path                        = "src/_ialloc.rs"
 
 [features]
-default                     = []
+default                     = ["c", "win32", "msvc"]
 nightly                     = [] # should have no effect on anything but examples
 
-[dependencies]
-# none yet
+c                           = ["libc"]
+win32                       = ["winapi"]
+msvc                        = []
 
-[dev-dependencies]
-libc                        = "0.2"
+
+
+[dependencies]
+libc.version                = "0.2"
+libc.optional               = true
+winapi.version              = "0.3"
+winapi.optional             = true
+winapi.features = [
+    # shared
+
+    # um
+    "combaseapi",
+    "errhandlingapi",
+    "heapapi",
+    "minwinbase",
+    "winbase",
+    "wincrypt",
+    "winnt",
+]

@@ -1,0 +1,20 @@
+<!-- MSVC -->
+[`_aligned_free`]:                  https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free
+[`_aligned_free_dbg`]:              https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg
+[`_aligned_malloc`]:                https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc
+[`_aligned_malloc_dbg`]:            https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc-dbg
+[`_aligned_msize`]:                 https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-msize
+[`_aligned_msize_dbg`]:             https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-msize-dbg
+[`_aligned_offset_malloc`]:         https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-malloc
+[`_aligned_offset_malloc_dbg`]:     https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-malloc-dbg
+[`_aligned_offset_realloc`]:        https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-realloc
+[`_aligned_offset_realloc_dbg`]:    https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-realloc-dbg
+[`_aligned_offset_recalloc`]:       https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-recalloc
+[`_aligned_offset_recalloc_dbg`]:   https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-offset-recalloc-dbg
+[`_aligned_realloc`]:               https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc
+[`_aligned_realloc_dbg`]:           https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc-dbg
+[`_aligned_recalloc`]:              https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc
+[`_aligned_recalloc_dbg`]:          https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg
+[`_alloca`]:                        https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/alloca
+[`_freea`]:                         https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/freea
+[`_malloca`]:                       https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloca

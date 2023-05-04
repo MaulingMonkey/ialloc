@@ -15,8 +15,8 @@ const ALIGN_USIZE : Alignment = Alignment::of::<usize>();
 
 /// Allocation functions with alignment (up to <code>[Alloc]::[MAX_ALIGN](Self::MAX_ALIGN)</code>) implied by size:
 /// <code>
-/// fn [alloc_uninit](Self::alloc_uninit)(size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
-/// fn [alloc_zeroed](Self::alloc_zeroed)(size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
+/// fn [alloc_uninit](Self::alloc_uninit)(size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
+/// fn [alloc_zeroed](Self::alloc_zeroed)(size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
 /// </code><br>
 ///
 /// ## Alignment Guarantees
@@ -98,6 +98,24 @@ pub unsafe trait FreeNullable {
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
     unsafe fn free(&self, ptr: *mut MaybeUninit<u8>);
+}
+
+
+
+/// Reallocation function:<br>
+/// <code>[realloc_uninit](Self::realloc_uninit)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
+/// <br>
+pub unsafe trait Realloc : Alloc + Free {
+    // TODO: determine exact API contract
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
+}
+
+/// Reallocation function:<br>
+/// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
+/// <br>
+pub unsafe trait ReallocZeroed : Realloc {
+    // TODO: determine exact API contract
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
 }
 
 

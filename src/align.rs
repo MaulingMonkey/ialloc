@@ -26,7 +26,7 @@ const _ : () = assert!(align_of::<Alignment>() == align_of::<NonZeroUsize>());
 const _ : () = assert!(size_of ::<Alignment>() == size_of ::<NonZeroUsize>());
 
 impl Alignment {
-    #[track_caller] const fn constant(align: usize) -> Self { match Self::new(align) { Some(a) => a, None => panic!("Alignment::constant(align): invalid constant") } }
+    #[track_caller] pub(crate) const fn constant(align: usize) -> Self { match Self::new(align) { Some(a) => a, None => panic!("Alignment::constant(align): invalid constant") } }
 
     /// Returns [`None`] unless `align` is a valid power of 2 (which also implies nonzero)
     pub const fn new(align: usize) -> Option<Self> { Self::try_from_usize(align) }
