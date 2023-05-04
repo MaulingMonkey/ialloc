@@ -17,6 +17,7 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 pub mod allocator {
     #[path = "alloc/_alloc.rs"  ] pub mod alloc;
     #[path = "c/_c.rs"          ] pub mod c;
+    #[path = "cpp/_cpp.rs"      ] pub mod cpp;
     #[path = "win32/_win32.rs"  ] pub mod win32;
     #[path = "msvc/_msvc.rs"    ] pub mod msvc;
 }

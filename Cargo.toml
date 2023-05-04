@@ -20,7 +20,7 @@ categories                  = ["memory-management", "no-std::no-alloc"] # https:
 path                        = "src/_ialloc.rs"
 
 [features]
-default                     = ["alloc", "c", "win32", "msvc"]
+default                     = ["alloc", "c", "c++17", "win32", "msvc"]
 nightly                     = [] # should have no effect on anything but examples
 
 alloc                       = []
@@ -28,7 +28,18 @@ c                           = ["libc"]
 win32                       = ["winapi"]
 msvc                        = []
 
+"c++23"                     = ["c++20"]
+"c++20"                     = ["c++17"]
+"c++17"                     = ["c++14"]
+"c++14"                     = ["c++11"]
+"c++11"                     = ["c++03"]
+"c++03"                     = ["c++98"]
+"c++98"                     = ["c++"]
+"c++"                       = ["cc"]
 
+[build-dependencies]
+cc.version                  = "1"
+cc.optional                 = true
 
 [dependencies]
 libc.version                = "0.2"
