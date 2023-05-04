@@ -20,9 +20,10 @@ categories                  = ["memory-management", "no-std::no-alloc"] # https:
 path                        = "src/_ialloc.rs"
 
 [features]
-default                     = ["c", "win32", "msvc"]
+default                     = ["alloc", "c", "win32", "msvc"]
 nightly                     = [] # should have no effect on anything but examples
 
+alloc                       = []
 c                           = ["libc"]
 win32                       = ["winapi"]
 msvc                        = []
