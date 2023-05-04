@@ -19,14 +19,20 @@ fn main() {
 
 
 // TODO: exile into a crate
+
 /// malloc / realloc / free
 #[derive(Default, Clone, Copy)] struct Malloc;
-impl Malloc {
+impl core::ops::Deref for Malloc { type Target = MallocWithConfig; fn deref(&self) -> &Self::Target { &MallocWithConfig(()) } }
+
+/// malloc / realloc / free
+#[derive(Default, Clone, Copy)] struct MallocWithConfig(());
+impl MallocWithConfig {
     // TODO: more accurately determine malloc's alignment/size guarantees
     pub const MAX_ALIGN : Alignment     = ALIGN_4;
     pub const MAX_SIZE  : NonZeroUsize  = NonZeroUsize::new(usize::MAX/2).unwrap();
 }
-unsafe impl nzst::Alloc for Malloc {
+
+unsafe impl nzst::Alloc for MallocWithConfig {
     type Error = AllocError;
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         assert!(layout.size()  <= Self::MAX_SIZE,  "requested allocation beyond malloc's capabilities");
@@ -37,7 +43,8 @@ unsafe impl nzst::Alloc for Malloc {
         NonNull::new(alloc.cast()).ok_or(AllocError)
     }
 }
-unsafe impl nzst::Realloc for Malloc {
+
+unsafe impl nzst::Realloc for MallocWithConfig {
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old: LayoutNZ, new: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         assert!(old.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
         assert!(old.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");
@@ -49,7 +56,8 @@ unsafe impl nzst::Realloc for Malloc {
         NonNull::new(alloc.cast()).ok_or(AllocError)
     }
 }
-unsafe impl nzst::Free for Malloc {
+
+unsafe impl nzst::Free for MallocWithConfig {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
         assert!(_layout.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
         assert!(_layout.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");
@@ -60,7 +68,13 @@ unsafe impl nzst::Free for Malloc {
 
 #[no_implicit_prelude] mod cleanroom { // verify `impls!` is hygenic
     ::ialloc::impls! {
-        unsafe impl core::alloc::GlobalAlloc         for super::Malloc => ialloc::nzst::Realloc;
-        unsafe impl core::alloc::Allocator(unstable) for super::Malloc => ialloc::zsty::Realloc;
+        unsafe impl ialloc::nzst::Alloc                 for super::Malloc => core::ops::Deref;
+        unsafe impl ialloc::nzst::Free                  for super::Malloc => core::ops::Deref;
+        unsafe impl ialloc::nzst::Realloc               for super::Malloc => core::ops::Deref;
+        unsafe impl core::alloc::GlobalAlloc            for super::Malloc => core::ops::Deref;
+        unsafe impl core::alloc::Allocator(unstable)    for super::Malloc => core::ops::Deref;
+
+        unsafe impl core::alloc::GlobalAlloc            for super::MallocWithConfig => ialloc::nzst::Realloc;
+        unsafe impl core::alloc::Allocator(unstable)    for super::MallocWithConfig => ialloc::zsty::Realloc;
     }
 }
