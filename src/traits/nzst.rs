@@ -58,7 +58,18 @@ pub unsafe trait Free {
 /// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]&lt;\_&gt;, old: [LayoutNZ], new: [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Realloc : Alloc + Free {
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error>;
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
+        if old_layout == new_layout { return Ok(ptr) }
+        let alloc = self.alloc_uninit(new_layout)?;
+        {
+            let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size().get()) };
+            let new : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(),      new_layout.size().get()) };
+            let n = old.len().min(new.len());
+            new[..n].copy_from_slice(&old[..n]);
+        }
+        unsafe { self.free(ptr, old_layout) };
+        Ok(alloc)
+    }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
         let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
