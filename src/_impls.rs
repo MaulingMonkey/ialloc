@@ -120,7 +120,7 @@ pub mod prelude {
         const _ : () = {
             use $crate::_impls::prelude::*;
             unsafe impl $(<$($gdef)*>)? thin::Realloc for $ty {
-                const CAN_REALLOC_ZEROED : bool = <$ty as thin::Realloc>::CAN_REALLOC_ZEROED;
+                const CAN_REALLOC_ZEROED : bool = <<$ty as core::ops::Deref>::Target as thin::Realloc>::CAN_REALLOC_ZEROED;
                 #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: NonZeroUsize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { thin::Realloc::realloc_uninit(&**self, ptr, new_size) } }
                 #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: NonZeroUsize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { thin::Realloc::realloc_zeroed(&**self, ptr, new_size) } }
             }
