@@ -1,4 +1,4 @@
-#![cfg(all(target_env = "msvc", feature = "msvc"))]
+#![cfg(any(msvc, c11, cpp17))]
 //! [`AlignedMalloc`]
 //!
 //! | Rust                              | C (Release CRT)       | ~~Debug CRT~~ (N/A)       |

@@ -21,28 +21,30 @@ build                       = "build/build.rs"
 path                        = "src/_ialloc.rs"
 
 [features]
-default                     = ["alloc", "c89", "c++17", "win32", "msvc"]
+default                     = ["alloc", "c23", "c++23", "win32", "msvc"]
 nightly                     = [] # should have no effect on anything but examples
 
 alloc                       = []
 win32                       = ["winapi"]
-msvc                        = []
+msvc                        = ["libc"]
 
-#c23                         = ["c17"] # not yet standardized
+# Maximum enabled C standard.  May expose less if the compiler available to the `cc` crate doesn't support the standard.
+c23                         = ["c17"] # XXX: not yet standardized
 c17                         = ["c11"]
 c11                         = ["c99"]
 c99                         = ["c89"]
 c89                         = ["c"]
-c                           = ["libc"]
+c                           = ["cc", "libc"] # cc is only used for feature supported standard detection at the moment
 
-"c++23"                     = ["c++20"]
+# Maximum enabled C++ standard.  May expose less if the compiler available to the `cc` crate doesn't support the standard.
+"c++23"                     = ["c++20"] # XXX: not yet standardized
 "c++20"                     = ["c++17"]
 "c++17"                     = ["c++14"]
 "c++14"                     = ["c++11"]
 "c++11"                     = ["c++03"]
 "c++03"                     = ["c++98"]
 "c++98"                     = ["c++"]
-"c++"                       = ["cc"]
+"c++"                       = ["cc", "libc"]
 
 [build-dependencies]
 cc.version                  = "1"

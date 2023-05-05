@@ -1,9 +1,24 @@
-use std::io;
-use std::process::Command;
+// `cfg`s set by build script:
+// • `msvc`                             if feature + target_env
+// • `c89` ..= `c23`                    if feature + cc feature test
+// • `cpp98` ..= `cpp23`                if feature + cc feature test
+// • `allocator_api` = `"1.50"`         if allocator_api has the same shape it had in 1.50
+// • `allocator_api` = `"unstable"`     if allocator_api requires #![feature(allocator_api)]
 
-const CPP : &'static [&'static str] = &[
+use std::env::var_os;
+use std::ffi::OsStr;
+use std::io;
+use std::process::{Command, Stdio};
+
+#[cfg(feature = "cc")] const C : &'static [&'static str] = &[
+    //"src/allocator/c/ffi.c",
+];
+
+#[cfg(feature = "cc")] const CPP : &'static [&'static str] = &[
     "src/allocator/cpp/ffi.cpp",
 ];
+
+
 
 fn main() {
     if feature_test("allocator_api_1_50_stable") {
@@ -12,43 +27,71 @@ fn main() {
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
         println!("cargo:rustc-cfg=allocator_api=\"unstable\"");
     }
-    build_cpp();
+    if var_os("CARGO_CFG_TARGET_ENV").as_deref() == Some(OsStr::new("msvc")) && var_os("CARGO_FEATURE_MSVC").is_some() {
+        println!("cargo:rustc-cfg=msvc");
+    }
+    use_cc();
 }
 
-fn build_cpp() {
-    if std::env::var_os("CARGO_FEATURE_C++").is_none() { return }
-    for src in CPP { println!("cargo:rerun-if-changed={src}") }
+fn use_cc() {
+    #[cfg(feature = "cc")] {
+        for src in CPP { println!("cargo:rerun-if-changed={src}") }
 
-    let mut cc = cc::Build::new();
+        let mut c   = cc::Build::new(); c   .cpp(false);
+        let mut cpp = cc::Build::new(); cpp .cpp(true);
 
-    let standard =
-        if      std::env::var_os("CARGO_FEATURE_C++23").is_some()   { "c++23" }
-        else if std::env::var_os("CARGO_FEATURE_C++20").is_some()   { "c++20" }
-        else if std::env::var_os("CARGO_FEATURE_C++17").is_some()   { "c++17" }
-        else if std::env::var_os("CARGO_FEATURE_C++14").is_some()   { "c++14" }
-        else if std::env::var_os("CARGO_FEATURE_C++11").is_some()   { "c++11" }
-        else if std::env::var_os("CARGO_FEATURE_C++03").is_some()   { "c++03" }
-        else                                                        { "c++98" };
+        let msvc        = cpp.get_compiler().is_like_msvc();
+        //let clang       = cpp.get_compiler().is_like_clang();
+        //let gnu         = cpp.get_compiler().is_like_gnu();
 
+        macro_rules! flag { ($cc:expr, $($tt:tt)*) => {{
+            let cc : &mut cc::Build = &mut $cc;
+            let flag = format!($($tt)*);
+            let supported = cc.is_flag_supported(&flag).unwrap_or_default();
+            if supported { cc.flag(&flag); }
+            supported
+        }}}
 
-    if cc.get_compiler().is_like_msvc() {
-        cc.flag(&format!("/std:{standard}"));
-    } else if cc.get_compiler().is_like_clang() || cc.get_compiler().is_like_gnu() {
-        cc.flag(&format!("-std={standard}"));
-    } else {
-        // ???
+        fn skip_until<I: Iterator>(peek: &mut core::iter::Peekable<I>, mut cond: impl FnMut(&I::Item) -> bool) {
+            while peek.next_if(|i| !cond(i)).is_some() {}
+        }
+
+        // define standards
+        let mut c_standards     = "23 17 11 99 89".split(' ').peekable();
+        let mut cpp_standards   = "23 20 17 14 11 03 98".split(' ').peekable();
+
+        // skip unconfigured standards
+        skip_until(&mut   c_standards, |yy| var_os(format!("CARGO_FEATURE_C{yy}"  )).is_some());
+        skip_until(&mut cpp_standards, |yy| var_os(format!("CARGO_FEATURE_C++{yy}")).is_some());
+
+        // skip unsupported standards
+        if msvc {
+            skip_until(&mut   c_standards, |yy| flag!(c,   "/std:c{yy}"));
+            skip_until(&mut cpp_standards, |yy| flag!(cpp, "/std:c++{yy}"));
+        } else {
+            skip_until(&mut   c_standards, |yy| flag!(c,   "-std=c{yy}"));
+            skip_until(&mut cpp_standards, |yy| flag!(cpp, "-std=c++{yy}") || match *yy {
+                "23" => flag!(cpp, "-std=c++2b"),
+                "20" => flag!(cpp, "-std=c++2a"),
+                _yy  => false,
+            });
+        }
+
+        for yy in cpp_standards { println!("cargo:rustc-cfg=cpp{yy}") }
+        for yy in c_standards   { println!("cargo:rustc-cfg=c{yy}") }
+
+        let version = env!("CARGO_PKG_VERSION").replace(".", "_").replace("-", "_");
+        let prefix  = format!("ialloc_{version}_");
+        let cpplib  = format!("ialloc_{version}_cpp");
+        let clib    = format!("ialloc_{version}_c");
+
+        cpp.define("IALLOC_PREFIX", &*prefix);
+        for src in CPP { cpp.file(src); }
+        for src in C   { c  .file(src); }
+        if cfg!(cpp) && !CPP.is_empty() { cpp.compile(&cpplib); println!("cargo:rustc_link_lib=static={cpplib}"); }
+        if cfg!(c  ) && !C  .is_empty() { c.compile(&clib);     println!("cargo:rustc_link_lib=static={clib}"); }
+        println!("cargo:rustc-env=IALLOC_PREFIX={prefix}");
     }
-
-    let version = env!("CARGO_PKG_VERSION").replace(".", "_").replace("-", "_");
-    let prefix  = format!("ialloc_{version}_");
-    let libname = format!("ialloc_{version}_cpp");
-
-    cc.define("IALLOC_PREFIX", &*prefix);
-    for src in CPP { cc.file(src); }
-    cc.compile(&libname);
-
-    println!("cargo:rustc-env=IALLOC_PREFIX={prefix}");
-    println!("cargo:rustc_link_lib=static={libname}");
 }
 
 fn feature_test(feature: &str) -> bool {
@@ -60,10 +103,11 @@ fn feature_test_impl(feature: &str) -> Result<bool, io::Error> {
     rustc
         .arg("--crate-name").arg(format!("feature_test_{feature}"))
         .arg("--crate-type=lib")
-        .arg("--out-dir").arg(std::env::var_os("OUT_DIR").unwrap())
-        .arg("--target").arg(std::env::var_os("TARGET").unwrap())
+        .arg("--out-dir").arg(var_os("OUT_DIR").unwrap())
+        .arg("--target").arg(var_os("TARGET").unwrap())
         .arg("--emit=llvm-ir")
         .arg(format!("build/feature/test/{feature}.rs"))
+        .stderr(Stdio::null()).stdout(Stdio::null()) // XXX: these mostly just clutter the build log
         ;
     Ok(rustc.status()?.success())
 }

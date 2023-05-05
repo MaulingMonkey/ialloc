@@ -1,4 +1,4 @@
-#![cfg(feature = "c")]
+#![cfg(c89)]
 //! [`Malloc`] (C89)
 //!
 //! | Rust                                      | C                     | MSVC<br>Only  |
@@ -14,5 +14,5 @@
 
 #[cfg(doc)] use crate::*;
 
-#[cfg(feature = "c89")] mod malloc;
-#[cfg(feature = "c89")] pub use malloc::Malloc;
+#[cfg(c89)] mod malloc;
+#[cfg(c89)] pub use malloc::Malloc;
