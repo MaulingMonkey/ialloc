@@ -15,7 +15,7 @@
         },
         {
             "label":            "help",
-            "command":          "cargo doc --open",
+            "command":          "cargo +nightly doc --open",
         },
 
 

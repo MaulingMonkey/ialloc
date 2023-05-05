@@ -1,8 +1,17 @@
+use std::io;
+use std::process::Command;
+
 const CPP : &'static [&'static str] = &[
     "src/allocator/cpp/ffi.cpp",
 ];
 
 fn main() {
+    if feature_test("allocator_api_1_50_stable") {
+        println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
+    } else if feature_test("allocator_api_1_50_unstable") {
+        println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
+        println!("cargo:rustc-cfg=allocator_api=\"unstable\"");
+    }
     build_cpp();
 }
 
@@ -40,4 +49,21 @@ fn build_cpp() {
 
     println!("cargo:rustc-env=IALLOC_PREFIX={prefix}");
     println!("cargo:rustc_link_lib=static={libname}");
+}
+
+fn feature_test(feature: &str) -> bool {
+    feature_test_impl(feature).unwrap_or_else(|err| panic!("error testing feature {feature:?}: {err:?}"))
+}
+
+fn feature_test_impl(feature: &str) -> Result<bool, io::Error> {
+    let mut rustc = Command::new("rustc");
+    rustc
+        .arg("--crate-name").arg(format!("feature_test_{feature}"))
+        .arg("--crate-type=lib")
+        .arg("--out-dir").arg(std::env::var_os("OUT_DIR").unwrap())
+        .arg("--target").arg(std::env::var_os("TARGET").unwrap())
+        .arg("--emit=llvm-ir")
+        .arg(format!("build/feature/test/{feature}.rs"))
+        ;
+    Ok(rustc.status()?.success())
 }

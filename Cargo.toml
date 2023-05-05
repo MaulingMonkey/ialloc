@@ -15,6 +15,7 @@ readme                      = "Readme.md"
 description                 = "Allocator interface traits"
 categories                  = ["memory-management", "no-std::no-alloc"] # https://crates.io/category_slugs
 #keywords                    = ["..."]
+build                       = "build/build.rs"
 
 [lib]
 path                        = "src/_ialloc.rs"
