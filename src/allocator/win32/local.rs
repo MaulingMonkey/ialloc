@@ -16,7 +16,7 @@ use core::ptr::NonNull;
 /// | [`thin::Alloc::alloc_uninit`]             | <code>[`LocalAlloc`](0, size)</code>
 /// | [`thin::Alloc::alloc_zeroed`]             | <code>[`LocalAlloc`](LMEM_ZEROINIT, size)</code>
 /// | [`thin::Realloc::realloc_uninit`]         | <code>[`LocalReAlloc`](ptr, size, 0)</code>
-/// | [`thin::ReallocZeroed::realloc_zeroed`]   | <code>[`LocalReAlloc`](ptr, size, LMEM_ZEROINIT)</code>
+/// | [`thin::Realloc::realloc_zeroed`]         | <code>[`LocalReAlloc`](ptr, size, LMEM_ZEROINIT)</code>
 /// | [`thin::Free::free`]                      | [`LocalFree`]
 /// | [`thin::SizeOf::size_of`]                 | [`LocalSize`]
 ///

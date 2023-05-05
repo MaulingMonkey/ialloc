@@ -15,7 +15,7 @@ use core::ptr::NonNull;
 /// | [`thin::Alloc::alloc_uninit`]             | <code>[`GlobalAlloc`](0, size)</code>
 /// | [`thin::Alloc::alloc_zeroed`]             | <code>[`GlobalAlloc`](GMEM_ZEROINIT, size)</code>
 /// | [`thin::Realloc::realloc_uninit`]         | <code>[`GlobalReAlloc`](ptr, size, 0)</code>
-/// | [`thin::ReallocZeroed::realloc_zeroed`]   | <code>[`GlobalReAlloc`](ptr, size, GMEM_ZEROINIT)</code>
+/// | [`thin::Realloc::realloc_zeroed`]         | <code>[`GlobalReAlloc`](ptr, size, GMEM_ZEROINIT)</code>
 /// | [`thin::Free::free`]                      | [`GlobalFree`]
 /// | [`thin::SizeOf::size_of`]                 | [`GlobalSize`]
 ///
