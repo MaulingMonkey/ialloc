@@ -90,15 +90,16 @@ unsafe impl thin::ReallocZeroed for Heap {
     }
 }
 
-unsafe impl thin::FreeNullable for Heap {
-    unsafe fn free(&self, ptr: *mut MaybeUninit<u8>) {
+unsafe impl thin::Free for Heap {
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         // "This pointer can be NULL."
         // https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree#parameters
         assert!(0 != unsafe { HeapFree(self.0, 0, ptr.cast()) });
     }
 }
 
-unsafe impl thin::SizeOf for Heap {
+unsafe impl thin::SizeOf for Heap {}
+unsafe impl thin::SizeOfDebug for Heap {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         let size = unsafe { HeapSize(self.0, 0, ptr.as_ptr().cast()) };
         if size == !0 { return None }
@@ -143,5 +144,9 @@ unsafe impl thin::Alloc for ProcessHeap {
 
 unsafe impl thin::Realloc       for ProcessHeap { unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } } }
 unsafe impl thin::ReallocZeroed for ProcessHeap { unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } } }
-unsafe impl thin::FreeNullable  for ProcessHeap { unsafe fn free(&self, ptr: *mut MaybeUninit<u8>) { unsafe { Heap::process().free(ptr) } } }
-unsafe impl thin::SizeOf        for ProcessHeap { unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { Heap::process().size_of(ptr) } } }
+unsafe impl thin::Free          for ProcessHeap {
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { Heap::process().free(ptr) } }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { Heap::process().free_nullable(ptr) } }
+}
+unsafe impl thin::SizeOf        for ProcessHeap {}
+unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { Heap::process().size_of(ptr) } } }

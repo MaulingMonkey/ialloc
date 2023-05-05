@@ -71,8 +71,8 @@ unsafe impl nzst::Realloc for AlignedMalloc {
 
 // thin::{Alloc, Realloc, ReallocZeroed} could infer an alignment, but that seems like a mild possible footgun
 
-unsafe impl thin::FreeNullable for AlignedMalloc {
-    #[track_caller] unsafe fn free(&self, ptr: *mut MaybeUninit<u8>) {
+unsafe impl thin::Free for AlignedMalloc {
+    #[track_caller] unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { _aligned_free(ptr.cast()) }
     }
 }

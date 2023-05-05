@@ -60,7 +60,8 @@ unsafe impl thin::Free for Global {
     }
 }
 
-unsafe impl thin::SizeOf for Global {
+unsafe impl thin::SizeOf for Global {}
+unsafe impl thin::SizeOfDebug for Global {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         unsafe { SetLastError(0) };
         let size = unsafe { GlobalSize(ptr.as_ptr().cast()) };

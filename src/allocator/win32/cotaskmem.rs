@@ -41,8 +41,8 @@ unsafe impl thin::Realloc for CoTaskMem {
 
 // no zeroing CoTaskMemRealloc
 
-unsafe impl thin::FreeNullable for CoTaskMem {
-    unsafe fn free(&self, ptr: *mut MaybeUninit<u8>) {
+unsafe impl thin::Free for CoTaskMem {
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { CoTaskMemFree(ptr.cast()) }
     }
 }

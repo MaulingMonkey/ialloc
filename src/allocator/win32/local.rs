@@ -61,7 +61,8 @@ unsafe impl thin::Free for Local {
     }
 }
 
-unsafe impl thin::SizeOf for Local {
+unsafe impl thin::SizeOf for Local {}
+unsafe impl thin::SizeOfDebug for Local {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         unsafe { SetLastError(0) };
         let size = unsafe { LocalSize(ptr.as_ptr().cast()) };

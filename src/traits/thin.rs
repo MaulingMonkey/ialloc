@@ -7,7 +7,7 @@ use crate::*;
 
 use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
-#[cfg(doc)] use core::ptr::NonNull;
+use core::ptr::NonNull;
 
 
 
@@ -82,22 +82,15 @@ pub unsafe trait Free {
     /// ### Safety
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
-    unsafe fn free(&self, ptr: AllocNN);
-}
+    unsafe fn free(&self, ptr: AllocNN) { unsafe { self.free_nullable(ptr.as_ptr()) } }
 
-
-
-/// Deallocation function (implies [`Free`]):<br>
-/// <code>[free](Self::free)(ptr: *mut [MaybeUninit]<[u8]>)</code><br>
-/// <br>
-pub unsafe trait FreeNullable {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
     /// *   `ptr` may be null, in which case this is a noop
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
-    unsafe fn free(&self, ptr: *mut MaybeUninit<u8>);
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { if let Some(ptr) = NonNull::new(ptr) { unsafe { self.free(ptr) } } }
 }
 
 
@@ -128,13 +121,13 @@ pub unsafe trait ReallocZeroed : Realloc {
 /// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
 /// Such an implementor would generally rely on the `ptr[..a.size_of(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
 /// By implementing this trait, you pinky promise that such a size is valid.
-pub unsafe trait SizeOf {
+pub unsafe trait SizeOf : SizeOfDebug {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize>;
+    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { SizeOfDebug::size_of(self, ptr) } }
 }
 
 

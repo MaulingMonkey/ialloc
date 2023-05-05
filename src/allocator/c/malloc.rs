@@ -51,8 +51,8 @@ unsafe impl thin::Alloc for Malloc {
     }
 }
 
-unsafe impl thin::FreeNullable for Malloc {
-    #[track_caller] unsafe fn free(&self, ptr: *mut MaybeUninit<u8>) {
+unsafe impl thin::Free for Malloc {
+    #[track_caller] unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { free(ptr.cast()) }
     }
 }
