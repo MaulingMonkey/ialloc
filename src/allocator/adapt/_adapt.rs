@@ -66,16 +66,20 @@ unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
     }
 }
 
-impls! {
-    unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, PanicOverAlign};
 
-    unsafe impl[A: thin::Alloc          ] ialloc::thin::Alloc       for PanicOverAlign<A> => core::ops::Deref;
-    unsafe impl[A: thin::Free           ] ialloc::thin::Free        for PanicOverAlign<A> => core::ops::Deref;
-    unsafe impl[A: thin::Realloc        ] ialloc::thin::Realloc     for PanicOverAlign<A> => core::ops::Deref;
-    unsafe impl[A: thin::SizeOf         ] ialloc::thin::SizeOf      for PanicOverAlign<A> => core::ops::Deref;
-    unsafe impl[A: thin::SizeOfDebug    ] ialloc::thin::SizeOfDebug for PanicOverAlign<A> => core::ops::Deref;
-}
+    impls! {
+        unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
 
-#[cfg(allocator_api = "1.50")] impls! {
-    unsafe impl[A: thin::Realloc] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: thin::Alloc          ] ialloc::thin::Alloc       for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: thin::Free           ] ialloc::thin::Free        for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: thin::Realloc        ] ialloc::thin::Realloc     for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: thin::SizeOf         ] ialloc::thin::SizeOf      for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: thin::SizeOfDebug    ] ialloc::thin::SizeOfDebug for PanicOverAlign<A> => core::ops::Deref;
+    }
+
+    #[cfg(allocator_api = "1.50")] impls! {
+        unsafe impl[A: thin::Realloc        ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
+    }
 }
