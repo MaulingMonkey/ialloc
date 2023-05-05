@@ -22,7 +22,7 @@ pub mod prelude {
     ( unsafe impl $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::nzst::Realloc; $($tt:tt)* ) => {
 
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             use nzst::*;
 
             unsafe impl core::alloc::GlobalAlloc for $ty {
@@ -57,7 +57,7 @@ pub mod prelude {
     ( unsafe impl $(::)? core::alloc::Allocator(unstable $(1.50$(.0)?)?) for $ty:ty => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
 
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             use zsty::*;
 
             unsafe impl core::alloc::Allocator for $ty {
@@ -97,7 +97,7 @@ pub mod prelude {
 
     ( unsafe impl $(::)? ialloc::nzst::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             unsafe impl nzst::Alloc for $ty {
                 type Error = <<$ty as core::ops::Deref>::Target as nzst::Alloc>::Error;
                 #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { nzst::Alloc::alloc_uninit(&**self, layout) }
@@ -109,7 +109,7 @@ pub mod prelude {
 
     ( unsafe impl $(::)? ialloc::nzst::Free for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             unsafe impl nzst::Free for $ty {
                 #[track_caller] unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: LayoutNZ) { unsafe { nzst::Free::free(&**self, ptr, layout) } }
             }
@@ -119,7 +119,7 @@ pub mod prelude {
 
     ( unsafe impl $(::)? ialloc::nzst::Realloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             unsafe impl nzst::Realloc for $ty {
                 #[track_caller] unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { nzst::Realloc::realloc_uninit(&**self, ptr, old_layout, new_layout) } }
                 #[track_caller] unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { nzst::Realloc::realloc_zeroed(&**self, ptr, old_layout, new_layout) } }
@@ -130,7 +130,7 @@ pub mod prelude {
 
     ( unsafe impl $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             unsafe impl core::alloc::GlobalAlloc for $ty {
                 #[track_caller] unsafe fn alloc         (&self, layout: Layout) -> *mut u8 { unsafe { core::alloc::GlobalAlloc::alloc(&**self, layout) } }
                 #[track_caller] unsafe fn alloc_zeroed  (&self, layout: Layout) -> *mut u8 { unsafe { core::alloc::GlobalAlloc::alloc_zeroed(&**self, layout) } }
@@ -143,7 +143,7 @@ pub mod prelude {
 
     ( unsafe impl $(::)? core::alloc::Allocator(unstable $(1.50$(.0)?)?) for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {
-            use $crate::_macros::prelude::*;
+            use $crate::_impls::prelude::*;
             unsafe impl core::alloc::Allocator for $ty {
                 #[track_caller] fn allocate             (&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> { core::alloc::Allocator::allocate(&**self, layout) }
                 #[track_caller] fn allocate_zeroed      (&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> { core::alloc::Allocator::allocate_zeroed(&**self, layout) }

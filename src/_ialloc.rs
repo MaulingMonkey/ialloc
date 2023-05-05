@@ -10,7 +10,7 @@ type AllocNN    = core::ptr::NonNull<core::mem::MaybeUninit<u8>>;
 type AllocNN0   = core::ptr::NonNull<u8>;
 
 
-#[doc(hidden)] pub mod _macros;
+#[doc(hidden)] pub mod _impls;
 
 #[path = "auto/_auto.rs"]   mod auto;
 
