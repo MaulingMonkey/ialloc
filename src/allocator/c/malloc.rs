@@ -58,21 +58,25 @@ unsafe impl thin::Free for Malloc {
 }
 
 unsafe impl thin::Realloc for Malloc {
+    const CAN_REALLOC_ZEROED : bool = cfg!(target_env = "msvc");
+
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let new_size = Self::check_size(new_size)?;
         let alloc = unsafe { realloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
-}
 
-#[cfg(target_env = "msvc")]
-unsafe impl thin::ReallocZeroed for Malloc {
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
-        // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/recalloc
-        extern "C" { fn _recalloc(memblock: *mut c_void, num: size_t, size: size_t) -> *mut c_void; }
-        let new_size = Self::check_size(new_size)?;
-        let alloc = unsafe { _recalloc(ptr.as_ptr().cast(), 1, new_size) };
-        NonNull::new(alloc.cast()).ok_or(())
+    #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+        #[cfg(target_env = "msvc")] {
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/recalloc
+            extern "C" { fn _recalloc(memblock: *mut c_void, num: size_t, size: size_t) -> *mut c_void; }
+            let new_size = Self::check_size(new_size)?;
+            let alloc = unsafe { _recalloc(ptr.as_ptr().cast(), 1, new_size) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
+        #[cfg(not(target_env = "msvc"))] {
+            Err(())
+        }
     }
 }
 

@@ -75,14 +75,14 @@ unsafe impl thin::Alloc for Heap {
 }
 
 unsafe impl thin::Realloc for Heap {
+    const CAN_REALLOC_ZEROED : bool = true;
+
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, 0, ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
-}
 
-unsafe impl thin::ReallocZeroed for Heap {
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, HEAP_ZERO_MEMORY, ptr.as_ptr().cast(), new_size) };
@@ -142,8 +142,11 @@ unsafe impl thin::Alloc for ProcessHeap {
     fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }
 }
 
-unsafe impl thin::Realloc       for ProcessHeap { unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } } }
-unsafe impl thin::ReallocZeroed for ProcessHeap { unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } } }
+unsafe impl thin::Realloc for ProcessHeap {
+    const CAN_REALLOC_ZEROED : bool = Heap::CAN_REALLOC_ZEROED;
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } }
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } }
+}
 unsafe impl thin::Free          for ProcessHeap {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { Heap::process().free(ptr) } }
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { Heap::process().free_nullable(ptr) } }

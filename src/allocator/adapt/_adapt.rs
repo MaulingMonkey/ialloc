@@ -41,10 +41,8 @@ unsafe impl<A: thin::Free> thin::Free for PanicOverAlign<A> {
 }
 
 unsafe impl<A: thin::Realloc> thin::Realloc for PanicOverAlign<A> {
+    const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
     #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { self.0.realloc_uninit(ptr, new_size) } }
-}
-
-unsafe impl<A: thin::ReallocZeroed> thin::ReallocZeroed for PanicOverAlign<A> {
     #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { self.0.realloc_zeroed(ptr, new_size) } }
 }
 
@@ -70,7 +68,7 @@ unsafe impl<A: thin::Alloc + thin::Free> nzst::Free for PanicOverAlign<A> {
     }
 }
 
-unsafe impl<A: thin::ReallocZeroed> nzst::Realloc for PanicOverAlign<A> {
+unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
         let _ = Self::layout_to_size(old_layout);
         let new_size = Self::layout_to_size(new_layout);
@@ -78,10 +76,19 @@ unsafe impl<A: thin::ReallocZeroed> nzst::Realloc for PanicOverAlign<A> {
     }
 
     #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        // XXX: should thin::Realloc have a try_realloc_zeroed fn ? a CAN_REALLOC_ZERO bool? I think so...
-        let _ = Self::layout_to_size(old_layout);
-        let new_size = Self::layout_to_size(new_layout);
-        unsafe { self.0.realloc_zeroed(ptr, new_size) }
+        if A::CAN_REALLOC_ZEROED {
+            let _ = Self::layout_to_size(old_layout);
+            let new_size = Self::layout_to_size(new_layout);
+            unsafe { self.0.realloc_zeroed(ptr, new_size) }
+        } else {
+            let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
+            if old_layout.size() < new_layout.size() {
+                let all             = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size().get()) };
+                let (_copied, new)  = all.split_at_mut(old_layout.size().get());
+                new.fill(MaybeUninit::new(0u8));
+            }
+            Ok(alloc.cast())
+        }
     }
 }
 
@@ -89,7 +96,7 @@ unsafe impl<A: thin::ReallocZeroed> nzst::Realloc for PanicOverAlign<A> {
 
 // core::*
 
-unsafe impl<A: thin::ReallocZeroed> core::alloc::GlobalAlloc for PanicOverAlign<A> {
+unsafe impl<A: thin::Realloc> core::alloc::GlobalAlloc for PanicOverAlign<A> {
     #[track_caller] unsafe fn alloc(&self, layout: Layout) -> *mut u8 { zsty::Alloc::alloc_uninit(self, layout).map_or(null_mut(), |p| p.as_ptr().cast()) }
     #[track_caller] unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { zsty::Alloc::alloc_zeroed(self, layout).map_or(null_mut(), |p| p.as_ptr().cast()) }
     #[track_caller] unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) { if let Some(ptr) = NonNull::new(ptr) { unsafe { zsty::Free::free(self, ptr.cast(), layout) } } }
@@ -103,7 +110,7 @@ unsafe impl<A: thin::ReallocZeroed> core::alloc::GlobalAlloc for PanicOverAlign<
     }
 }
 
-#[cfg(allocator_api = "1.50")] unsafe impl<A: thin::ReallocZeroed> core::alloc::Allocator for PanicOverAlign<A> {
+#[cfg(allocator_api = "1.50")] unsafe impl<A: thin::Realloc> core::alloc::Allocator for PanicOverAlign<A> {
     #[track_caller] fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let data = zsty::Alloc::alloc_uninit(self, layout).map_err(|_| AllocError)?.as_ptr().cast();
         Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, layout.size())) })

@@ -39,14 +39,14 @@ unsafe impl thin::Alloc for Global {
 }
 
 unsafe impl thin::Realloc for Global {
+    const CAN_REALLOC_ZEROED : bool = true;
+
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(new_size)?;
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), size, 0) };
         NonNull::new(alloc.cast()).ok_or(())
     }
-}
 
-unsafe impl thin::ReallocZeroed for Global {
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(new_size)?;
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), size, GMEM_ZEROINIT) };

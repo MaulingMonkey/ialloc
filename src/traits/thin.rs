@@ -97,16 +97,14 @@ pub unsafe trait Free {
 
 /// Reallocation function:<br>
 /// <code>[realloc_uninit](Self::realloc_uninit)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <br>
-pub unsafe trait Realloc : Alloc + Free {
-    // TODO: determine exact API contract
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
-}
-
-/// Reallocation function:<br>
 /// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
-pub unsafe trait ReallocZeroed : Realloc {
+pub unsafe trait Realloc : Alloc + Free {
+    const CAN_REALLOC_ZEROED : bool;
+
+    // TODO: determine exact API contract
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
+
     // TODO: determine exact API contract
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
 }
