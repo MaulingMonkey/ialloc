@@ -5,7 +5,7 @@
 @call :run-windows cargo build --all-targets --release                          || goto :die
 
 :: Stable (Linux)
-@"%WINDIR%\System32\bash" --version >NUL 2>NUL || ver>NUL && goto :skip-stablelinux
+@"%WINDIR%\System32\bash" --version >NUL 2>NUL || ver>NUL && goto :skip-stable-linux
 @call :run-linux cargo test                                                     || goto :die
 @call :run-linux cargo build --all-targets --release                            || goto :die
 :skip-stable-linux
