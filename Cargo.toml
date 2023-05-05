@@ -2,7 +2,7 @@
 
 [package]
 name                        = "ialloc"
-version                     = "0.0.0-2023-05-04"
+version                     = "0.0.0-2023-05-05"
 edition                     = "2021"
 rust-version                = "1.69.0" # MSRV: CARGO_BIN_NAME in examples/nightly/stable-main-stub.rs
 
