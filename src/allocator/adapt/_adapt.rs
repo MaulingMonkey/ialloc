@@ -67,7 +67,7 @@ unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
 }
 
 impls! {
-    unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::nzst::Realloc;
+    unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
 
     unsafe impl[A: thin::Alloc          ] ialloc::thin::Alloc       for PanicOverAlign<A> => core::ops::Deref;
     unsafe impl[A: thin::Free           ] ialloc::thin::Free        for PanicOverAlign<A> => core::ops::Deref;

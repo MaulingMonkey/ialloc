@@ -19,33 +19,28 @@ pub mod prelude {
 #[macro_export] macro_rules! impls {
     () => {};
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::nzst::Realloc; $($tt:tt)* ) => {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
 
         const _ : () = {
             use $crate::_impls::prelude::*;
-            use nzst::*;
+            use zsty::*;
 
             unsafe impl $(<$($gdef)*>)? core::alloc::GlobalAlloc for $ty {
                 #[track_caller] unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-                    let Ok(layout) = LayoutNZ::try_from(layout) else { return null_mut() };
                     Alloc::alloc_uninit(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
                 }
 
                 #[track_caller] unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-                    let Ok(layout) = LayoutNZ::try_from(layout) else { return null_mut() };
                     Alloc::alloc_zeroed(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
                 }
 
                 #[track_caller] unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-                    let Ok(layout) = LayoutNZ::try_from(layout) else { return }; // XXX: panic instead?
                     NonNull::new(ptr).map(|ptr| unsafe { Free::free(self, ptr.cast(), layout) });
                 }
 
                 #[track_caller] unsafe fn realloc(&self, ptr: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
                     let Some(ptr) = NonNull::new(ptr) else { return null_mut() };
-                    let Some(new_size) = NonZeroUsize::new(new_size) else { return null_mut() };
-                    let Ok(old_layout) = LayoutNZ::try_from(old_layout) else { return null_mut() };
-                    let Ok(new_layout) = LayoutNZ::from_size_align(new_size, old_layout.align()) else { return null_mut() };
+                    let Ok(new_layout) = Layout::from_size_align(new_size, old_layout.align()) else { return null_mut() };
                     unsafe { Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_or(null_mut(), |p| p.as_ptr().cast())
                 }
             }
