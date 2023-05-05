@@ -1,80 +1,12 @@
-use ialloc::*;
+// #![feature(allocator_api)] // ≈ in `../malloc.rs` that `include!(...)`s this file
 
-use core::alloc::AllocError;
-use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
-use core::ptr::NonNull;
-
-
+use ialloc::allocator::{adapt::PanicOverAlign, c::Malloc};
 
 fn main() {
-    let mut v = Vec::new_in(Malloc);
+    let mut v = Vec::new_in(PanicOverAlign(Malloc));
     v.push(1);
     v.push(2);
     v.push(3);
     let v2 = v.clone();
     dbg!((v, v2));
-}
-
-
-
-// TODO: exile into a crate
-
-/// malloc / realloc / free
-#[derive(Default, Clone, Copy)] struct Malloc;
-impl core::ops::Deref for Malloc { type Target = MallocWithConfig; fn deref(&self) -> &Self::Target { &MallocWithConfig(()) } }
-
-/// malloc / realloc / free
-#[derive(Default, Clone, Copy)] struct MallocWithConfig(());
-impl MallocWithConfig {
-    // TODO: more accurately determine malloc's alignment/size guarantees
-    pub const MAX_ALIGN : Alignment     = ALIGN_4;
-    pub const MAX_SIZE  : NonZeroUsize  = NonZeroUsize::new(usize::MAX/2).unwrap();
-}
-
-unsafe impl nzst::Alloc for MallocWithConfig {
-    type Error = AllocError;
-    fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        assert!(layout.size()  <= Self::MAX_SIZE,  "requested allocation beyond malloc's capabilities");
-        assert!(layout.align() <= Self::MAX_ALIGN, "requested allocation beyond malloc's capabilities");
-
-        let size = layout.size().get().next_multiple_of(layout.align().as_usize());
-        let alloc = unsafe { libc::malloc(size) };
-        NonNull::new(alloc.cast()).ok_or(AllocError)
-    }
-}
-
-unsafe impl nzst::Realloc for MallocWithConfig {
-    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old: LayoutNZ, new: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        assert!(old.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
-        assert!(old.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");
-        assert!(new.size()  <= Self::MAX_SIZE,  "requested reallocation beyond malloc's capabilities");
-        assert!(new.align() <= Self::MAX_ALIGN, "requested reallocation beyond malloc's capabilities");
-
-        let size = new.size().get().next_multiple_of(new.align().as_usize());
-        let alloc = unsafe { libc::realloc(ptr.as_ptr().cast(), size) };
-        NonNull::new(alloc.cast()).ok_or(AllocError)
-    }
-}
-
-unsafe impl nzst::Free for MallocWithConfig {
-    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
-        assert!(_layout.size()  <= Self::MAX_SIZE,  "this allocation couldn't have belonged to this allocator, has too much alignment");
-        assert!(_layout.align() <= Self::MAX_ALIGN, "this allocation couldn't have belonged to this allocator, has too much alignment");
-
-        unsafe { libc::free(ptr.as_ptr().cast()) }
-    }
-}
-
-#[no_implicit_prelude] mod cleanroom { // verify `impls!` is hygenic
-    ::ialloc::impls! {
-        unsafe impl ialloc::nzst::Alloc                 for super::Malloc => core::ops::Deref;
-        unsafe impl ialloc::nzst::Free                  for super::Malloc => core::ops::Deref;
-        unsafe impl ialloc::nzst::Realloc               for super::Malloc => core::ops::Deref;
-        unsafe impl core::alloc::GlobalAlloc            for super::Malloc => core::ops::Deref;
-        unsafe impl core::alloc::Allocator(unstable)    for super::Malloc => core::ops::Deref;
-
-        unsafe impl core::alloc::GlobalAlloc            for super::MallocWithConfig => ialloc::nzst::Realloc;
-        unsafe impl core::alloc::Allocator(unstable)    for super::MallocWithConfig => ialloc::zsty::Realloc;
-    }
 }

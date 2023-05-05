@@ -16,6 +16,7 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 
 /// Allocator implementations
 pub mod allocator {
+    #[path = "adapt/_adapt.rs"  ] pub mod adapt;
     #[path = "alloc/_alloc.rs"  ] pub mod alloc;
     #[path = "c/_c.rs"          ] pub mod c;
     #[path = "cpp/_cpp.rs"      ] pub mod cpp;
