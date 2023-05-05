@@ -23,8 +23,13 @@ pub mod allocator {
     #[path = "msvc/_msvc.rs"    ] pub mod msvc;
 }
 
+/// Allocator traits
+pub mod traits {
+    pub mod nzst;
+    pub mod thin;
+    pub mod zsty;
+}
+#[doc(hidden)] pub use traits::*;
+
 mod align;                  pub use align::*;
 mod layout;                 pub use layout::*;
-pub mod nzst;
-pub mod thin;
-pub mod zsty;
