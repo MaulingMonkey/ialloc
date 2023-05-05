@@ -75,6 +75,7 @@ unsafe impl thin::Realloc for Malloc {
             NonNull::new(alloc.cast()).ok_or(())
         }
         #[cfg(not(target_env = "msvc"))] {
+            let _ = (ptr, new_size);
             Err(())
         }
     }
