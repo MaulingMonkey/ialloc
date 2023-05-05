@@ -1,17 +1,33 @@
 @pushd "%~dp0.." && setlocal
 
 :: Stable
-cargo test
-@if ERRORLEVEL 1 goto :die
-cargo build --all-targets --release
-@if ERRORLEVEL 1 goto :die
+@call :run-windows cargo test                                                   || goto :die
+@call :run-windows cargo build --all-targets --release                          || goto :die
+
+:: Stable (Linux)
+@"%WINDIR%\System32\bash" --version >NUL 2>NUL || ver>NUL && goto :skip-stablelinux
+@call :run-linux cargo test                                                     || goto :die
+@call :run-linux cargo build --all-targets --release                            || goto :die
+:skip-stable-linux
 
 :: Nightly
-@cargo +nightly >NUL 2>NUL || ver>NUL && goto :die
-cargo +nightly build --features nightly --all-targets
-@if ERRORLEVEL 1 goto :die
-cargo +nightly run   --features nightly --example malloc
-@if ERRORLEVEL 1 goto :die
+@cargo +nightly >NUL 2>NUL || ver>NUL && goto :skip-nightly
+@call :run-windows cargo +nightly build --features nightly --all-targets        || goto :die
+@call :run-windows cargo +nightly run   --features nightly --example malloc     || goto :die
+@call :run-windows cargo +nightly doc                                           || goto :die
+:skip-nightly
 
 :die
 @popd && endlocal && exit /b %ERRORLEVEL%
+
+
+
+:run-windows
+@echo %*
+@%*
+@exit /b %ERRORLEVEL%
+
+:run-linux
+@echo bash -c '%*'
+@"%WINDIR%\System32\bash" --login -c '%*'
+@exit /b %ERRORLEVEL%
