@@ -14,7 +14,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
 
     /// If you hit this assertion, it's unlikely that `A` can ever successfully allocate an instance of `T` except by happenstance and accident.
     /// Unless you've written some obscenely generic code that intentionally handles containers that might never be able to allocate, this is likely a bug.
-    const ASSERT_A_CAN_ALLOC_ALIGNED_T : () = assert!(align_of::<T>() <= A::MAX_ALIGN.as_usize());
+    const ASSERT_A_CAN_ALLOC_ALIGNED_T : () = assert!(align_of::<T>() <= A::MAX_ALIGN.as_usize(), "Alignment::of::<T>() > A::MAX_ALIGN - the allocator cannot allocate memory sufficiently aligned for instances of T on it's own");
 
     /// Allocate a new box initialized to `value` using `allocator`.
     ///
@@ -42,6 +42,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     /// let a = ABox::try_new_in(Page([0u8; 4096]), Malloc).unwrap();
     /// ```
     pub fn try_new_in(value: T, allocator: A) -> Result<Self, A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
         Ok(ABox::write(Self::try_new_uninit_in(allocator)?, value))
     }
 
@@ -153,7 +154,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a : ABox<Page, Malloc> = ABox::try_new(Page([0u8; 4096])).unwrap();
     /// ```
-    pub fn try_new(value: T) -> Result<Self, A::Error> { Self::try_new_in(value, A::default()) }
+    pub fn try_new(value: T) -> Result<Self, A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_in(value, A::default())
+    }
 
     /// Allocate a new uninitialized box.
     ///
@@ -180,7 +184,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::try_new_uninit().unwrap();
     /// ```
-    pub fn try_new_uninit() -> Result<ABox<MaybeUninit<T>, A>, A::Error> { Self::try_new_uninit_in(A::default()) }
+    pub fn try_new_uninit() -> Result<ABox<MaybeUninit<T>, A>, A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_uninit_in(A::default())
+    }
 
     /// Allocate a new uninitialized box of `len` values.
     ///
@@ -222,7 +229,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::try_new_uninit_slice(1).unwrap();
     /// ```
-    pub fn try_new_uninit_slice(len: usize) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> { Self::try_new_uninit_slice_in(len, A::default()) }
+    pub fn try_new_uninit_slice(len: usize) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_uninit_slice_in(len, A::default())
+    }
 }
 
 #[cfg(feature = "panicy-memory")] impl<T, A: Alloc + Free> ABox<T, A> {
@@ -253,7 +263,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::new_in(Page([0u8; 4096]), Malloc);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_in(value: T, allocator: A) -> Self { Self::try_new_in(value, allocator).expect("unable to allocate") }
+    #[track_caller] #[inline(always)] pub fn new_in(value: T, allocator: A) -> Self {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_in(value, allocator).expect("unable to allocate")
+    }
 
     /// Allocate a new uninitialized box using `allocator`.
     ///
@@ -280,7 +293,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::new_uninit_in(Malloc);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit_in(allocator: A) -> ABox<MaybeUninit<T>, A> { Self::try_new_uninit_in(allocator).expect("unable to allocate") }
+    #[track_caller] #[inline(always)] pub fn new_uninit_in(allocator: A) -> ABox<MaybeUninit<T>, A> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_uninit_in(allocator).expect("unable to allocate")
+    }
 
     /// Allocate a new uninitialized box of `len` values using `allocator`.
     ///
@@ -322,7 +338,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::new_uninit_slice_in(1, Malloc);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit_slice_in(len: usize, allocator: A) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> { Self::try_new_uninit_slice_in(len, allocator).expect("unable to allocate") }
+    #[track_caller] #[inline(always)] pub fn new_uninit_slice_in(len: usize, allocator: A) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::try_new_uninit_slice_in(len, allocator).expect("unable to allocate")
+    }
 }
 
 #[cfg(feature = "panicy-memory")] impl<T, A: Alloc + Free + Default> ABox<T, A> {
@@ -353,7 +372,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a : ABox<Page, Malloc> = ABox::new(Page([0u8; 4096]));
     /// ```
-    #[track_caller] #[inline(always)] pub fn new(value: T) -> Self { Self::new_in(value, A::default()) }
+    #[track_caller] #[inline(always)] pub fn new(value: T) -> Self {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::new_in(value, A::default())
+    }
 
     /// Allocate a new uninitialized box.
     ///
@@ -380,7 +402,10 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::new_uninit();
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit() -> ABox<MaybeUninit<T>, A> { Self::new_uninit_in(A::default()) }
+    #[track_caller] #[inline(always)] pub fn new_uninit() -> ABox<MaybeUninit<T>, A> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::new_uninit_in(A::default())
+    }
 
     /// Allocate a new uninitialized box of `len` values.
     ///
@@ -422,5 +447,8 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::new_uninit_slice(1);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit_slice(len: usize) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> { Self::new_uninit_slice_in(len, A::default()) }
+    #[track_caller] #[inline(always)] pub fn new_uninit_slice(len: usize) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        Self::new_uninit_slice_in(len, A::default())
+    }
 }
