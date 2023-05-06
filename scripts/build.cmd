@@ -12,8 +12,8 @@
 
 :: Nightly
 @cargo +nightly >NUL 2>NUL || ver>NUL && goto :skip-nightly
-@call :run-windows cargo +nightly build --features nightly --all-targets        || goto :die
-@call :run-windows cargo +nightly run   --features nightly --example malloc     || goto :die
+@call :run-windows cargo +nightly test                                          || goto :die
+@call :run-windows cargo +nightly build --all-targets                           || goto :die
 @call :run-windows cargo +nightly doc                                           || goto :die
 :skip-nightly
 

@@ -22,7 +22,6 @@ path                        = "src/_ialloc.rs"
 
 [features]
 default                     = ["alloc", "c23", "c++23", "win32", "msvc"]
-nightly                     = [] # should have no effect on anything but examples
 
 alloc                       = []
 win32                       = ["winapi"]
@@ -44,7 +43,7 @@ c                           = ["cc", "libc"] # cc is only used for feature suppo
 "c++11"                     = ["c++03"]
 "c++03"                     = ["c++98"]
 "c++98"                     = ["c++"]
-"c++"                       = ["cc", "libc"]
+"c++"                       = ["cc", "libc"] # libc is only used for typedefs
 
 [build-dependencies]
 cc.version                  = "1"

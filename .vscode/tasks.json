@@ -26,16 +26,6 @@
 
         // ialloc
         {
-            "label":            "cargo +nightly build --features nightly --package ialloc --example malloc",
-            "command":          "cargo +nightly build --features nightly --package ialloc --example malloc",
-            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
-        },
-        {
-            "label":            "cargo +nightly build --features nightly --package ialloc --example malloc --release",
-            "command":          "cargo +nightly build --features nightly --package ialloc --example malloc --release",
-            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
-        },
-        {
             "label":            "open repository",
             "windows":          { "command": "start \"\"    \"https://github.com/MaulingMonkey/ialloc\"" },
             "linux":            { "command": "xdg-open      \"https://github.com/MaulingMonkey/ialloc\"" },

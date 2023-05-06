@@ -22,8 +22,10 @@ use std::process::{Command, Stdio};
 
 fn main() {
     if feature_test("allocator_api_1_50_stable") {
+        println!("cargo:rustc-cfg=allocator_api=\"*\"");
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
     } else if feature_test("allocator_api_1_50_unstable") {
+        println!("cargo:rustc-cfg=allocator_api=\"*\"");
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
         println!("cargo:rustc-cfg=allocator_api=\"unstable\"");
     }
