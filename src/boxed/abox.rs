@@ -29,7 +29,7 @@ impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
 impl<T: ?Sized, A: Free> ABox<T, A> {
     #[inline(always)] pub fn allocator(&self) -> &A { &self.allocator }
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
-    #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&self.data) }
+    #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }
 
     // XXX: Don't bother with from_raw: bug-bait in the presence of allocators
     // XXX: Don't bother with into_raw: bug-bait in the presence of allocators
