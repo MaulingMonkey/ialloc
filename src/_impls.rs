@@ -19,6 +19,10 @@ pub mod prelude {
 #[macro_export] macro_rules! impls {
     () => {};
 
+
+
+    // unsafe impl core::alloc::{...} for {...} => ialloc::zsty::{...};
+
     ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
 
         const _ : () = {
@@ -92,7 +96,71 @@ pub mod prelude {
 
 
 
-    // ... => core::ops::Deref
+    // unsafe impl ialloc::nzst::{...} for {...} => ialloc::thin::{...};
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Alloc for $ty:ty => $(::)? ialloc::thin::Alloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Alloc for $ty {
+            const MAX_ALIGN : $crate::Alignment = <$ty as $crate::thin::Alloc>::MAX_ALIGN;
+            type Error = <$ty as $crate::thin::Alloc>::Error;
+            fn alloc_uninit(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use ::core::cmp::Ord;
+                if layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: layout.align(), supported: Self::MAX_ALIGN })? }
+                let size = layout.size().max(layout.align().as_nonzero());
+                $crate::thin::Alloc::alloc_uninit(self, size)
+            }
+            fn alloc_zeroed(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::primitive::u8>, Self::Error> {
+                use ::core::cmp::Ord;
+                if layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: layout.align(), supported: Self::MAX_ALIGN })? }
+                let size = layout.size().max(layout.align().as_nonzero());
+                $crate::thin::Alloc::alloc_zeroed(self, size)
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Free for $ty:ty => $(::)? ialloc::thin::Free; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Free for $ty {
+            unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _layout: $crate::LayoutNZ) {
+                ::core::debug_assert!(_layout.align() <= <Self as $crate::nzst::Alloc>::MAX_ALIGN, "allocation couldn't belong to this allocator: impossible alignment");
+                unsafe { $crate::thin::Free::free(self, ptr) }
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Realloc for $ty:ty => $(::)? ialloc::thin::Realloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Realloc for $ty {
+            unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _old_layout: $crate::LayoutNZ, new_layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use ::core::cmp::Ord as _;
+                ::core::debug_assert!(_old_layout.align() <= <Self as $crate::nzst::Alloc>::MAX_ALIGN, "allocation couldn't belong to this allocator: impossible alignment");
+                if new_layout.align() > <Self as $crate::nzst::Alloc>::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: new_layout.align(), supported: <Self as $crate::nzst::Alloc>::MAX_ALIGN })? }
+                let new_size = new_layout.size().max(new_layout.align().as_nonzero());
+                unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size) }
+            }
+            unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: $crate::LayoutNZ, new_layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use ::core::cmp::Ord as _;
+                ::core::debug_assert!(old_layout.align() <= <Self as $crate::nzst::Alloc>::MAX_ALIGN, "allocation couldn't belong to this allocator: impossible alignment");
+                if new_layout.align() > <Self as $crate::nzst::Alloc>::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: new_layout.align(), supported: <Self as $crate::nzst::Alloc>::MAX_ALIGN })? }
+                let new_size = new_layout.size().max(new_layout.align().as_nonzero());
+                if <$ty as $crate::thin::Realloc>::CAN_REALLOC_ZEROED {
+                    unsafe { $crate::thin::Realloc::realloc_zeroed(self, ptr, new_size) }
+                } else {
+                    let alloc = unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size)? };
+                    if old_layout.size() < new_layout.size() {
+                        let all             = unsafe { ::core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size().get()) };
+                        let (_copied, new)  = all.split_at_mut(old_layout.size().get());
+                        new.fill(::core::mem::MaybeUninit::new(0u8));
+                    }
+                    ::core::result::Result::Ok(alloc.cast())
+                }
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+
+
+    // unsafe impl {...} for {...} => core::ops::Deref;
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::thin::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         const _ : () = {

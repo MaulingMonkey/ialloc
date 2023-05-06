@@ -153,3 +153,19 @@ unsafe impl thin::Free          for ProcessHeap {
 }
 unsafe impl thin::SizeOf        for ProcessHeap {}
 unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { Heap::process().size_of(ptr) } } }
+
+
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, Heap, ProcessHeap};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for Heap => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for Heap => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for Heap => ialloc::thin::Free;
+
+        unsafe impl ialloc::nzst::Alloc     for ProcessHeap => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for ProcessHeap => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for ProcessHeap => ialloc::thin::Free;
+    }
+}

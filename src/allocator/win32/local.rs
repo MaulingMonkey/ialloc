@@ -74,6 +74,16 @@ unsafe impl thin::SizeOfDebug for Local {
     }
 }
 
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, Local};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for Local => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for Local => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for Local => ialloc::thin::Free;
+    }
+}
+
 
 
 // TODO: test/improve alignment?

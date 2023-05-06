@@ -23,7 +23,7 @@ path                        = "src/_ialloc.rs"
 [features]
 default = [
     "bytemuck", "panicy",
-    "alloc", "win32", "msvc",
+    "std", "win32", "msvc",
     "c23", "c++23",
 ]
 
@@ -32,6 +32,7 @@ panicy-bounds               = [] # XXX: not yet used for anything, undocumented 
 panicy-memory               = []
 
 alloc                       = []
+std                         = ["alloc"]
 win32                       = ["winapi"]
 msvc                        = ["libc"]
 

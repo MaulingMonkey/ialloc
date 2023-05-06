@@ -73,6 +73,16 @@ unsafe impl thin::SizeOfDebug for Global {
     }
 }
 
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, Global};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for Global => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for Global => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for Global => ialloc::thin::Free;
+    }
+}
+
 
 
 // TODO: test/improve alignment?

@@ -44,11 +44,19 @@ unsafe impl thin::Realloc for CryptMem {
     }
 }
 
-// no zeroing CryptMemRealloc
-
 unsafe impl thin::Free for CryptMem {
     unsafe fn free(&self, ptr: AllocNN) {
         unsafe { CryptMemFree(ptr.as_ptr().cast()) }
+    }
+}
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, CryptMem};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for CryptMem => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for CryptMem => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for CryptMem => ialloc::thin::Free;
     }
 }
 

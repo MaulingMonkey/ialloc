@@ -1,6 +1,7 @@
 use crate::*;
 use super::ffi;
 
+use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -9,22 +10,27 @@ use core::ptr::NonNull;
 /// [`::operator delete[](void*, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteArray;
 
-unsafe impl nzst::Alloc for NewDeleteArray {
+unsafe impl thin::Alloc for NewDeleteArray {
     type Error = ();
 
-    fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        NonNull::new(unsafe { ffi::operator_new_array_nothrow(layout.size().get()) }.cast()).ok_or(())
-    }
-}
-
-unsafe impl nzst::Free for NewDeleteArray {
-    unsafe fn free(&self, ptr: AllocNN, _layout: LayoutNZ) {
-        unsafe { ffi::operator_delete_array(ptr.as_ptr().cast()) };
+    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+        NonNull::new(unsafe { ffi::operator_new_array_nothrow(size.get()) }.cast()).ok_or(())
     }
 }
 
 unsafe impl thin::Free for NewDeleteArray {
     unsafe fn free(&self, ptr: AllocNN) {
         unsafe { ffi::operator_delete_array(ptr.as_ptr().cast()) };
+    }
+}
+
+unsafe impl nzst::Realloc for NewDeleteArray {}
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, NewDeleteArray};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for NewDeleteArray => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Free      for NewDeleteArray => ialloc::thin::Free;
     }
 }

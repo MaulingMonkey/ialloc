@@ -5,6 +5,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 #[cfg(any(feature = "alloc", doc, test))] extern crate alloc;
+#[cfg(any(feature = "std",   doc, test))] extern crate std;
 
 type AllocNN    = core::ptr::NonNull<core::mem::MaybeUninit<u8>>;
 type AllocNN0   = core::ptr::NonNull<u8>;
@@ -34,4 +35,5 @@ pub mod traits {
 #[doc(hidden)] pub use traits::*;
 
 mod align;                  pub use align::*;
+pub mod error;
 mod layout;                 pub use layout::*;

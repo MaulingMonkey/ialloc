@@ -95,6 +95,16 @@ unsafe impl thin::SizeOfDebug for Malloc {
     }
 }
 
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, Malloc};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for Malloc => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for Malloc => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for Malloc => ialloc::thin::Free;
+    }
+}
+
 
 
 #[cfg(allocator_api = "*")] #[test] fn allocator_api() {

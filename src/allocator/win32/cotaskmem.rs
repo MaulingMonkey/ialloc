@@ -45,11 +45,19 @@ unsafe impl thin::Realloc for CoTaskMem {
     }
 }
 
-// no zeroing CoTaskMemRealloc
-
 unsafe impl thin::Free for CoTaskMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { CoTaskMemFree(ptr.cast()) }
+    }
+}
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, CoTaskMem};
+
+    impls! {
+        unsafe impl ialloc::nzst::Alloc     for CoTaskMem => ialloc::thin::Alloc;
+        unsafe impl ialloc::nzst::Realloc   for CoTaskMem => ialloc::thin::Realloc;
+        unsafe impl ialloc::nzst::Free      for CoTaskMem => ialloc::thin::Free;
     }
 }
 

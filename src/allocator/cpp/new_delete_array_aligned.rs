@@ -22,3 +22,5 @@ unsafe impl nzst::Free for NewDeleteArrayAligned {
         unsafe { ffi::operator_delete_array_align(ptr.as_ptr().cast(), layout.align().as_usize()) };
     }
 }
+
+unsafe impl nzst::Realloc for NewDeleteArrayAligned {}
