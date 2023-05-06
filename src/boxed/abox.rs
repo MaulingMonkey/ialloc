@@ -3,7 +3,7 @@ use zsty::*;
 
 use core::alloc::Layout;
 use core::marker::PhantomData;
-use core::mem::{ManuallyDrop, MaybeUninit};
+use core::mem::{ManuallyDrop, MaybeUninit, size_of};
 use core::ptr::*;
 
 
@@ -31,11 +31,14 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
     #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }
 
-    // XXX: Don't bother with from_raw: bug-bait in the presence of allocators
-    // XXX: Don't bother with into_raw: bug-bait in the presence of allocators
-
     pub unsafe fn from_raw_in(data: NonNull<T>, allocator: A) -> Self {
         Self { data, allocator, _phantom: PhantomData }
+    }
+
+    const ASSERT_A_IS_ZST_FROM_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` happens to be compatible with `A::default()`.  Prefer `ABox::from_raw_in` to specify an allocator instead.");
+    pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Default {
+        let _ = Self::ASSERT_A_IS_ZST_FROM_RAW;
+        unsafe { Self::from_raw_in(data, A::default()) }
     }
 
     pub fn into_raw_with_allocator(this: Self) -> (NonNull<T>, A) {
@@ -43,6 +46,12 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
         let data        = this.data;
         let allocator   = unsafe { core::ptr::read(&this.allocator) };
         (data, allocator)
+    }
+
+    const ASSERT_A_IS_ZST_INTO_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` can be freed with anything but the discarded allocator.  Prefer `ABox::into_raw_with_allocator` to acquire `data`'s allocator as well.");
+    pub fn into_raw(this: Self) -> NonNull<T> {
+        let _ = Self::ASSERT_A_IS_ZST_INTO_RAW;
+        Self::into_raw_with_allocator(this).0
     }
 
     pub fn leak<'a>(this: Self) -> &'a mut T where A: 'a { unsafe { ABox::into_raw_with_allocator(this).0.as_mut() } }
