@@ -1,3 +1,5 @@
+//! [`ExcessiveAlignmentRequestedError`] (and any future error types)
+
 use crate::Alignment;
 
 use core::fmt::{self, Debug, Display, Formatter};
