@@ -5,6 +5,7 @@
 
 use crate::*;
 
+use core::fmt::Debug;
 use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
@@ -28,7 +29,7 @@ const ALIGN_USIZE : Alignment = Alignment::of::<usize>();
 /// | <code>[Alloc]::[MIN_ALIGN](Self::MIN_ALIGN) .. [MAX_ALIGN](Self::MAX_ALIGN)</code>    | The largest power of two that fits within `size`
 /// | <code>[Alloc]::[MAX_ALIGN](Self::MAX_ALIGN) ..</code>                                 | <code>[Alloc]::[MAX_ALIGN](Self::MAX_ALIGN)</code>
 pub unsafe trait Alloc {
-    type Error;
+    type Error : Debug;
 
     /// The minimum alignment guaranteed by this allocator.
     ///
@@ -37,9 +38,9 @@ pub unsafe trait Alloc {
 
     /// The maximum alignment guaranteed by this allocator.
     ///
-    /// This defaults to a conservative <code>[Alignment]::of::&lt;[usize]&gt;()</code>.<br>
-    /// Real allocators often guarantee <code>[Alignment]::of::&lt;libc::max_align_t&gt;()</code>.<br>
-    /// This can be even larger than <code>[Alignment]::of::&lt;u128&gt;()</code> on something as common as AMD64!<br>
+    /// This defaults to a conservative <code>[Alignment]::[of](Alignment::of)::&lt;[usize]&gt;()</code>.<br>
+    /// Real allocators often guarantee <code>[Alignment]::[of](Alignment::of)::&lt;[max_align_t](https://en.cppreference.com/w/cpp/types/max_align_t)&gt;()</code>.<br>
+    /// This can be even larger than <code>[Alignment]::[of](Alignment::of)::&lt;[u128]&gt;()</code> on something as common as AMD64!<br>
     ///
     /// Common values on AMD64:
     ///

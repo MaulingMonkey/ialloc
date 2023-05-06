@@ -21,7 +21,15 @@ build                       = "build/build.rs"
 path                        = "src/_ialloc.rs"
 
 [features]
-default                     = ["alloc", "c23", "c++23", "win32", "msvc"]
+default = [
+    "bytemuck", "panicy",
+    "alloc", "win32", "msvc",
+    "c23", "c++23",
+]
+
+panicy                      = ["panicy-bounds", "panicy-memory"]
+panicy-bounds               = [] # XXX: not yet used for anything, undocumented as such
+panicy-memory               = []
 
 alloc                       = []
 win32                       = ["winapi"]
@@ -50,6 +58,8 @@ cc.version                  = "1"
 cc.optional                 = true
 
 [dependencies]
+bytemuck.version            = "1"
+bytemuck.optional           = true
 libc.version                = "0.2"
 libc.optional               = true
 winapi.version              = "0.3"

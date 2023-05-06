@@ -70,13 +70,13 @@ unsafe impl core::alloc::GlobalAlloc for Global {
 
 #[cfg(allocator_api = "1.50")] unsafe impl core::alloc::Allocator for Global {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let data = zsty::Alloc::alloc_uninit(self, layout).map_err(|_| AllocError)?.as_ptr().cast();
-        Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, layout.size())) })
+        let data = zsty::Alloc::alloc_uninit(self, layout).map_err(|_| AllocError)?;
+        Ok(util::nn::slice_from_raw_parts(data.cast(), layout.size()))
     }
 
     fn allocate_zeroed(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let data = zsty::Alloc::alloc_zeroed(self, layout).map_err(|_| AllocError)?.as_ptr().cast();
-        Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, layout.size())) })
+        let data = zsty::Alloc::alloc_zeroed(self, layout).map_err(|_| AllocError)?;
+        Ok(util::nn::slice_from_raw_parts(data.cast(), layout.size()))
     }
 
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
@@ -84,17 +84,17 @@ unsafe impl core::alloc::GlobalAlloc for Global {
     }
 
     unsafe fn grow(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let data = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?.as_ptr().cast();
-        Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, new_layout.size())) })
+        let data = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+        Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
     }
 
     unsafe fn grow_zeroed(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let data = unsafe { zsty::Realloc::realloc_zeroed(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?.as_ptr().cast();
-        Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, new_layout.size())) })
+        let data = unsafe { zsty::Realloc::realloc_zeroed(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+        Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
     }
 
     unsafe fn shrink(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        let data = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?.as_ptr().cast();
-        Ok(unsafe { NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data, new_layout.size())) })
+        let data = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+        Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
     }
 }

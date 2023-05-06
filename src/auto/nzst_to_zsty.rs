@@ -1,5 +1,5 @@
 use crate::{nzst, zsty};
-use crate::{AllocNN, AllocNN0, LayoutNZ};
+use crate::{Alignment, AllocNN, AllocNN0, LayoutNZ};
 
 use core::alloc::Layout;
 use core::ptr::NonNull;
@@ -9,6 +9,8 @@ use core::ptr::NonNull;
 fn dangling<T>(layout: Layout) -> NonNull<T> { NonNull::new(layout.align() as _).unwrap_or(NonNull::dangling()) }
 
 unsafe impl<A: nzst::Alloc> zsty::Alloc for A {
+    const MAX_ALIGN : Alignment = <A as nzst::Alloc>::MAX_ALIGN;
+
     type Error = A::Error;
 
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {

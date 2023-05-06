@@ -30,6 +30,7 @@ impl<A: thin::Alloc> PanicOverAlign<A> {
 
 
 unsafe impl<A: thin::Alloc> nzst::Alloc for PanicOverAlign<A> {
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
     type Error = A::Error;
     #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN,  Self::Error> { self.0.alloc_uninit(Self::layout_to_size(layout)) }
     #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { self.0.alloc_zeroed(Self::layout_to_size(layout)) }
