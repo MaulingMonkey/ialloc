@@ -11,7 +11,9 @@ using std::nothrow;
 
 
 template < typename T > struct ebco : T { char ch; };
+#if __cpp_static_assert
 static_assert(sizeof(ebco<std::allocator<char>>) == 1, "std::allocator<char> contains members/data, not interchangeable?");
+#endif
 IALLOC_FN(void*, std_allocator_char_allocate        ) (size_t count)                    { return std::allocator<char>().allocate(count); }
 IALLOC_FN(void,  std_allocator_char_deallocate      ) (char* ptr, size_t count)         { return std::allocator<char>().deallocate(ptr, count); }
 
