@@ -41,7 +41,7 @@ impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
 
 impl<T: ?Sized, A: Free> ABox<T, A> {
     /// Retrieve the [`zsty::Free`] (+ [`zsty::Alloc`] + [`zsty::Realloc`] + ...) associated with this [`ABox`].
-    #[inline(always)] pub fn allocator(&self) -> &A { &self.allocator }
+    #[inline(always)] pub fn allocator(this: &Self) -> &A { &this.allocator }
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
     #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }
 

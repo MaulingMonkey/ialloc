@@ -12,7 +12,7 @@ use crate::zsty::*;
     /// *   [`panic!`]s or [`handle_alloc_error`](alloc::alloc::handle_alloc_error)s when out of memory
     fn clone(&self) -> Self {
         //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
-        Self::new_in(T::clone(self), self.allocator().clone())
+        Self::new_in(T::clone(self), Self::allocator(self).clone())
     }
 
     /// Clone the contents of `source` into `self` without reallocating the [`ABox`].
@@ -66,7 +66,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     // TODO: show failure example via allocator with strict memory limits
     pub fn try_clone(&self) -> Result<ABox<T, A >, A ::Error> where A : Alloc + Clone {
         //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
-        ABox::try_new_in(T::clone(self), self.allocator().clone())
+        ABox::try_new_in(T::clone(self), Self::allocator(self).clone())
     }
 
     /// Allocate a new box that clones the contents of `self` using `allocator`.
