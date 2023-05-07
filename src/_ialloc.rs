@@ -13,27 +13,11 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 
 #[doc(hidden)] pub mod _impls;
 
-#[path = "auto/_auto.rs"]   mod auto;
-#[path = "boxed/_boxed.rs"] pub mod boxed;
-#[path = "util/_util.rs"]   mod util;
-
-/// Allocator implementations
-pub mod allocator {
-    #[path = "adapt/_adapt.rs"  ] pub mod adapt;
-    #[path = "alloc/_alloc.rs"  ] pub mod alloc;
-    #[path = "c/_c.rs"          ] pub mod c;
-    #[path = "cpp/_cpp.rs"      ] pub mod cpp;
-    #[path = "debug/_debug.rs"  ] pub mod debug;
-    #[path = "win32/_win32.rs"  ] pub mod win32;
-}
-
-/// Allocator traits
-pub mod traits {
-    pub mod nzst;
-    pub mod thin;
-    pub mod zsty;
-}
-#[doc(hidden)] pub use traits::*;
+#[path = "allocator/_allocator.rs"      ] pub mod allocator;
+#[path = "auto/_auto.rs"                ] mod auto;
+#[path = "boxed/_boxed.rs"              ] pub mod boxed;
+#[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
+#[path = "util/_util.rs"                ] mod util;
 
 mod align;                  pub use align::*;
 pub mod error;
