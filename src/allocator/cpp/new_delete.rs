@@ -13,6 +13,8 @@ use core::ptr::NonNull;
 unsafe impl thin::Alloc for NewDelete {
     type Error = ();
 
+    //const MAX_ALIGN : Alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__; // 8/16 - C++17
+
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         NonNull::new(unsafe { ffi::operator_new_nothrow(size.get()) }.cast()).ok_or(())
     }

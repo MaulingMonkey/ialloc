@@ -15,6 +15,7 @@ use core::ptr::NonNull;
 
 unsafe impl thin::Alloc for StdAllocator<c_char> {
     const MAX_ALIGN : Alignment = ALIGN_1; // XXX: I'm not sure if std::allocator<char>::allocate can/will over-align...? To be investigated!
+    // MSVC at least provides NewDelete alignment by default (8/16), but can that be reduced through end user specialization or operator overloads?
 
     type Error = ();
 
