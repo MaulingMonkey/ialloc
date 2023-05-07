@@ -1,3 +1,4 @@
+#[cfg(doc)] use crate as ialloc;
 use crate::*;
 use zsty::*;
 
@@ -9,6 +10,18 @@ use core::ptr::*;
 
 
 /// [`zsty::Alloc`]-friendly [`alloc::boxed::Box`] alternative
+///
+/// ## Notable Differences
+/// | Feature           | [`ialloc::boxed::ABox`]                           | [`alloc::boxed::Box`]                                 |
+/// | ------------------| --------------------------------------------------| ------------------------------------------------------|
+/// | `#![no_std]`      | [`core`]-only friendly!                           | requires [`core`] + [`alloc`]
+/// | Allocator API     | stable lean [`zsty::Free`] (+ ...)                | nightly wide [`alloc::alloc::Allocator`]
+/// | Zeroed Allocs     | stable [`bytemuck::Zeroable`]-aware               | nightly ugly [`MaybeUninit`]
+/// | Panic-on-OOM APIs | `--features panicy-memory`                        | unless `-Z build-std --cfg no_global_oom_handling`
+/// | Alignment         | compile time checked allocator support            | allocator must be general or fail at runtime
+/// | [`NonNull`]       | in public API as appropriate                      | interior only
+/// | `#[may_dangle]`   | NYI (not yet stable: [#34761](https://github.com/rust-lang/rust/issues/34761)) | yes
+///
 pub struct ABox<T: ?Sized, A: Free> {
     allocator:  A,
     data:       NonNull<T>,
