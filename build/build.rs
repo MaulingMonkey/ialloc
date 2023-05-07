@@ -94,8 +94,8 @@ fn use_cc() {
             cpp.define("IALLOC_PREFIX", &*prefix);
             for src in CPP { cpp.file(src); }
             for src in C   { c  .file(src); }
-            if cfg!(cpp) && !CPP.is_empty() { cpp.compile(&cpplib); println!("cargo:rustc_link_lib=static={cpplib}"); }
-            if cfg!(c  ) && !C  .is_empty() { c.compile(&clib);     println!("cargo:rustc_link_lib=static={clib}"); }
+            if !CPP.is_empty() { cpp.compile(&cpplib); println!("cargo:rustc_link_lib=static={cpplib}"); }
+            if !C  .is_empty() { c.compile(&clib);     println!("cargo:rustc_link_lib=static={clib}"); }
         }
 
         println!("cargo:rustc-env=IALLOC_PREFIX={prefix}");
