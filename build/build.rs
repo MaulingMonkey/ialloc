@@ -66,17 +66,20 @@ fn use_cc() {
         skip_until(&mut   c_standards, |yy| var_os(format!("CARGO_FEATURE_C{yy}"  )).is_some());
         skip_until(&mut cpp_standards, |yy| var_os(format!("CARGO_FEATURE_C++{yy}")).is_some());
 
-        // skip unsupported standards
-        if msvc {
-            skip_until(&mut   c_standards, |yy| flag!(c,   "/std:c{yy}"));
-            skip_until(&mut cpp_standards, |yy| flag!(cpp, "/std:c++{yy}"));
-        } else {
-            skip_until(&mut   c_standards, |yy| flag!(c,   "-std=c{yy}"));
-            skip_until(&mut cpp_standards, |yy| flag!(cpp, "-std=c++{yy}") || match *yy {
-                "23" => flag!(cpp, "-std=c++2b"),
-                "20" => flag!(cpp, "-std=c++2a"),
-                _yy  => false,
-            });
+        let skip_cc = var_os("CARGO_CFG_SKIP_CC").is_some();
+        if !skip_cc {
+            // skip unsupported standards
+            if msvc {
+                skip_until(&mut   c_standards, |yy| flag!(c,   "/std:c{yy}"));
+                skip_until(&mut cpp_standards, |yy| flag!(cpp, "/std:c++{yy}"));
+            } else {
+                skip_until(&mut   c_standards, |yy| flag!(c,   "-std=c{yy}"));
+                skip_until(&mut cpp_standards, |yy| flag!(cpp, "-std=c++{yy}") || match *yy {
+                    "23" => flag!(cpp, "-std=c++2b"),
+                    "20" => flag!(cpp, "-std=c++2a"),
+                    _yy  => false,
+                });
+            }
         }
 
         for yy in cpp_standards { println!("cargo:rustc-cfg=cpp{yy}") }
@@ -87,11 +90,14 @@ fn use_cc() {
         let cpplib  = format!("ialloc_{version}_cpp");
         let clib    = format!("ialloc_{version}_c");
 
-        cpp.define("IALLOC_PREFIX", &*prefix);
-        for src in CPP { cpp.file(src); }
-        for src in C   { c  .file(src); }
-        if cfg!(cpp) && !CPP.is_empty() { cpp.compile(&cpplib); println!("cargo:rustc_link_lib=static={cpplib}"); }
-        if cfg!(c  ) && !C  .is_empty() { c.compile(&clib);     println!("cargo:rustc_link_lib=static={clib}"); }
+        if !skip_cc {
+            cpp.define("IALLOC_PREFIX", &*prefix);
+            for src in CPP { cpp.file(src); }
+            for src in C   { c  .file(src); }
+            if cfg!(cpp) && !CPP.is_empty() { cpp.compile(&cpplib); println!("cargo:rustc_link_lib=static={cpplib}"); }
+            if cfg!(c  ) && !C  .is_empty() { c.compile(&clib);     println!("cargo:rustc_link_lib=static={clib}"); }
+        }
+
         println!("cargo:rustc-env=IALLOC_PREFIX={prefix}");
     }
 }

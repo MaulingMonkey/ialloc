@@ -17,6 +17,10 @@ categories                  = ["memory-management", "no-std::no-alloc"] # https:
 #keywords                    = ["..."]
 build                       = "build/build.rs"
 
+[package.metadata.docs.rs] # https://docs.rs/about/metadata
+default-target              = "x86_64-pc-windows-msvc"
+rustc-args                  = ["--cfg", "skip_cc"]
+
 [lib]
 path                        = "src/_ialloc.rs"
 
