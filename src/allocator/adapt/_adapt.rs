@@ -68,7 +68,7 @@ unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
 }
 
 #[no_implicit_prelude] mod cleanroom {
-    use super::{impls, PanicOverAlign};
+    use super::{impls, thin, PanicOverAlign};
 
     impls! {
         unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
