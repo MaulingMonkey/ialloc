@@ -27,20 +27,65 @@ impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
 }
 
 impl<T: ?Sized, A: Free> ABox<T, A> {
+    /// Retrieve the [`zsty::Free`] (+ [`zsty::Alloc`] + [`zsty::Realloc`] + ...) associated with this [`ABox`].
     #[inline(always)] pub fn allocator(&self) -> &A { &self.allocator }
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
     #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }
 
+    /// Construct an [`ABox`] from a pointer to raw data and an allocator that can free it.
+    ///
+    /// ## Safety
+    /// *   `data` must point to a valid and deferencable `T` (e.g. initialized or [`MaybeUninit`])
+    /// *   `data` and it's [`Layout`] must be safely freeable via `allocator`
+    /// *   [`ABox`] takes exclusive ownership over `data`
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    /// let (data, allocator) = ABox::into_raw_with_allocator(b);
+    ///
+    /// let b = unsafe { ABox::from_raw_in(data, allocator) };
+    /// ```
     pub unsafe fn from_raw_in(data: NonNull<T>, allocator: A) -> Self {
         Self { data, allocator, _phantom: PhantomData }
     }
 
     const ASSERT_A_IS_ZST_FROM_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` happens to be compatible with `A::default()`.  Prefer `ABox::from_raw_in` to specify an allocator instead.");
+    /// Construct an [`ABox`] from a pointer to raw data.
+    ///
+    /// ## Failure modes
+    /// *   Fails to compile if `A` isn't a ZST (you likely need a specific allocator, not just `A::default()`)
+    ///
+    /// ## Safety
+    /// *   `data` must point to a valid and deferencable `T` (e.g. initialized or [`MaybeUninit`])
+    /// *   `data` and it's [`Layout`] must be safely freeable via `A::default()`
+    /// *   [`ABox`] takes exclusive ownership over `data`
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    /// let data = ABox::into_raw(b);
+    ///
+    /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
+    /// ```
     pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Default {
         let _ = Self::ASSERT_A_IS_ZST_FROM_RAW;
         unsafe { Self::from_raw_in(data, A::default()) }
     }
 
+    /// Decompose an [`ABox`] into a pointer to raw data and an allocator that can free it.
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    ///
+    /// let (data, allocator) = ABox::into_raw_with_allocator(b);
+    ///
+    /// let b = unsafe { ABox::from_raw_in(data, allocator) };
+    /// ```
     pub fn into_raw_with_allocator(this: Self) -> (NonNull<T>, A) {
         let this        = ManuallyDrop::new(this);
         let data        = this.data;
@@ -49,11 +94,39 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     }
 
     const ASSERT_A_IS_ZST_INTO_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` can be freed with anything but the discarded allocator.  Prefer `ABox::into_raw_with_allocator` to acquire `data`'s allocator as well.");
+    /// Decompose an [`ABox`] into a pointer to raw data.
+    ///
+    /// ## Failure modes
+    /// *   Fails to compile if `A` isn't a ZST (you likely need a specific allocator, not just `A::default()`, to free the returned data)
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    ///
+    /// let data = ABox::into_raw(b);
+    ///
+    /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
+    /// ```
     pub fn into_raw(this: Self) -> NonNull<T> {
         let _ = Self::ASSERT_A_IS_ZST_INTO_RAW;
         Self::into_raw_with_allocator(this).0
     }
 
+    /// Leak an [`ABox`] into an exclusive reference to it's data.
+    ///
+    /// As the reference may narrow the [spatial provenance](https://doc.rust-lang.org/std/ptr/index.html#provenance) to
+    /// not include the full memory allocation provided by `A`, I'd argue it's likely unsound to ever pass said reference
+    /// back into [`ABox::from_raw`].  This also doesn't guard against non-zero sized allocators like [`ABox::into_raw`]
+    /// does.  If you wish to ever "unleak" the box, strongly consider using [`ABox::into_raw_with_allocator`] instead.
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    ///
+    /// let v : &'static u32 = ABox::leak(b);
+    /// ```
     pub fn leak<'a>(this: Self) -> &'a mut T where A: 'a { unsafe { ABox::into_raw_with_allocator(this).0.as_mut() } }
 }
 
@@ -68,8 +141,29 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
 impl<T, A: Free> ABox<T, A> {
     // Sized
 
+    /// Move the value out of the [`ABox`] and onto the stack.  `A`'s allocation is freed.
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    ///
+    /// let v : u32 = b.into_inner();
+    /// ```
     pub fn into_inner(self) -> T { self.into_inner_with_allocator().0 }
 
+    /// Move the value out of the [`ABox`] and onto the stack.  `A`'s allocation is freed.
+    /// `A` is also returned, if you have use for it.
+    ///
+    /// ## Examples
+    /// ```
+    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Malloc);
+    ///
+    /// let (v, a) : (u32, Malloc) = b.into_inner_with_allocator();
+    ///
+    /// let b = ABox::new_in(v, a);
+    /// ```
     pub fn into_inner_with_allocator(self) -> (T, A) {
         let layout = self.layout();
         let (ptr, allocator) = ABox::into_raw_with_allocator(self);
