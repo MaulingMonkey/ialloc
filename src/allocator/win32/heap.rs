@@ -7,8 +7,6 @@ use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
-const MEMORY_ALLOCATION_ALIGNMENT : Alignment = Alignment::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
-
 
 
 /// [`HeapAlloc`] / [`HeapReAlloc`] / [`HeapFree`] / [`HeapSize`]
@@ -59,7 +57,8 @@ unsafe impl thin::Alloc for Heap {
     /// ```
     ///
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
-    const MAX_ALIGN : Alignment = MEMORY_ALLOCATION_ALIGNMENT;
+    const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
 
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
@@ -136,7 +135,8 @@ unsafe impl thin::Alloc for ProcessHeap {
     /// ```
     ///
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
-    const MAX_ALIGN : Alignment = MEMORY_ALLOCATION_ALIGNMENT;
+    const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
 
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error>  { Heap::process().alloc_uninit(size) }
     fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }

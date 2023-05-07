@@ -26,6 +26,12 @@ mod global;             pub use global::*;
 mod heap;               pub use heap::*;
 mod local;              pub use local::*;
 
+/// | Arch      | Value |
+/// | ----------| -----:|
+/// | i686      |  8    |
+/// | x86_64    | 16    |
+const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::Alignment::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
+
 
 
 #[inline(always)] fn check_size<N: TryFrom<usize>>(size: core::num::NonZeroUsize) -> Result<N, ()> {

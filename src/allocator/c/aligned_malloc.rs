@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{*, Alignment};
 
 use core::mem::MaybeUninit;
 use core::ptr::*;
@@ -38,6 +38,8 @@ const _HEAP_MAXREQ : usize = usize::MAX & !0x1F;
 
 unsafe impl nzst::Alloc for AlignedMalloc {
     type Error = ();
+
+    // MSVC MIN_ALIGN is 4 ..= 8
 
     #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size().get(), layout.align().as_usize()) };

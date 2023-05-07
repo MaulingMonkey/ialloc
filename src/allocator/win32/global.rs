@@ -25,6 +25,9 @@ use core::ptr::NonNull;
 unsafe impl thin::Alloc for Global {
     type Error = ();
 
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { GlobalAlloc(0, size) };

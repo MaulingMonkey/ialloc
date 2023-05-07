@@ -38,6 +38,13 @@ impl Malloc {
 unsafe impl thin::Alloc for Malloc {
     type Error = ();
 
+    // Microsoft documents malloc as having 8 (32-bits) or 16 (64-bits) alignment, which I've verified in testing.
+    // <https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc#return-value>
+    // This is the same as MEMORY_ALLOCATION_ALIGNMENT.
+    // While it's possible to provide a replacement implementation of malloc and co. with less alignment, I consider that automatically UB.
+    #[cfg(target_env = "msvc")] const MAX_ALIGN : Alignment = if cfg!(target_pointer_width = "64") { ALIGN_16 } else { ALIGN_8 };
+    //#[cfg(target_env = "msvc")] const MIN_ALIGN : Alignment = if cfg!(target_pointer_width = "64") { ALIGN_16 } else { ALIGN_8 };
+
     #[track_caller] fn alloc_uninit(&self, size: NonZeroUsize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         let size = Self::check_size(size)?;
         let alloc = unsafe { malloc(size) };
