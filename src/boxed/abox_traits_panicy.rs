@@ -149,7 +149,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// ## Examples
     /// ```
     /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
-    /// let e = ABox::<u32, Null  >::try_default().unwrap_err();
+    /// let err = ABox::<u32, Null>::try_default().unwrap_err();
     /// let b = ABox::<u32, Malloc>::try_default().unwrap();
     /// assert_eq!(*b, 0);
     /// ```
@@ -175,8 +175,8 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// ## Examples
     /// ```
     /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
-    /// let e = ABox::<u32, Null  >::try_default_in(Null  ).unwrap_err();
-    /// let b = ABox::<u32, Malloc>::try_default_in(Malloc).unwrap();
+    /// let err = ABox::<u32, _>::try_default_in(Null).unwrap_err();
+    /// let b = ABox::<u32, _>::try_default_in(Malloc).unwrap();
     /// assert_eq!(*b, 0);
     /// ```
     ///
@@ -185,10 +185,10 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// impl Default for Page { fn default() -> Self { Self([0u8; 4096]) } }
-    /// let b = ABox::<Page, Malloc>::try_default_in(Malloc).unwrap();
+    /// let b = ABox::<Page, _>::try_default_in(Malloc).unwrap();
     /// ```
-    pub fn try_default_in<A2>(allocator: A2) -> Result<ABox<T, A2>, A2::Error> where T : Default, A2: Alloc + Free {
-        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+    pub fn try_default_in(allocator: A) -> Result<ABox<T, A>, A::Error> where T : Default, A: Alloc {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
         ABox::try_new_in(T::default(), allocator)
     }
 
@@ -201,14 +201,14 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// ## Examples
     /// ```
     /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
-    /// let b = ABox::<u32, Malloc>::default_in(Malloc);
+    /// let b = ABox::<u32, _>::default_in(Malloc);
     /// assert_eq!(*b, 0);
     /// ```
     ///
     /// ```should_panic
     /// # use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
     /// // will panic - Null can't allocate anything
-    /// let b = ABox::<u32, Null  >::default_in(Null  );
+    /// let b = ABox::<u32, _>::default_in(Null);
     /// ```
     ///
     /// ```compile_fail,E0080
@@ -216,10 +216,10 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// impl Default for Page { fn default() -> Self { Self([0u8; 4096]) } }
-    /// let b = ABox::<Page, Malloc>::try_default().unwrap();
+    /// let b = ABox::<Page, _>::default_in(Malloc);
     /// ```
-    #[cfg(feature = "panicy-memory")] pub fn default_in<A2>(allocator: A2) -> ABox<T, A2> where T : Default, A2 : Alloc + Free {
-        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+    #[cfg(feature = "panicy-memory")] pub fn default_in(allocator: A) -> ABox<T, A> where T : Default, A : Alloc {
+        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
         ABox::new_in(T::default(), allocator)
     }
 }
