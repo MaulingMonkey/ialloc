@@ -88,3 +88,6 @@ winapi.features = [
     "wincrypt",
     "winnt",
 ]
+
+[profile.release]
+debug = true

@@ -47,6 +47,27 @@
 
         // ialloc
         {
+            "label":            "cargo build --package ialloc --example alloc-tester",
+            "command":          "cargo build --package ialloc --example alloc-tester",
+            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
+        },
+        {
+            "label":            "cargo build --package ialloc --example alloc-tester --release",
+            "command":          "cargo build --package ialloc --example alloc-tester --release",
+            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
+        },
+        {
+            "label":            "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc",
+            "command":          "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc",
+            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
+        },
+        {
+            "label":            "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc --release",
+            "command":          "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc --release",
+            "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },
+        },
+
+        {
             "label":            "cargo build --package ialloc --example test-zero-allocs",
             "command":          "cargo build --package ialloc --example test-zero-allocs",
             "presentation":     { "clear": true, "panel": "shared", "reveal": "always" },

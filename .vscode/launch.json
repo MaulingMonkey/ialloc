@@ -4,6 +4,84 @@
     "configurations": [
         // ialloc
         {
+            "name":                     "example • alloc-tester • debug",
+            "type":                     "cppdbg",
+            "request":                  "launch",
+            "internalConsoleOptions":   "openOnSessionStart",
+            "preLaunchTask":            "cargo build --package ialloc --example alloc-tester",
+            "program":                  "${workspaceFolder}/target/debug/examples/alloc-tester",
+            "cwd":                      "${workspaceFolder}",
+            "environment":              [ { "name": "RUST_BACKTRACE", "value": "1" } ],
+            "windows": {
+                "type":                 "cppvsdbg",
+                "program":              "${workspaceFolder}/target/debug/examples/alloc-tester.exe",
+                "enableDebugHeap":      true,
+            },
+            "symbolOptions": {
+                // "cachePath":         "${env:TEMP}/SymbolCache"
+                "searchMicrosoftSymbolServer": true,
+            },
+        },
+        {
+            "name":                     "example • alloc-tester • release",
+            "type":                     "cppdbg",
+            "request":                  "launch",
+            "internalConsoleOptions":   "openOnSessionStart",
+            "preLaunchTask":            "cargo build --package ialloc --example alloc-tester --release",
+            "program":                  "${workspaceFolder}/target/release/examples/alloc-tester",
+            "cwd":                      "${workspaceFolder}",
+            "environment":              [ { "name": "RUST_BACKTRACE", "value": "1" } ],
+            "windows": {
+                "type":                 "cppvsdbg",
+                "program":              "${workspaceFolder}/target/release/examples/alloc-tester.exe",
+                "enableDebugHeap":      false,
+            },
+            "symbolOptions": {
+                // "cachePath":         "${env:TEMP}/SymbolCache"
+                "searchMicrosoftSymbolServer": true,
+            },
+        },
+
+        {
+            "name":                     "example • alloc-tester • i686 • debug",
+            "type":                     "cppdbg",
+            "request":                  "launch",
+            "internalConsoleOptions":   "openOnSessionStart",
+            "preLaunchTask":            "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc",
+            "program":                  "${workspaceFolder}/target/i686-pc-windows-msvc/debug/examples/alloc-tester",
+            "cwd":                      "${workspaceFolder}",
+            "environment":              [ { "name": "RUST_BACKTRACE", "value": "1" } ],
+            "windows": {
+                "type":                 "cppvsdbg",
+                "program":              "${workspaceFolder}/target/i686-pc-windows-msvc/debug/examples/alloc-tester.exe",
+                "enableDebugHeap":      true,
+            },
+            "symbolOptions": {
+                // "cachePath":         "${env:TEMP}/SymbolCache"
+                "searchMicrosoftSymbolServer": true,
+            },
+        },
+        {
+            "name":                     "example • alloc-tester • i686 • release",
+            "type":                     "cppdbg",
+            "request":                  "launch",
+            "internalConsoleOptions":   "openOnSessionStart",
+            "preLaunchTask":            "cargo build --package ialloc --example alloc-tester --target=i686-pc-windows-msvc --release",
+            "program":                  "${workspaceFolder}/target/i686-pc-windows-msvc/release/examples/alloc-tester",
+            "cwd":                      "${workspaceFolder}",
+            "environment":              [ { "name": "RUST_BACKTRACE", "value": "1" } ],
+            "windows": {
+                "type":                 "cppvsdbg",
+                "program":              "${workspaceFolder}/target/i686-pc-windows-msvc/release/examples/alloc-tester.exe",
+                "enableDebugHeap":      false,
+            },
+            "symbolOptions": {
+                // "cachePath":         "${env:TEMP}/SymbolCache"
+                "searchMicrosoftSymbolServer": true,
+            },
+        },
+
+        {
             "name":                     "example • test-zero-allocs • debug",
             "type":                     "cppdbg",
             "request":                  "launch",

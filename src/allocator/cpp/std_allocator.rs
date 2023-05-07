@@ -13,6 +13,11 @@ use core::ptr::NonNull;
 /// [`std::allocator<_>::deallocate`](https://en.cppreference.com/w/cpp/memory/allocator/deallocate)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct StdAllocator<T>(PhantomData<fn(usize) -> T>);
 
+impl<T> StdAllocator<T> {
+    /// Create a new `std::allocator<T>` wrapper
+    pub const fn new() -> Self { Self(PhantomData) }
+}
+
 unsafe impl thin::Alloc for StdAllocator<c_char> {
     const MAX_ALIGN : Alignment = ALIGN_1; // XXX: I'm not sure if std::allocator<char>::allocate can/will over-align...? To be investigated!
     // MSVC at least provides NewDelete alignment by default (8/16), but can that be reduced through end user specialization or operator overloads?
