@@ -14,7 +14,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
 
     /// If you hit this assertion, it's unlikely that `A` can ever successfully allocate an instance of `T` except by happenstance and accident.
     /// Unless you've written some obscenely generic code that intentionally handles containers that might never be able to allocate, this is likely a bug.
-    const ASSERT_A_CAN_ALLOC_ALIGNED_T : () = assert!(align_of::<T>() <= A::MAX_ALIGN.as_usize(), "Alignment::of::<T>() > A::MAX_ALIGN - the allocator cannot allocate memory sufficiently aligned for instances of T on it's own");
+    pub(super) const ASSERT_A_CAN_ALLOC_ALIGNED_T : () = assert!(align_of::<T>() <= A::MAX_ALIGN.as_usize(), "Alignment::of::<T>() > A::MAX_ALIGN - the allocator cannot allocate memory sufficiently aligned for instances of T on it's own");
 
     /// Allocate a new box initialized to `value` using `allocator`.
     ///

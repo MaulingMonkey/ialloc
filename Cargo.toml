@@ -61,8 +61,15 @@ cc.optional                 = true
 [dependencies]
 bytemuck.version            = "1"
 bytemuck.optional           = true
+bytemuck.features = [           # automatically opt into features that exist only to protect MSRV
+    "zeroable_maybe_uninit",    # requires MSRV 1.36.0, ialloc has MSRV 1.69.0
+    "min_const_generics",       # requires MSRV 1.51.0, ialloc has MSRV 1.69.0
+    "zeroable_atomics",         # requires MSRV 1.60.0, ialloc has MSRV 1.69.0
+]
+
 libc.version                = "0.2"
 libc.optional               = true
+
 winapi.version              = "0.3"
 winapi.optional             = true
 winapi.features = [
