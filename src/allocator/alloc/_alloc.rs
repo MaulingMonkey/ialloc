@@ -1,5 +1,6 @@
 //! [`Global`]
 #![cfg(feature = "alloc")]
+#![cfg_attr(doc_cfg = "*", doc(cfg(feature = "alloc")))]
 
 use crate::*;
 

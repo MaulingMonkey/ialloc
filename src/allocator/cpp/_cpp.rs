@@ -1,4 +1,5 @@
 #![cfg(cpp98)]
+#![cfg_attr(doc_cfg = "*", doc(cfg(feature = "c++98")))]
 //! [`StdAllocator<c_char>`] (C++98), <code>[NewDelete]{,[Array](NewDeleteArray)}</code> (C++98), <code>NewDelete{[Aligned](NewDeleteAligned),[ArrayAligned](NewDeleteArrayAligned)}</code> (C++17)
 
 

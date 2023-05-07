@@ -1,4 +1,5 @@
 #![cfg(all(target_os = "windows", feature = "win32"))]
+#![cfg_attr(doc_cfg = "*", doc(cfg(all(target_os = "windows", feature = "win32"))))]
 //! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`Local`]
 //!
 //! | Allocator                     | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |

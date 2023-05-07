@@ -1,4 +1,5 @@
 #![cfg_attr(allocator_api = "unstable", feature(allocator_api))]
+#![cfg_attr(doc_cfg       = "unstable", feature(doc_cfg      ))]
 #![doc = include_str!("../Readme.md")]
 #![doc = include_str!("../doc/features.md")]
 #![no_std]

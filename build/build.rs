@@ -29,6 +29,14 @@ fn main() {
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
         println!("cargo:rustc-cfg=allocator_api=\"unstable\"");
     }
+    if feature_test("doc_cfg_1_21_stable") {
+        println!("cargo:rustc-cfg=doc_cfg=\"*\"");
+        println!("cargo:rustc-cfg=doc_cfg=\"1.21\"");
+    } else if feature_test("doc_cfg_1_21_unstable") {
+        println!("cargo:rustc-cfg=doc_cfg=\"*\"");
+        println!("cargo:rustc-cfg=doc_cfg=\"1.21\"");
+        println!("cargo:rustc-cfg=doc_cfg=\"unstable\"");
+    }
     if var_os("CARGO_CFG_TARGET_ENV").as_deref() == Some(OsStr::new("msvc")) && var_os("CARGO_FEATURE_MSVC").is_some() {
         println!("cargo:rustc-cfg=msvc");
     }

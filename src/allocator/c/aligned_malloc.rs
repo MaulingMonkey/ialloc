@@ -1,3 +1,5 @@
+#![cfg_attr(doc_cfg = "*", doc(cfg(any(target_env = "msvc", feature = "c11", feature = "c++17"))))]
+
 use crate::*;
 
 use core::mem::MaybeUninit;

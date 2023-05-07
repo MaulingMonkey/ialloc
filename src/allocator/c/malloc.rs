@@ -1,3 +1,5 @@
+#![cfg_attr(doc_cfg = "*", doc(cfg(feature = "c89")))]
+
 use crate::*;
 
 use libc::*;
