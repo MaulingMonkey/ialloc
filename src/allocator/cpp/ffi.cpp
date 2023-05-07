@@ -4,7 +4,8 @@
 using std::size_t;
 using std::nothrow;
 
-#define IALLOC_CONCAT(a,b) a ## b
+#define IALLOC_CONCAT2(a,b) a ## b
+#define IALLOC_CONCAT(a,b) IALLOC_CONCAT2(a, b)
 #define IALLOC_FN(ret, name) extern "C" ret IALLOC_CONCAT(IALLOC_PREFIX, name)
 
 
