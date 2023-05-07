@@ -1,3 +1,5 @@
+//! [`Null`]
+
 #![allow(unused_variables)]
 
 use crate::*;
