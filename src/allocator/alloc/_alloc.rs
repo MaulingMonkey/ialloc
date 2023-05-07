@@ -21,19 +21,19 @@ unsafe impl nzst::Alloc for Global {
     type Error = ();
 
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { alloc::alloc::alloc(*layout) };
+        let alloc = unsafe { alloc::alloc::alloc(layout.into()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> {
-        let alloc = unsafe { alloc::alloc::alloc_zeroed(*layout) };
+        let alloc = unsafe { alloc::alloc::alloc_zeroed(layout.into()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
 unsafe impl nzst::Free for Global {
     unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), *layout) }
+        unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), layout.into()) }
     }
 }
 
@@ -42,10 +42,10 @@ unsafe impl nzst::Realloc for Global {
         if old_layout == new_layout {
             Ok(ptr)
         } else if old_layout.align() == new_layout.align() {
-            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), *old_layout, new_layout.size().get()) };
+            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), old_layout.into(), new_layout.size().get()) };
             NonNull::new(alloc.cast()).ok_or(())
         } else { // alignment change
-            let alloc = unsafe { alloc::alloc::alloc(*new_layout) };
+            let alloc = unsafe { alloc::alloc::alloc(new_layout.into()) };
             let alloc : AllocNN = NonNull::new(alloc.cast()).ok_or(())?;
             {
                 let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size().get()) };
@@ -53,7 +53,7 @@ unsafe impl nzst::Realloc for Global {
                 let n = old.len().min(new.len());
                 new[..n].copy_from_slice(&old[..n]);
             }
-            unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), *old_layout) };
+            unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), old_layout.into()) };
             Ok(alloc)
         }
     }
