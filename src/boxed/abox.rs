@@ -21,6 +21,7 @@ use core::ptr::*;
 /// | Alignment         | compile time checked allocator support            | allocator must be general or fail at runtime
 /// | [`NonNull`]       | in public API as appropriate                      | interior only
 /// | `#[may_dangle]`   | NYI (not yet stable: [#34761](https://github.com/rust-lang/rust/issues/34761)) | yes
+/// | Into Inner        | Explicit (e.g. <code>ABox::[into_inner](Self::into_inner)\(b\)</code>)  | Magic `DerefMove` (e.g. `*b`)
 ///
 pub struct ABox<T: ?Sized, A: Free> {
     allocator:  A,
@@ -161,9 +162,9 @@ impl<T, A: Free> ABox<T, A> {
     /// use ialloc::{allocator::c::Malloc, boxed::ABox};
     /// let b = ABox::new_in(42_u32, Malloc);
     ///
-    /// let v : u32 = b.into_inner();
+    /// let v : u32 = ABox::into_inner(b);
     /// ```
-    pub fn into_inner(self) -> T { self.into_inner_with_allocator().0 }
+    pub fn into_inner(this: Self) -> T { Self::into_inner_with_allocator(this).0 }
 
     /// Move the value out of the [`ABox`] and onto the stack.  `A`'s allocation is freed.
     /// `A` is also returned, if you have use for it.
@@ -173,13 +174,13 @@ impl<T, A: Free> ABox<T, A> {
     /// use ialloc::{allocator::c::Malloc, boxed::ABox};
     /// let b = ABox::new_in(42_u32, Malloc);
     ///
-    /// let (v, a) : (u32, Malloc) = b.into_inner_with_allocator();
+    /// let (v, a) : (u32, Malloc) = ABox::into_inner_with_allocator(b);
     ///
     /// let b = ABox::new_in(v, a);
     /// ```
-    pub fn into_inner_with_allocator(self) -> (T, A) {
-        let layout = self.layout();
-        let (ptr, allocator) = ABox::into_raw_with_allocator(self);
+    pub fn into_inner_with_allocator(this: Self) -> (T, A) {
+        let layout = this.layout();
+        let (ptr, allocator) = ABox::into_raw_with_allocator(this);
         let data = unsafe { ptr.as_ptr().read() };
         unsafe { allocator.free(ptr.cast(), layout) };
         (data, allocator)
