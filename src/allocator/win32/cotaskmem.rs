@@ -66,9 +66,24 @@ unsafe impl thin::Free for CoTaskMem {
 
 
 
-// TODO: test/improve alignment?
-//
-// Docs boldly claim:
-// > The storage space pointed to by the return value is guaranteed to be suitably aligned for storage of any type of object.
-// > <https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemrealloc>
-// But I'm skeptical that means `alignof(max_align_t)` instead of "our x86 instructions won't fail"
+#[test] fn test_nullable() {
+    use crate::thin::Free;
+    unsafe { CoTaskMem.free_nullable(core::ptr::null_mut()) }
+}
+
+#[test] fn test_align() {
+    use crate::thin::*;
+    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
+        let size = NonZeroUsize::new(size).unwrap();
+        std::dbg!(size);
+        let mut addr_bits = 0;
+        for _ in 0 .. 1000 {
+            let alloc = CoTaskMem.alloc_uninit(size).unwrap();
+            addr_bits |= alloc.as_ptr() as usize;
+            unsafe { CoTaskMem.free(alloc) };
+        }
+        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
+        assert!(align >= CoTaskMem::MIN_ALIGN.as_usize());
+        assert!(align >= CoTaskMem::MAX_ALIGN.as_usize());
+    }
+}

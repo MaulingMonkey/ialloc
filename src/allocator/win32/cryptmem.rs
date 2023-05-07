@@ -2,6 +2,7 @@ use crate::*;
 
 use winapi::um::wincrypt::{CryptMemAlloc, CryptMemRealloc, CryptMemFree};
 
+use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
@@ -48,8 +49,8 @@ unsafe impl thin::Realloc for CryptMem {
 }
 
 unsafe impl thin::Free for CryptMem {
-    unsafe fn free(&self, ptr: AllocNN) {
-        unsafe { CryptMemFree(ptr.as_ptr().cast()) }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        unsafe { CryptMemFree(ptr.cast()) }
     }
 }
 
@@ -65,5 +66,24 @@ unsafe impl thin::Free for CryptMem {
 
 
 
-// TODO: test if CryptMemFree is nullable safe
-// TODO: test/improve alignment?
+#[test] fn test_nullable() {
+    use crate::thin::Free;
+    unsafe { CryptMem.free_nullable(core::ptr::null_mut()) }
+}
+
+#[test] fn test_align() {
+    use crate::thin::*;
+    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
+        let size = NonZeroUsize::new(size).unwrap();
+        std::dbg!(size);
+        let mut addr_bits = 0;
+        for _ in 0 .. 1000 {
+            let alloc = CryptMem.alloc_uninit(size).unwrap();
+            addr_bits |= alloc.as_ptr() as usize;
+            unsafe { CryptMem.free(alloc) };
+        }
+        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
+        assert!(align >= CryptMem::MIN_ALIGN.as_usize());
+        assert!(align >= CryptMem::MAX_ALIGN.as_usize());
+    }
+}

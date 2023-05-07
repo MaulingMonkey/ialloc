@@ -3,6 +3,7 @@ use crate::*;
 use winapi::um::errhandlingapi::{GetLastError, SetLastError};
 use winapi::um::winbase::{GlobalAlloc, GlobalReAlloc, GlobalFree, GlobalSize, GMEM_ZEROINIT};
 
+use core::mem::MaybeUninit;
 use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
@@ -58,8 +59,8 @@ unsafe impl thin::Realloc for Global {
 }
 
 unsafe impl thin::Free for Global {
-    unsafe fn free(&self, ptr: AllocNN) {
-        assert!(unsafe { GlobalFree(ptr.as_ptr().cast()) }.is_null());
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        assert!(unsafe { GlobalFree(ptr.cast()) }.is_null());
     }
 }
 
@@ -88,5 +89,24 @@ unsafe impl thin::SizeOfDebug for Global {
 
 
 
-// TODO: test/improve alignment?
-// TODO: check if nullable friendly?
+#[test] fn test_nullable() {
+    use crate::thin::Free;
+    unsafe { Global.free_nullable(core::ptr::null_mut()) }
+}
+
+#[test] fn test_align() {
+    use crate::thin::*;
+    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
+        let size = NonZeroUsize::new(size).unwrap();
+        std::dbg!(size);
+        let mut addr_bits = 0;
+        for _ in 0 .. 1000 {
+            let alloc = Global.alloc_uninit(size).unwrap();
+            addr_bits |= alloc.as_ptr() as usize;
+            unsafe { Global.free(alloc) };
+        }
+        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
+        assert!(align >= Global::MIN_ALIGN.as_usize());
+        assert!(align >= Global::MAX_ALIGN.as_usize());
+    }
+}

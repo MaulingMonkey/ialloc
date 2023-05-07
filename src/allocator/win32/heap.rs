@@ -169,3 +169,27 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
         unsafe impl ialloc::nzst::Free      for ProcessHeap => ialloc::thin::Free;
     }
 }
+
+
+
+#[test] fn test_nullable() {
+    use crate::thin::Free;
+    unsafe { ProcessHeap.free_nullable(core::ptr::null_mut()) }
+}
+
+#[test] fn test_align() {
+    use crate::thin::*;
+    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
+        let size = NonZeroUsize::new(size).unwrap();
+        std::dbg!(size);
+        let mut addr_bits = 0;
+        for _ in 0 .. 1000 {
+            let alloc = ProcessHeap.alloc_uninit(size).unwrap();
+            addr_bits |= alloc.as_ptr() as usize;
+            unsafe { ProcessHeap.free(alloc) };
+        }
+        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
+        assert!(align >= ProcessHeap::MIN_ALIGN.as_usize());
+        assert!(align >= ProcessHeap::MAX_ALIGN.as_usize());
+    }
+}
