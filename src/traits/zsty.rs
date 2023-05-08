@@ -33,7 +33,13 @@ pub unsafe trait Alloc {
     type Error : Debug;
 
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error>;
-    fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error>;
+
+    fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
+        let alloc = self.alloc_uninit(layout)?;
+        let all = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), layout.size()) };
+        all.fill(MaybeUninit::new(0u8));
+        Ok(alloc.cast())
+    }
 }
 
 /// Deallocation function:<br>
