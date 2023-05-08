@@ -1,5 +1,12 @@
 @pushd "%~dp0.." && setlocal
 
+:: Nightly
+@cargo +nightly >NUL 2>NUL || ver>NUL && goto :skip-nightly
+@call :run-windows cargo +nightly test                                          || goto :die
+@call :run-windows cargo +nightly build --all-targets                           || goto :die
+@call :run-windows cargo +nightly doc                                           || goto :die
+:skip-nightly
+
 :: Stable
 @call :run-windows cargo test                                                   || goto :die
 @call :run-windows cargo build --all-targets --release                          || goto :die
@@ -9,13 +16,6 @@
 @call :run-linux cargo test                                                     || goto :die
 @call :run-linux cargo build --all-targets --release                            || goto :die
 :skip-stable-linux
-
-:: Nightly
-@cargo +nightly >NUL 2>NUL || ver>NUL && goto :skip-nightly
-@call :run-windows cargo +nightly test                                          || goto :die
-@call :run-windows cargo +nightly build --all-targets                           || goto :die
-@call :run-windows cargo +nightly doc                                           || goto :die
-:skip-nightly
 
 :die
 @popd && endlocal && exit /b %ERRORLEVEL%
