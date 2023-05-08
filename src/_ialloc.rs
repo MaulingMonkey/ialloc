@@ -13,11 +13,17 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 
 #[doc(hidden)] pub mod _impls;
 
+pub use align::alignment::*;
+#[doc(hidden)] pub use align::constants::*;
+mod align {
+    pub mod alignment;
+    pub mod constants;
+}
+
 #[path = "allocator/_allocator.rs"      ] pub mod allocator;
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
 #[path = "util/_util.rs"                ] mod util;
 
-mod align;                  pub use align::*;
 pub mod error;
 mod layout;                 pub use layout::*;
