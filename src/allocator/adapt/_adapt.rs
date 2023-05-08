@@ -68,19 +68,27 @@ unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
 }
 
 #[no_implicit_prelude] mod cleanroom {
-    use super::{impls, thin, PanicOverAlign};
+    use super::{impls, thin, zsty, PanicOverAlign};
 
     impls! {
-        unsafe impl[A: thin::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: zsty::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
 
         unsafe impl[A: thin::Alloc          ] ialloc::thin::Alloc       for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::Free           ] ialloc::thin::Free        for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::Realloc        ] ialloc::thin::Realloc     for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::SizeOf         ] ialloc::thin::SizeOf      for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::SizeOfDebug    ] ialloc::thin::SizeOfDebug for PanicOverAlign<A> => core::ops::Deref;
+
+        //unsafe impl[A: nzst::Alloc          ] ialloc::nzst::Alloc       for PanicOverAlign<A> => core::ops::Deref;
+        //unsafe impl[A: nzst::Free           ] ialloc::nzst::Free        for PanicOverAlign<A> => core::ops::Deref;
+        //unsafe impl[A: nzst::Realloc        ] ialloc::nzst::Realloc     for PanicOverAlign<A> => core::ops::Deref;
+
+        unsafe impl[A: zsty::Alloc          ] ialloc::zsty::Alloc       for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: zsty::Free           ] ialloc::zsty::Free        for PanicOverAlign<A> => core::ops::Deref;
+        unsafe impl[A: zsty::Realloc        ] ialloc::zsty::Realloc     for PanicOverAlign<A> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl[A: thin::Realloc        ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: zsty::Realloc        ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
     }
 }

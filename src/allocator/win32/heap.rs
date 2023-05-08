@@ -164,9 +164,17 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
         unsafe impl ialloc::nzst::Realloc   for Heap => ialloc::thin::Realloc;
         unsafe impl ialloc::nzst::Free      for Heap => ialloc::thin::Free;
 
+        unsafe impl ialloc::zsty::Alloc     for Heap => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for Heap => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for Heap => ialloc::nzst::Free;
+
         unsafe impl ialloc::nzst::Alloc     for ProcessHeap => ialloc::thin::Alloc;
         unsafe impl ialloc::nzst::Realloc   for ProcessHeap => ialloc::thin::Realloc;
         unsafe impl ialloc::nzst::Free      for ProcessHeap => ialloc::thin::Free;
+
+        unsafe impl ialloc::zsty::Alloc     for ProcessHeap => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for ProcessHeap => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for ProcessHeap => ialloc::nzst::Free;
     }
 }
 

@@ -61,6 +61,10 @@ unsafe impl thin::Free for CryptMem {
         unsafe impl ialloc::nzst::Alloc     for CryptMem => ialloc::thin::Alloc;
         unsafe impl ialloc::nzst::Realloc   for CryptMem => ialloc::thin::Realloc;
         unsafe impl ialloc::nzst::Free      for CryptMem => ialloc::thin::Free;
+
+        unsafe impl ialloc::zsty::Alloc     for CryptMem => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for CryptMem => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for CryptMem => ialloc::nzst::Free;
     }
 }
 

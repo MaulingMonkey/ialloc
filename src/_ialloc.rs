@@ -14,7 +14,6 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 #[doc(hidden)] pub mod _impls;
 
 #[path = "allocator/_allocator.rs"      ] pub mod allocator;
-#[path = "auto/_auto.rs"                ] mod auto;
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
 #[path = "util/_util.rs"                ] mod util;

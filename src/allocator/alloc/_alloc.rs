@@ -98,3 +98,13 @@ unsafe impl core::alloc::GlobalAlloc for Global {
         Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
     }
 }
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, Global};
+
+    impls! {
+        unsafe impl ialloc::zsty::Alloc     for Global => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for Global => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for Global => ialloc::nzst::Free;
+    }
+}

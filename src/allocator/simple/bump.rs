@@ -108,18 +108,12 @@ unsafe impl<'a> zsty::Realloc for Bump<'a> {
     use super::Bump;
 
     impls! {
-        unsafe impl core::alloc::GlobalAlloc for Bump<'static> => ialloc::zsty::Realloc;
-
-        // TODO: eliminate auto-impl of znst → zsty in favor of making these ref impls generic for all allocator types?
-        unsafe impl['o, 'i: 'o] ialloc::zsty::Alloc         for &'o Bump<'i>        => core::ops::Deref;
-        unsafe impl['o, 'i: 'o] ialloc::zsty::Free          for &'o Bump<'i>        => core::ops::Deref;
-        unsafe impl['o, 'i: 'o] ialloc::zsty::Realloc       for &'o Bump<'i>        => core::ops::Deref;
-        unsafe impl['o        ] core::alloc::GlobalAlloc    for &'o Bump<'static>   => core::ops::Deref;
+        unsafe impl     core::alloc::GlobalAlloc for     Bump<'static> => ialloc::zsty::Realloc;
+        unsafe impl['o] core::alloc::GlobalAlloc for &'o Bump<'static> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl['a]         core::alloc::Allocator(unstable 1.50) for Bump<'a>      => ialloc::zsty::Realloc;
-
+        unsafe impl['a] core::alloc::Allocator(unstable 1.50) for Bump<'a> => ialloc::zsty::Realloc;
         //unsafe impl['o, 'i: 'o] core::alloc::Allocator(unstable 1.50) for &'o Bump<'i>  => core::ops::Deref; // XXX: already auto-implemented
     }
 }

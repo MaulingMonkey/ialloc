@@ -94,3 +94,21 @@ pub unsafe trait Realloc : Alloc + Free {
         Ok(alloc.cast())
     }
 }
+
+
+
+unsafe impl<'a, A: Alloc> Alloc for &'a A {
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    type Error = A::Error;
+    fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN,  Self::Error> { A::alloc_uninit(self, layout) }
+    fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { A::alloc_zeroed(self, layout) }
+}
+
+unsafe impl<'a, A: Free> Free for &'a A {
+    unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) { unsafe { A::free(self, ptr, layout) } }
+}
+
+unsafe impl<'a, A: Realloc> Realloc for &'a A {
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) } }
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) } }
+}

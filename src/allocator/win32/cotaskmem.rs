@@ -61,6 +61,10 @@ unsafe impl thin::Free for CoTaskMem {
         unsafe impl ialloc::nzst::Alloc     for CoTaskMem => ialloc::thin::Alloc;
         unsafe impl ialloc::nzst::Realloc   for CoTaskMem => ialloc::thin::Realloc;
         unsafe impl ialloc::nzst::Free      for CoTaskMem => ialloc::thin::Free;
+
+        unsafe impl ialloc::zsty::Alloc     for CoTaskMem => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for CoTaskMem => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for CoTaskMem => ialloc::nzst::Free;
     }
 }
 

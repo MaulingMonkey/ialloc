@@ -24,3 +24,13 @@ unsafe impl nzst::Free for NewDeleteArrayAligned {
 }
 
 unsafe impl nzst::Realloc for NewDeleteArrayAligned {}
+
+#[no_implicit_prelude] mod cleanroom {
+    use super::{impls, NewDeleteArrayAligned};
+
+    impls! {
+        unsafe impl ialloc::zsty::Alloc     for NewDeleteArrayAligned => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for NewDeleteArrayAligned => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for NewDeleteArrayAligned => ialloc::nzst::Free;
+    }
+}

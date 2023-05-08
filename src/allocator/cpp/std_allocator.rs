@@ -42,5 +42,9 @@ unsafe impl nzst::Realloc for StdAllocator<c_char> {}
 
     impls! {
         unsafe impl ialloc::nzst::Alloc     for StdAllocator<c_char> => ialloc::thin::Alloc;
+
+        unsafe impl ialloc::zsty::Alloc     for StdAllocator<c_char> => ialloc::nzst::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for StdAllocator<c_char> => ialloc::nzst::Realloc;
+        unsafe impl ialloc::zsty::Free      for StdAllocator<c_char> => ialloc::nzst::Free;
     }
 }

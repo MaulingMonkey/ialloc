@@ -161,3 +161,31 @@ pub unsafe trait SizeOfDebug {
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize>;
 }
+
+
+
+unsafe impl<'a, A: Alloc> Alloc for &'a A {
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    type Error = A::Error;
+    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN,  Self::Error> { A::alloc_uninit(self, size) }
+    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { A::alloc_zeroed(self, size) }
+}
+
+unsafe impl<'a, A: Free> Free for &'a A {
+    unsafe fn free(         &self, ptr: AllocNN             ) { unsafe { A::free(         self, ptr) } }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { A::free_nullable(self, ptr) } }
+}
+
+unsafe impl<'a, A: Realloc> Realloc for &'a A {
+    const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_uninit(self, ptr, new_size) } }
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, new_size) } }
+}
+
+unsafe impl<'a, A: SizeOf> SizeOf for &'a A {
+    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { <A as SizeOf>::size_of(self, ptr) } }
+}
+
+unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
+    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { A::size_of(self, ptr) } }
+}
