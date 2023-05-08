@@ -115,18 +115,3 @@ unsafe impl thin::SizeOfDebug for Malloc {
         unsafe impl ialloc::zsty::Free      for Malloc => ialloc::nzst::Free;
     }
 }
-
-
-
-#[cfg(allocator_api = "*")] #[test] fn allocator_api() {
-    use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
-    use alloc::vec::Vec;
-
-    let mut v = Vec::new_in(PanicOverAlign(Malloc));
-    v.push(1);
-    v.push(2);
-    v.push(3);
-    let v2 = v.clone();
-    assert_eq!(3, v.len());
-    assert_eq!(3, v2.len());
-}

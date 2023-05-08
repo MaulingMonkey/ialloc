@@ -2,70 +2,113 @@
 
 use crate::{*, Alignment};
 
-use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
+use core::alloc::Layout;
 
 
 
 /// Adapt a [`thin`] allocator to a wider interface, `panic!`ing if more than [`thin::Alloc::MAX_ALIGN`] is requested.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct PanicOverAlign<A>(pub A);
 
+#[inline(never)] #[track_caller] fn invalid_requested_alignment(requested: usize, supported: usize) -> ! {
+    panic!("requested alignment {requested:?} > supported {supported:?}")
+}
+
+#[inline(never)] #[track_caller] fn invalid_freed_alignment(freed: usize, supported: usize) -> ! {
+    panic!("alignment being freed {freed:?} > supported {supported:?} - this is Undefined Behavior! (did you free with the wrong allocator?)")
+}
+
+#[inline(always)] #[track_caller] fn assert_valid_alignment(requested: impl Into<usize>, supported: impl Into<usize>) {
+    let requested = requested.into();
+    let supported = supported.into();
+    if requested > supported { invalid_requested_alignment(requested, supported) }
+}
+
+#[inline(always)] #[track_caller] fn freed_old_alignment(freed: impl Into<usize>, supported: impl Into<usize>) {
+    let freed = freed.into();
+    let supported = supported.into();
+    if freed > supported { invalid_freed_alignment(freed, supported) }
+}
+
 impl<A> core::ops::Deref for PanicOverAlign<A> {
     type Target = A;
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
-
-impl<A: thin::Alloc> PanicOverAlign<A> {
-    #[track_caller] fn layout_to_size(layout: LayoutNZ) -> NonZeroUsize {
-        let align = layout.align();
-        if align > A::MAX_ALIGN { Self::invalid_alignment(layout.align()) }
-        layout.size().max(align.as_nonzero())
-    }
-
-    #[inline(never)] #[track_caller] fn invalid_alignment(align: Alignment) -> ! {
-        panic!("alignment {align:?} > Self::MAX_ALIGN ({:?})", A::MAX_ALIGN)
-    }
+    #[inline(always)] fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 
 
-unsafe impl<A: thin::Alloc> nzst::Alloc for PanicOverAlign<A> {
+// nzst::*
+
+unsafe impl<A: nzst::Alloc> nzst::Alloc for PanicOverAlign<A> {
     const MAX_ALIGN : Alignment = A::MAX_ALIGN;
     type Error = A::Error;
-    #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN,  Self::Error> { self.0.alloc_uninit(Self::layout_to_size(layout)) }
-    #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { self.0.alloc_zeroed(Self::layout_to_size(layout)) }
-}
-
-unsafe impl<A: thin::Alloc + thin::Free> nzst::Free for PanicOverAlign<A> {
-    #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        let _ = Self::layout_to_size(layout); // if this fails, we never could've allocated this allocation
-        unsafe { self.0.free(ptr) }
+    #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
+        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
+        A::alloc_uninit(self, layout)
+    }
+    #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> {
+        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
+        A::alloc_zeroed(self, layout)
     }
 }
 
-unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
+unsafe impl<A: nzst::Free> nzst::Free for PanicOverAlign<A> {
+    #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
+        //freed_old_alignment(layout.align(), A::MAX_ALIGN);
+        unsafe { A::free(self, ptr, layout) }
+    }
+}
+
+unsafe impl<A: nzst::Realloc> nzst::Realloc for PanicOverAlign<A> {
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        let _ = Self::layout_to_size(old_layout);
-        let new_size = Self::layout_to_size(new_layout);
-        unsafe { self.0.realloc_uninit(ptr, new_size) }
+        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
+        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
+        unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) }
     }
-
     #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        if A::CAN_REALLOC_ZEROED {
-            let _ = Self::layout_to_size(old_layout);
-            let new_size = Self::layout_to_size(new_layout);
-            unsafe { self.0.realloc_zeroed(ptr, new_size) }
-        } else {
-            let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
-            if old_layout.size() < new_layout.size() {
-                let all             = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size().get()) };
-                let (_copied, new)  = all.split_at_mut(old_layout.size().get());
-                new.fill(MaybeUninit::new(0u8));
-            }
-            Ok(alloc.cast())
-        }
+        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
+        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
+        unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) }
     }
 }
+
+
+
+// zsty::*
+
+unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    type Error = A::Error;
+    #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
+        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
+        A::alloc_uninit(self, layout)
+    }
+    #[track_caller] fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
+        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
+        A::alloc_zeroed(self, layout)
+    }
+}
+
+unsafe impl<A: zsty::Free> zsty::Free for PanicOverAlign<A> {
+    #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        //freed_old_alignment(layout.align(), A::MAX_ALIGN);
+        unsafe { A::free(self, ptr, layout) }
+    }
+}
+
+unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
+    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
+        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
+        unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) }
+    }
+    #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
+        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
+        unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) }
+    }
+}
+
+
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, thin, zsty, PanicOverAlign};
@@ -78,17 +121,40 @@ unsafe impl<A: thin::Realloc> nzst::Realloc for PanicOverAlign<A> {
         unsafe impl[A: thin::Realloc        ] ialloc::thin::Realloc     for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::SizeOf         ] ialloc::thin::SizeOf      for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::SizeOfDebug    ] ialloc::thin::SizeOfDebug for PanicOverAlign<A> => core::ops::Deref;
-
-        //unsafe impl[A: nzst::Alloc          ] ialloc::nzst::Alloc       for PanicOverAlign<A> => core::ops::Deref;
-        //unsafe impl[A: nzst::Free           ] ialloc::nzst::Free        for PanicOverAlign<A> => core::ops::Deref;
-        //unsafe impl[A: nzst::Realloc        ] ialloc::nzst::Realloc     for PanicOverAlign<A> => core::ops::Deref;
-
-        unsafe impl[A: zsty::Alloc          ] ialloc::zsty::Alloc       for PanicOverAlign<A> => core::ops::Deref;
-        unsafe impl[A: zsty::Free           ] ialloc::zsty::Free        for PanicOverAlign<A> => core::ops::Deref;
-        unsafe impl[A: zsty::Realloc        ] ialloc::zsty::Realloc     for PanicOverAlign<A> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
         unsafe impl[A: zsty::Realloc        ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
     }
+}
+
+
+
+#[cfg(allocator_api = "*")] #[test] fn allocator_api() {
+    use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
+    use alloc::vec::Vec;
+
+    let mut v = Vec::new_in(PanicOverAlign(Malloc));
+    v.push(1);
+    v.push(2);
+    v.push(3);
+    let v2 = v.clone();
+    assert_eq!(3, v.len());
+    assert_eq!(3, v2.len());
+}
+
+#[cfg(allocator_api = "*")] #[should_panic] #[test] fn allocator_api_overalign() {
+    use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
+    use alloc::vec::Vec;
+
+    #[derive(Clone, Copy)] #[repr(C, align(4096))] struct Page([u8; 4096]);
+    impl Page { pub fn new() -> Self { Self([0u8; 4096]) } }
+
+    let mut v = Vec::new_in(PanicOverAlign(Malloc));
+    v.push(Page::new());
+    v.push(Page::new());
+    v.push(Page::new());
+    let v2 = v.clone();
+    assert_eq!(3, v.len());
+    assert_eq!(3, v2.len());
 }
