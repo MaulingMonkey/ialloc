@@ -5,4 +5,5 @@
 #[path = "c/_c.rs"          ] pub mod c;
 #[path = "cpp/_cpp.rs"      ] pub mod cpp;
 #[path = "debug/_debug.rs"  ] pub mod debug;
+#[path = "simple/_simple.rs"] pub mod simple;
 #[path = "win32/_win32.rs"  ] pub mod win32;
