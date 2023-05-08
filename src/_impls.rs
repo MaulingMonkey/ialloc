@@ -201,9 +201,10 @@ pub mod prelude {
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::nzst::Alloc for $ty {
+            const MAX_ALIGN : $crate::Alignment = <<$ty as ::core::ops::Deref>::Target as $crate::nzst::Alloc>::MAX_ALIGN;
             type Error = <<$ty as ::core::ops::Deref>::Target as $crate::nzst::Alloc>::Error;
             #[inline(always)] #[track_caller] fn alloc_uninit(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { $crate::nzst::Alloc::alloc_uninit(&**self, layout) }
-            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull                          ::core::primitive::u8 >, Self::Error> { $crate::nzst::Alloc::alloc_zeroed(&**self, layout) }
+            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<                         ::core::primitive::u8 >, Self::Error> { $crate::nzst::Alloc::alloc_zeroed(&**self, layout) }
         }
         $crate::impls!($($tt)*);
     };
