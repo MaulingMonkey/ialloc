@@ -38,6 +38,10 @@
             "windows":          { "command": "scripts\\build-thorough" },
         },
         {
+            "label":            "check-file",
+            "command":          "cargo build",
+        },
+        {
             "label":            "help",
             "command":          "cargo +nightly doc --open",
             "windows":          { "command": "scripts\\doc --open" },
