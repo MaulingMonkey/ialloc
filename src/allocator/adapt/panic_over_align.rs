@@ -4,7 +4,7 @@ use core::alloc::Layout;
 
 
 
-/// Adapt a [`thin`] allocator to a wider interface, [`panic!`]ing if more than [`thin::Alloc::MAX_ALIGN`] is requested.
+/// Adapt a [`thin`] allocator to a wider interface, [`panic!`]ing if more than [`meta::Meta::MAX_ALIGN`] is requested.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct PanicOverAlign<A>(pub A);
 
 #[inline(never)] #[track_caller] fn invalid_requested_alignment(requested: usize, supported: usize) -> ! {
@@ -34,11 +34,20 @@ impl<A> core::ops::Deref for PanicOverAlign<A> {
 
 
 
+// meta::*
+
+impl<A: meta::Meta> meta::Meta for PanicOverAlign<A> {
+    type Error                  = A::Error;
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    const MAX_SIZE  : usize     = A::MAX_SIZE;
+    const ZST_SUPPORTED : bool  = A::ZST_SUPPORTED;
+}
+
+
+
 // nzst::*
 
 unsafe impl<A: nzst::Alloc> nzst::Alloc for PanicOverAlign<A> {
-    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
-    type Error = A::Error;
     #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
         assert_valid_alignment(layout.align(), A::MAX_ALIGN);
         A::alloc_uninit(self, layout)
@@ -74,8 +83,6 @@ unsafe impl<A: nzst::Realloc> nzst::Realloc for PanicOverAlign<A> {
 // zsty::*
 
 unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {
-    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
-    type Error = A::Error;
     #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
         assert_valid_alignment(layout.align(), A::MAX_ALIGN);
         A::alloc_uninit(self, layout)

@@ -8,13 +8,18 @@ use core::alloc::Layout;
 /// Never allocates anything, not even ZSTs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] pub struct Null;
 
+impl meta::Meta for Null {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_SIZE  : usize     = usize::MAX;
+    const ZST_SUPPORTED : bool  = true;
+}
+
 
 
 // thin::*
 
 unsafe impl thin::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
-    type Error = ();
     fn alloc_uninit(&self, size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> { Err(()) }
 }
 
@@ -38,8 +43,6 @@ unsafe impl thin::SizeOfDebug for Null {
 // nzst::*
 
 unsafe impl nzst::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
-    type Error = ();
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> { Err(()) }
     fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { Err(()) }
 }
@@ -59,8 +62,6 @@ unsafe impl nzst::Realloc for Null {
 // zsty::*
 
 unsafe impl zsty::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
-    type Error = ();
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> { Err(()) }
 }

@@ -18,12 +18,14 @@ impl<T> StdAllocator<T> {
     pub const fn new() -> Self { Self(PhantomData) }
 }
 
+impl<T> meta::Meta for StdAllocator<T> {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::of::<T>(); // more in practice, but this is what I'll rely on
+    const MAX_SIZE  : usize     = usize::MAX;           // less in practice
+    const ZST_SUPPORTED : bool  = false;                // platform behavior too inconsistent
+}
+
 unsafe impl thin::Alloc for StdAllocator<c_char> {
-    const MAX_ALIGN : Alignment = ALIGN_1; // XXX: I'm not sure if std::allocator<char>::allocate can/will over-align...? To be investigated!
-    // MSVC at least provides NewDelete alignment by default (8/16), but can that be reduced through end user specialization or operator overloads?
-
-    type Error = ();
-
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         NonNull::new(unsafe { ffi::std_allocator_char_allocate(size.get()) }.cast()).ok_or(())
     }

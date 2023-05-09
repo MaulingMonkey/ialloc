@@ -9,9 +9,14 @@ use core::ptr::NonNull;
 /// [`::operator delete[](void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteArrayAligned;
 
-unsafe impl nzst::Alloc for NewDeleteArrayAligned {
-    type Error = ();
+impl meta::Meta for NewDeleteArrayAligned {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::MAX;   // XXX: less in practice
+    const MAX_SIZE  : usize     = usize::MAX;       // XXX: less in practice
+    const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
+}
 
+unsafe impl nzst::Alloc for NewDeleteArrayAligned {
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
         NonNull::new(unsafe { ffi::operator_new_array_align_nothrow(layout.size().get(), layout.align().as_usize()) }.cast()).ok_or(())
     }

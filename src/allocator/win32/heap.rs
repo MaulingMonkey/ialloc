@@ -44,10 +44,12 @@ impl Heap {
     pub fn process() -> Self { unsafe { Self::new(GetProcessHeap()) } }
 }
 
-unsafe impl thin::Alloc for Heap {
+impl meta::Meta for Heap {
     type Error = ();
 
-    /// The alignment of memory returned by HeapAlloc is MEMORY_ALLOCATION_ALIGNMENT in WinNT.h:
+    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+
+    /// The alignment of memory returned by `HeapAlloc` is `MEMORY_ALLOCATION_ALIGNMENT` in WinNT.h:
     /// ```cpp
     /// #if defined(_WIN64) || defined(_M_ALPHA)
     /// #define MEMORY_ALLOCATION_ALIGNMENT 16
@@ -58,8 +60,11 @@ unsafe impl thin::Alloc for Heap {
     ///
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
-    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MAX_SIZE  : usize     = usize::MAX/2;
+    const ZST_SUPPORTED : bool  = false;
+}
 
+unsafe impl thin::Alloc for Heap {
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { HeapAlloc(self.0, 0, size) };
@@ -122,10 +127,12 @@ unsafe impl thin::SizeOfDebug for Heap {
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct ProcessHeap;
 
-unsafe impl thin::Alloc for ProcessHeap {
+impl meta::Meta for ProcessHeap {
     type Error = ();
 
-    /// The alignment of memory returned by HeapAlloc is MEMORY_ALLOCATION_ALIGNMENT in WinNT.h:
+    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+
+    /// The alignment of memory returned by `HeapAlloc` is `MEMORY_ALLOCATION_ALIGNMENT` in WinNT.h:
     /// ```cpp
     /// #if defined(_WIN64) || defined(_M_ALPHA)
     /// #define MEMORY_ALLOCATION_ALIGNMENT 16
@@ -136,8 +143,11 @@ unsafe impl thin::Alloc for ProcessHeap {
     ///
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
-    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MAX_SIZE  : usize     = usize::MAX/2;
+    const ZST_SUPPORTED : bool  = false;
+}
 
+unsafe impl thin::Alloc for ProcessHeap {
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error>  { Heap::process().alloc_uninit(size) }
     fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }
 }
@@ -186,7 +196,7 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
 }
 
 #[test] fn test_align() {
-    use crate::thin::*;
+    use crate::{meta::*, thin::*};
     for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
         let size = NonZeroUsize::new(size).unwrap();
         std::dbg!(size);

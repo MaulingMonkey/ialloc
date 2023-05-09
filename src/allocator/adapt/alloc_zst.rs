@@ -8,10 +8,14 @@ use crate::*;
 
 impl<A> core::ops::Deref for AllocZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
 
-unsafe impl<A: nzst::Alloc> zsty::Alloc for AllocZst<A> {
-    const MAX_ALIGN : Alignment = <A as nzst::Alloc>::MAX_ALIGN;
-    type Error = <A as nzst::Alloc>::Error;
+impl<A: meta::Meta> meta::Meta for AllocZst<A> {
+    type Error                  = A::Error;
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    const MAX_SIZE  : usize     = A::MAX_SIZE;
+    const ZST_SUPPORTED : bool  = true;
+}
 
+unsafe impl<A: nzst::Alloc> zsty::Alloc for AllocZst<A> {
     fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
         let layout = LayoutNZ::from_layout_min_size_1(layout);
         nzst::Alloc::alloc_uninit(&self.0, layout)

@@ -23,12 +23,15 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
 
-unsafe impl thin::Alloc for Global {
-    type Error = ();
-
-    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+impl meta::Meta for Global {
+    type Error                  = ();
+    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MAX_SIZE  : usize     = usize::MAX/2;
+    const ZST_SUPPORTED : bool  = false;
+}
 
+unsafe impl thin::Alloc for Global {
     fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { GlobalAlloc(0, size) };
@@ -99,7 +102,7 @@ unsafe impl thin::SizeOfDebug for Global {
 }
 
 #[test] fn test_align() {
-    use crate::thin::*;
+    use crate::{meta::*, thin::*};
     for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
         let size = NonZeroUsize::new(size).unwrap();
         std::dbg!(size);

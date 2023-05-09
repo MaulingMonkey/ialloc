@@ -9,10 +9,14 @@ use crate::util::nn::dangling;
 
 impl<A> core::ops::Deref for DangleZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
 
-unsafe impl<A: nzst::Alloc> zsty::Alloc for DangleZst<A> {
-    const MAX_ALIGN : Alignment = <A as nzst::Alloc>::MAX_ALIGN;
-    type Error = <A as nzst::Alloc>::Error;
+impl<A: meta::Meta> meta::Meta for DangleZst<A> {
+    type Error                  = A::Error;
+    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
+    const MAX_SIZE  : usize     = A::MAX_SIZE;
+    const ZST_SUPPORTED : bool  = true;
+}
 
+unsafe impl<A: nzst::Alloc> zsty::Alloc for DangleZst<A> {
     fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
         if let Ok(layout) = LayoutNZ::try_from(layout) {
             nzst::Alloc::alloc_uninit(&self.0, layout)

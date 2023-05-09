@@ -59,11 +59,14 @@ impl<const A: usize, const B: usize, const N: usize> Debug for FixedPoolLinearPr
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "FixedBool<{A}, {B}, {N}> {{ ... }}") }
 }
 
-unsafe impl<const A: usize, const B: usize, const N: usize> thin::Alloc for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
+impl<const A: usize, const B: usize, const N: usize> meta::Meta for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
+    type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::constant(A);
+    const MAX_SIZE  : usize     = B;
+    const ZST_SUPPORTED : bool  = true;
+}
 
-    type Error = ();
-
+unsafe impl<const A: usize, const B: usize, const N: usize> thin::Alloc for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
     fn alloc_uninit(&self, size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> {
         if size.get() > B { return Err(()) }
 

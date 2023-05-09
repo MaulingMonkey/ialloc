@@ -1,7 +1,7 @@
 use crate::*;
 
 use core::mem::MaybeUninit;
-use core::ptr::*;
+use core::ptr::NonNull;
 
 /// "This function sets `errno` to `ENOMEM` if the memory allocation failed or if the requested size was greater than `_HEAP_MAXREQ`."<br>
 /// <https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc>
@@ -36,11 +36,15 @@ const _HEAP_MAXREQ : usize = usize::MAX & !0x1F;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct AlignedMalloc;
 
-unsafe impl nzst::Alloc for AlignedMalloc {
-    type Error = ();
-
+impl meta::Meta for AlignedMalloc {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_SIZE  : usize     = usize::MAX;
+    const ZST_SUPPORTED : bool  = false;
     // MSVC MIN_ALIGN is 4 ..= 8
+}
 
+unsafe impl nzst::Alloc for AlignedMalloc {
     #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size().get(), layout.align().as_usize()) };
         #[cfg(not(target_env = "msvc"))] let alloc = unsafe { ffi::aligned_alloc(layout.align().as_usize(), layout.size().get()) };
@@ -49,7 +53,7 @@ unsafe impl nzst::Alloc for AlignedMalloc {
 
     #[cfg(target_env = "msvc")]
     #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<NonNull<u8>, Self::Error> {
-        let alloc = unsafe { ffi::_aligned_recalloc(null_mut(), 1, layout.size().get(), layout.align().as_usize()) };
+        let alloc = unsafe { ffi::_aligned_recalloc(core::ptr::null_mut(), 1, layout.size().get(), layout.align().as_usize()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }

@@ -1,4 +1,4 @@
-use crate::zsty;
+use crate::*;
 
 use core::alloc::Layout;
 use core::cell::Cell;
@@ -51,9 +51,14 @@ impl<'a> Drop for Bump<'a> {
     }
 }
 
-unsafe impl<'a> zsty::Alloc for Bump<'a> {
-    type Error = ();
+impl<'a> meta::Meta for Bump<'a> {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_SIZE  : usize     = usize::MAX;
+    const ZST_SUPPORTED : bool  = true;
+}
 
+unsafe impl<'a> zsty::Alloc for Bump<'a> {
     fn alloc_uninit(&self, layout: Layout) -> Result<crate::AllocNN, Self::Error> {
         let align = layout.align();
         let size = layout.size();

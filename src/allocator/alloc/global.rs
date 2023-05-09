@@ -14,9 +14,14 @@ use core::ptr::NonNull;
 /// Use <code>[alloc::alloc]::{[alloc](alloc::alloc::alloc), [alloc_zeroed](alloc::alloc::alloc_zeroed), [realloc](alloc::alloc::realloc), [dealloc](alloc::alloc::realloc)}</code>
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
 
-unsafe impl nzst::Alloc for Global {
-    type Error = ();
+impl meta::Meta for Global {
+    type Error                  = ();
+    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_SIZE  : usize     = usize::MAX/2;
+    const ZST_SUPPORTED : bool  = false;
+}
 
+unsafe impl nzst::Alloc for Global {
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
         let alloc = unsafe { alloc::alloc::alloc(layout.into()) };
         NonNull::new(alloc.cast()).ok_or(())

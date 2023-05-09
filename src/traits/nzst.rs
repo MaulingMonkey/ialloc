@@ -24,7 +24,6 @@
 
 use crate::*;
 
-use core::fmt::Debug;
 use core::mem::MaybeUninit;
 #[cfg(doc)] use core::num::NonZeroUsize;
 #[cfg(doc)] use core::ptr::NonNull;
@@ -35,21 +34,7 @@ use core::mem::MaybeUninit;
 /// <code>[alloc_uninit](Self::alloc_uninit)(layout: [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <code>[alloc_zeroed](Self::alloc_zeroed)(layout: [LayoutNZ]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
-pub unsafe trait Alloc {
-    /// The maximum alignment this allocator is guaranteed to support.
-    ///
-    /// Allocators that also implement [`thin::Alloc`] are likely to have low values for this such as<br>
-    /// <code>[Alignment]::[of](Alignment::of)::&lt;[usize]&gt;()</code> or
-    /// <code>[Alignment]::[of](Alignment::of)::&lt;[max_align_t](https://en.cppreference.com/w/cpp/types/max_align_t)&gt;()</code>
-    /// in the `4 ..= 16` range.
-    ///
-    /// While it should be *safe* to call [`alloc_uninit`](Self::alloc_uninit) or [`alloc_zeroed`](Self::alloc_zeroed)
-    /// requesting an alignment larger than this, such calls are unlikely to return anything other than
-    /// <code>[Err]\(...\)</code>.
-    const MAX_ALIGN : Alignment = Alignment::MAX;
-
-    type Error : Debug;
-
+pub unsafe trait Alloc : meta::Meta {
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error>;
 
     fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> {
@@ -62,7 +47,7 @@ pub unsafe trait Alloc {
 /// Deallocation function:<br>
 /// <code>[free](Self::free)(ptr: [NonNull]&lt;\_&gt;, layout: [LayoutNZ])</code><br>
 /// <br>
-pub unsafe trait Free {
+pub unsafe trait Free : meta::Meta {
     unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ);
 }
 
@@ -98,8 +83,6 @@ pub unsafe trait Realloc : Alloc + Free {
 
 
 unsafe impl<'a, A: Alloc> Alloc for &'a A {
-    const MAX_ALIGN : Alignment = A::MAX_ALIGN;
-    type Error = A::Error;
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN,  Self::Error> { A::alloc_uninit(self, layout) }
     fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { A::alloc_zeroed(self, layout) }
 }
