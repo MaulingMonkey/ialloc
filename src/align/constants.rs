@@ -31,7 +31,7 @@ constants! { // 16+-bit
 }
 
 #[cfg(not(any(target_pointer_width = "16", target_pointer_width = "32", target_pointer_width = "64")))] constants! { // 128+ bit
-    ALIGN_16_EiB = 16 << 60, ALIGN_32_EiB = 32 << 60, ALIGN_64_EiB = 64 << 60, // TODO: the rest of the owl
+    ALIGN_16_EiB = 16 << 60, ALIGN_32_EiB = 32 << 60, ALIGN_64_EiB = 64 << 60, ALIGN_128_EiB = 128 << 60, ALIGN_256_EiB = 256 << 60, ALIGN_512_EiB = 512 << 60, ALIGN_1024_EiB = 1024 << 60, ALIGN_2048_EiB = 2048 << 60, ALIGN_4096_EiB = 4096 << 60, ALIGN_8192_EiB = 8192 << 60,
 }
 
 

@@ -19,7 +19,7 @@ use core::num::NonZeroUsize;
 /// | `ALIGN_1_MiB` | `ALIGN_8192_MiB`  | Mebibyte(s)   | 1 MiB = 2<sup>20</sup> bytes = 1024<sup>2</sup> bytes
 /// | `ALIGN_1_GiB` | `ALIGN_8192_GiB`  | Gibibyte(s)   | 1 GiB = 2<sup>30</sup> bytes = 1024<sup>3</sup> bytes
 /// | `ALIGN_1_TiB` | `ALIGN_8192_TiB`  | Tebibyte(s)   | 1 TiB = 2<sup>40</sup> bytes = 1024<sup>4</sup> bytes
-/// | `ALIGN_1_EiB` | `ALIGN_64_EiB`    | Exbibyte(s)   | 1 EiB = 2<sup>50</sup> bytes = 1024<sup>5</sup> bytes
+/// | `ALIGN_1_EiB` | `ALIGN_8192_EiB`  | Exbibyte(s)   | 1 EiB = 2<sup>50</sup> bytes = 1024<sup>5</sup> bytes
 ///
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Alignment(AlignImpl);
 const _ : () = assert!(align_of::<Alignment>() == align_of::<NonZeroUsize>());
