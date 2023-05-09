@@ -2,7 +2,8 @@ use crate::*;
 
 
 
-/// Adapt a [`nzst`] allocator to [`zsty`], always allocating at least 1 byte from the underlying allocator, even for ZSTs.
+/// Adapt a [`nzst`] allocator to [`zsty`], always allocating at least 1 byte from the underlying allocator, even for ZSTs.<br>
+/// This potentially wastes a little memory and performance - but allows for C/C++ interop with fewer edge cases.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct AllocZst<A>(pub A);
 
 impl<A> core::ops::Deref for AllocZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }

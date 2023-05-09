@@ -3,7 +3,8 @@ use crate::util::nn::dangling;
 
 
 
-/// Adapt a [`nzst`] allocator to [`zsty`], returning dangling pointers for ZSTs.
+/// Adapt a [`nzst`] allocator to [`zsty`], returning dangling pointers for ZSTs.<br>
+/// This is efficient, but awkward for C/C++ interop, where the underlying allocator likely chokes on dangling pointers.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct DangleZst<A>(pub A);
 
 impl<A> core::ops::Deref for DangleZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
