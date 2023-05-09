@@ -1,20 +1,16 @@
 //! Macro implementation details.  These are supposed to be `#[doc(hidden)]` from view and not used directly.
 
 pub mod prelude {
-    pub use crate as ialloc;
-    pub use core;
-    pub use core::prelude::rust_2021::*;
+    pub use crate::{self as ialloc, Alignment, LayoutNZ, meta::Meta as _, meta, nzst, thin, zsty};
 
-    pub use crate::{Alignment, LayoutNZ, meta, meta::Meta as _, nzst, thin, zsty};
+    pub use core::prelude::rust_2021::*;
+    pub use core::{assert, assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne};
+    pub use core::primitive::*;
+
     pub use core::alloc::{Layout, *}; // AllocError (unstable)
-    pub use core::convert::{TryFrom, From, Into};
     pub use core::mem::MaybeUninit;
     pub use core::num::NonZeroUsize;
-    pub use core::option::{Option::{self, Some, None}};
     pub use core::ptr::{NonNull, null_mut, slice_from_raw_parts_mut};
-    pub use core::primitive::{u8, usize};
-    pub use core::result::{Result::{self, Ok, Err}};
-    pub use core::{debug_assert_eq, debug_assert_ne};
 
     pub fn dangling<T>(layout: Layout) -> NonNull<T> { crate::util::nn::dangling(layout) }
 }
@@ -47,7 +43,7 @@ pub mod prelude {
             #[track_caller] unsafe fn realloc(&self, ptr: *mut u8, old_layout: ::core::alloc::Layout, new_size: ::core::primitive::usize) -> *mut ::core::primitive::u8 {
                 use $crate::_impls::prelude::*;
                 let Some(ptr) = NonNull::new(ptr) else { return null_mut() };
-                let Ok(new_layout) = ::core::alloc::Layout::from_size_align(new_size, old_layout.align()) else { return null_mut() };
+                let Ok(new_layout) = Layout::from_size_align(new_size, old_layout.align()) else { return null_mut() };
                 unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_or(null_mut(), |p| p.as_ptr().cast())
             }
         }
