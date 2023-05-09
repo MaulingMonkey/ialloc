@@ -1,4 +1,4 @@
-//! [`ExcessiveAlignmentRequestedError`] (and any future error types)
+//! [`ExcessiveAlignmentRequestedError`], [`ExcessiveSliceRequestedError`] (and any future error types)
 
 use crate::Alignment;
 
