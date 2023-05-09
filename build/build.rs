@@ -29,6 +29,14 @@ fn main() {
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
         println!("cargo:rustc-cfg=allocator_api=\"unstable\"");
     }
+    if feature_test("ptr_alignment_type_1_66_stable") {
+        println!("cargo:rustc-cfg=ptr_alignment_type=\"*\"");
+        println!("cargo:rustc-cfg=ptr_alignment_type=\"1.66\"");
+    } else if true || feature_test("ptr_alignment_type_1_66_unstable") {
+        println!("cargo:rustc-cfg=ptr_alignment_type=\"*\"");
+        println!("cargo:rustc-cfg=ptr_alignment_type=\"1.66\"");
+        println!("cargo:rustc-cfg=ptr_alignment_type=\"unstable\"");
+    }
     if var_os("CARGO_CFG_TARGET_ENV").as_deref() == Some(OsStr::new("msvc")) && var_os("CARGO_FEATURE_MSVC").is_some() {
         println!("cargo:rustc-cfg=msvc");
     }
@@ -37,8 +45,6 @@ fn main() {
 
 fn use_cc() {
     #[cfg(feature = "cc")] {
-        for src in CPP { println!("cargo:rerun-if-changed={src}") }
-
         let mut c   = cc::Build::new(); c   .cpp(false);
         let mut cpp = cc::Build::new(); cpp .cpp(true);
 

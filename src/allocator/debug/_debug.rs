@@ -15,7 +15,7 @@ use core::alloc::Layout;
 // thin::*
 
 unsafe impl thin::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_ALIGN : Alignment = ALIGN_MAX;
     type Error = ();
     fn alloc_uninit(&self, size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> { Err(()) }
 }
@@ -40,7 +40,7 @@ unsafe impl thin::SizeOfDebug for Null {
 // nzst::*
 
 unsafe impl nzst::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_ALIGN : Alignment = ALIGN_MAX;
     type Error = ();
     fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> { Err(()) }
     fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> { Err(()) }
@@ -61,7 +61,7 @@ unsafe impl nzst::Realloc for Null {
 // zsty::*
 
 unsafe impl zsty::Alloc for Null {
-    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_ALIGN : Alignment = ALIGN_MAX;
     type Error = ();
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> { Err(()) }

@@ -6,7 +6,7 @@ use crate::Alignment;
 
 macro_rules! constants {
     ( $($id:ident = $value:expr),* $(,)? ) => {$(
-        #[doc(hidden)] pub const $id : Alignment = Alignment::constant($value);
+        #[doc(hidden)] pub const $id : Alignment = crate::util::align::constant($value);
     )*};
 }
 
@@ -33,6 +33,16 @@ constants! { // 16+-bit
 #[cfg(not(any(target_pointer_width = "16", target_pointer_width = "32", target_pointer_width = "64")))] constants! { // 128+ bit
     ALIGN_16_EiB = 16 << 60, ALIGN_32_EiB = 32 << 60, ALIGN_64_EiB = 64 << 60, // TODO: the rest of the owl
 }
+
+/// Maximum representable alignment
+///
+/// | Bits  | MAX                           |
+/// | ------| ------------------------------|
+/// | 16    | 2<sup>15</sup> B = 32 KiB     |
+/// | 32    | 2<sup>31</sup> B = 2 GiB      |
+/// | 64    | 2<sup>63</sup> B = 8 EiB      |
+/// | 128   | 2<sup>127</sup> B = ???       |
+pub const ALIGN_MAX : Alignment = crate::util::align::constant(usize::MAX/2+1);
 
 
 

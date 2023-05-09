@@ -60,7 +60,7 @@ impl<const A: usize, const B: usize, const N: usize> Debug for FixedPoolLinearPr
 }
 
 unsafe impl<const A: usize, const B: usize, const N: usize> thin::Alloc for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
-    const MAX_ALIGN : Alignment = Alignment::constant(A);
+    const MAX_ALIGN : Alignment = crate::util::align::constant(A);
 
     type Error = ();
 

@@ -26,7 +26,7 @@ impl<A> Test<A> {
     }
 
     pub fn thin(&mut self) -> &mut Self where A : thin::Alloc + thin::Free {
-        let mut thin = AlignmentRange { min: Alignment::MAX, max: Alignment::MAX };
+        let mut thin = AlignmentRange { min: ALIGN_MAX, max: ALIGN_MAX };
         for (dst, min_size) in [(&mut thin.min, 1), (&mut thin.max, 4096)] {
             for _ in 0 .. 100 {
                 let alloc = (self.create)();
@@ -42,7 +42,7 @@ impl<A> Test<A> {
     }
 
     pub fn nzst(&mut self) -> &mut Self where A : nzst::Alloc + nzst::Free {
-        let mut nzst = AlignmentRange { min: Alignment::MAX, max: ALIGN_1 };
+        let mut nzst = AlignmentRange { min: ALIGN_MAX, max: ALIGN_1 };
 
         for _ in 0 .. 100 {
             let layout = LayoutNZ::new::<u8>().unwrap(); // 1B

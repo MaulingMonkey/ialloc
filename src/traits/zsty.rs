@@ -28,7 +28,7 @@ pub unsafe trait Alloc {
     /// While it should be *safe* to call [`alloc_uninit`](Self::alloc_uninit) or [`alloc_zeroed`](Self::alloc_zeroed)
     /// requesting an alignment larger than this, such calls are unlikely to return anything other than
     /// <code>[Err]\(...\)</code>.
-    const MAX_ALIGN : Alignment = Alignment::MAX;
+    const MAX_ALIGN : Alignment = ALIGN_MAX;
 
     type Error : Debug;
 

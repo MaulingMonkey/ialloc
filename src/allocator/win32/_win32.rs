@@ -30,7 +30,7 @@ mod local;              pub use local::*;
 /// | ----------| -----:|
 /// | i686      |  8    |
 /// | x86_64    | 16    |
-const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::Alignment::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
+const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::util::align::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
 
 
 

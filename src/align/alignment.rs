@@ -7,6 +7,9 @@ use core::num::NonZeroUsize;
 
 
 
+#[cfg(    ptr_alignment_type = "*" )] pub use core::ptr::Alignment;
+
+#[cfg(not(ptr_alignment_type = "*"))]
 /// A valid [`Layout`] alignment (a power of 2)
 ///
 /// Available in named constant forms, which have been `#[doc(hidden)]` to avoid spam:
@@ -22,12 +25,11 @@ use core::num::NonZeroUsize;
 /// | `ALIGN_1_EiB` | `ALIGN_64_EiB`    | Exbibyte(s)   | 1 EiB = 2<sup>50</sup> bytes = 1024<sup>5</sup> bytes
 ///
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Alignment(AlignImpl);
+
 const _ : () = assert!(align_of::<Alignment>() == align_of::<NonZeroUsize>());
 const _ : () = assert!(size_of ::<Alignment>() == size_of ::<NonZeroUsize>());
 
-impl Alignment {
-    #[track_caller] pub(crate) const fn constant(align: usize) -> Self { match Self::new(align) { Some(a) => a, None => panic!("Alignment::constant(align): invalid constant") } }
-
+#[cfg(not(ptr_alignment_type = "*"))] impl Alignment {
     /// Returns [`None`] unless `align` is a valid power of 2 (which also implies nonzero)
     pub const fn new(align: usize) -> Option<Self> { Self::try_from_usize(align) }
 
@@ -46,24 +48,14 @@ impl Alignment {
     /// Minimum representable alignment (e.g. `1`)
     pub const MIN : Alignment = ALIGN_1;
 
-    /// Maximum representable alignment
-    ///
-    /// | Bits  | MAX                           |
-    /// | ------| ------------------------------|
-    /// | 16    | 2<sup>15</sup> B = 32 KiB     |
-    /// | 32    | 2<sup>31</sup> B = 2 GiB      |
-    /// | 64    | 2<sup>63</sup> B = 8 EiB      |
-    /// | 128   | 2<sup>127</sup> B = ???       |
-    pub const MAX : Alignment = Alignment::constant(usize::MAX/2+1);
-
     #[allow(dead_code)]
     const fn try_from_nzusize(align: NonZeroUsize   ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align.get()) }) } else { None } }
     const fn try_from_usize  (align: usize          ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align      ) }) } else { None } }
 
 }
 
-impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
-impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
+#[cfg(not(ptr_alignment_type = "*"))] impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
+#[cfg(not(ptr_alignment_type = "*"))] impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 
 // XXX: u8::try_from(0xFFFF_u16) isn't a const expr
 //type TryFromIntError = core::num::TryFromIntError;
@@ -71,23 +63,23 @@ impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { al
 //impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
 //impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
 
-impl Debug for Alignment { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { util::bytes::pretty(f, self.as_usize()) } }
+#[cfg(not(ptr_alignment_type = "*"))] impl Debug for Alignment { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { util::bytes::pretty(f, self.as_usize()) } }
 
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "16")] #[repr(usize)] enum AlignImpl {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "16")] #[cfg(not(ptr_alignment_type = "*"))] #[repr(usize)] enum AlignImpl {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "32")] #[repr(usize)] enum AlignImpl {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "32")] #[cfg(not(ptr_alignment_type = "*"))] #[repr(usize)] enum AlignImpl {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
     _10 = 1 << 0x10, _11 = 1 << 0x11, _12 = 1 << 0x12, _13 = 1 << 0x13, _14 = 1 << 0x14, _15 = 1 << 0x15, _16 = 1 << 0x16, _17 = 1 << 0x17,
     _18 = 1 << 0x18, _19 = 1 << 0x19, _1A = 1 << 0x1A, _1B = 1 << 0x1B, _1C = 1 << 0x1C, _1D = 1 << 0x1D, _1E = 1 << 0x1E, _1F = 1 << 0x1F,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "64")] #[repr(usize)] enum AlignImpl {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "64")] #[cfg(not(ptr_alignment_type = "*"))] #[repr(usize)] enum AlignImpl {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
     _10 = 1 << 0x10, _11 = 1 << 0x11, _12 = 1 << 0x12, _13 = 1 << 0x13, _14 = 1 << 0x14, _15 = 1 << 0x15, _16 = 1 << 0x16, _17 = 1 << 0x17,
