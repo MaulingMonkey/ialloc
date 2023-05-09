@@ -4,7 +4,7 @@ use core::alloc::Layout;
 
 
 
-/// Adapt a [`thin`] allocator to a wider interface, `panic!`ing if more than [`thin::Alloc::MAX_ALIGN`] is requested.
+/// Adapt a [`thin`] allocator to a wider interface, [`panic!`]ing if more than [`thin::Alloc::MAX_ALIGN`] is requested.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct PanicOverAlign<A>(pub A);
 
 #[inline(never)] #[track_caller] fn invalid_requested_alignment(requested: usize, supported: usize) -> ! {
