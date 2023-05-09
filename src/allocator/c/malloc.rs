@@ -38,14 +38,22 @@ impl Malloc {
 impl meta::Meta for Malloc {
     type Error = ();
 
-    // Microsoft documents malloc as having 8 (32-bits) or 16 (64-bits) alignment, which I've verified in testing.
-    // <https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc#return-value>
-    // This is the same as MEMORY_ALLOCATION_ALIGNMENT.
-    // While it's possible to provide a replacement implementation of malloc and co. with less alignment, I consider that automatically UB.
-    #[cfg(target_env = "msvc")] const MAX_ALIGN : Alignment = if cfg!(target_pointer_width = "64") { ALIGN_16 } else { ALIGN_8 };
-    //#[cfg(target_env = "msvc")] const MIN_ALIGN : Alignment = if cfg!(target_pointer_width = "64") { ALIGN_16 } else { ALIGN_8 };
-
-    #[cfg(not(target_env = "msvc"))] const MAX_ALIGN : Alignment = Alignment::of::<f64>(); // conservative
+    /// | Platform          | Value     |
+    /// | ------------------| ----------|
+    /// | Windows 32-bit    | [`8` according to Microsoft](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc#return-value)
+    /// | Windows 64-bit    | [`16` according to Microsoft](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc#return-value)
+    /// | C11               | <code>[_Alignof](https://en.cppreference.com/w/c/language/_Alignof)\([max_align_t](https://en.cppreference.com/w/c/types/max_align_t)\)</code>
+    /// | C89               | <code>[_Alignof](https://en.cppreference.com/w/c/language/_Alignof)\(double\)</code>? ("... suitable for any object type with [fundamental alignment](https://en.cppreference.com/w/c/language/object#Alignment)")
+    ///
+    /// Many systems allow the developer to customize their implementation of `malloc`.
+    /// Such custom implementations *could* provide less alignment than those described above.
+    /// I consider such a thing to be a bug and undefined behavior *by the customizer*, likely to break a lot more than the code relying on this `MAX_ALIGN`.
+    const MAX_ALIGN : Alignment = if cfg!(target_env = "msvc") {
+        if core::mem::size_of::<usize>() >= 8 { ALIGN_16 } else { ALIGN_8 }
+    } else {
+        #[cfg(any(target_env = "msvc", not(c11), not(feature = "libc")))] #[allow(non_camel_case_types)] type max_align_t = f64;
+        Alignment::of::<max_align_t>()
+    };
 
     const MAX_SIZE : usize = usize::MAX; // *slightly* less in practice
     const ZST_SUPPORTED : bool = false; // platform behavior too inconsistent
