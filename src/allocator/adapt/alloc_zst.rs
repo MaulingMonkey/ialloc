@@ -17,33 +17,33 @@ impl<A: meta::Meta> meta::Meta for AllocZst<A> {
 
 unsafe impl<A: nzst::Alloc> zsty::Alloc for AllocZst<A> {
     fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        let layout = LayoutNZ::from_layout_min_size_1(layout);
+        let layout = LayoutNZ::from_layout_min_size_1(layout)?;
         nzst::Alloc::alloc_uninit(&self.0, layout)
     }
 
     fn alloc_zeroed(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::primitive::u8>, Self::Error> {
-        let layout = LayoutNZ::from_layout_min_size_1(layout);
+        let layout = LayoutNZ::from_layout_min_size_1(layout)?;
         nzst::Alloc::alloc_zeroed(&self.0, layout)
     }
 }
 
 unsafe impl<A: nzst::Free> zsty::Free for AllocZst<A> {
     unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: ::core::alloc::Layout) {
-        let layout = LayoutNZ::from_layout_min_size_1(layout);
+        let layout = LayoutNZ::from_layout_min_size_1(layout).expect("bug: undefined behavior: invalid old_layout");
         unsafe { nzst::Free::free(&self.0, ptr, layout) }
     }
 }
 
 unsafe impl<A: nzst::Realloc> zsty::Realloc for AllocZst<A> {
     unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        let old_layout = LayoutNZ::from_layout_min_size_1(old_layout);
-        let new_layout = LayoutNZ::from_layout_min_size_1(new_layout);
+        let old_layout = LayoutNZ::from_layout_min_size_1(old_layout).expect("bug: undefined behavior: invalid old_layout");
+        let new_layout = LayoutNZ::from_layout_min_size_1(new_layout)?;
         unsafe { nzst::Realloc::realloc_uninit(&self.0, ptr, old_layout, new_layout) }
     }
 
     unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        let old_layout = LayoutNZ::from_layout_min_size_1(old_layout);
-        let new_layout = LayoutNZ::from_layout_min_size_1(new_layout);
+        let old_layout = LayoutNZ::from_layout_min_size_1(old_layout).expect("bug: undefined behavior: invalid old_layout");
+        let new_layout = LayoutNZ::from_layout_min_size_1(new_layout)?;
         unsafe { nzst::Realloc::realloc_zeroed(&self.0, ptr, old_layout, new_layout) }
     }
 }

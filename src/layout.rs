@@ -1,4 +1,5 @@
 use crate::*;
+use crate::error::*;
 
 use core::alloc::*;
 use core::num::NonZeroUsize;
@@ -11,8 +12,9 @@ use core::num::NonZeroUsize;
 impl LayoutNZ {
     pub(crate) fn from_layout(layout: Layout) -> Result<Self, LayoutError> { if layout.size() == 0 { Err(ERROR_SIZE_0) } else { Ok(Self(layout)) } }
     pub fn from_size_align(size: NonZeroUsize, align: Alignment) -> Result<Self, LayoutError> { Self::from_layout(Layout::from_size_align(size.get(), align.as_usize())?) }
-    pub fn from_layout_min_size_1(layout: Layout) -> Self { Self(unsafe { Layout::from_size_align_unchecked(layout.size().max(1), layout.align()) }) }
-    pub fn from_layout_min_size_align(layout: Layout) -> Self { Self(unsafe { Layout::from_size_align_unchecked(layout.size().max(layout.align()), layout.align()) }) }
+    // // XXX: these can fail on (size(), align()) == (0, Alignment::MAX)
+    pub fn from_layout_min_size_1    (layout: Layout) -> Result<Self, ExcessiveAlignmentRequestedError> { Ok(Self(Layout::from_size_align(layout.size().max(1),              layout.align()).map_err(|_| ExcessiveAlignmentRequestedError { requested: unsafe { Alignment::new_unchecked(layout.align()) }, supported: ALIGN_HALF_MAX })?)) }
+    pub fn from_layout_min_size_align(layout: Layout) -> Result<Self, ExcessiveAlignmentRequestedError> { Ok(Self(Layout::from_size_align(layout.size().max(layout.align()), layout.align()).map_err(|_| ExcessiveAlignmentRequestedError { requested: unsafe { Alignment::new_unchecked(layout.align()) }, supported: ALIGN_HALF_MAX })?)) }
 
     pub fn array<T>(n: NonZeroUsize) -> Result<Self, LayoutError> { Layout::array::<T>(n.get()).map(|l| Self(l)) }
     pub fn new<T>() -> Result<Self, LayoutError> { Self::from_layout(Layout::new::<T>()) }
@@ -38,4 +40,5 @@ impl PartialEq<LayoutNZ> for Layout { fn eq(&self, other: &LayoutNZ) -> bool { s
 
 
 
+const ALIGN_HALF_MAX : Alignment = Alignment::constant(Alignment::MAX.as_usize()/2);
 const ERROR_SIZE_0 : LayoutError = if let Err(e) = Layout::from_size_align(0, 0) { e } else { panic!("failed to construct ERROR_SIZE_0") };
