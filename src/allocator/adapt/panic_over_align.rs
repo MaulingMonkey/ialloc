@@ -1,5 +1,3 @@
-//! [`PanicOverAlign`]
-
 use crate::{*, Alignment};
 
 use core::alloc::Layout;
