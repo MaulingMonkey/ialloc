@@ -11,6 +11,8 @@ use core::num::NonZeroUsize;
 impl LayoutNZ {
     pub(crate) fn from_layout(layout: Layout) -> Result<Self, LayoutError> { if layout.size() == 0 { Err(ERROR_SIZE_0) } else { Ok(Self(layout)) } }
     pub fn from_size_align(size: NonZeroUsize, align: Alignment) -> Result<Self, LayoutError> { Self::from_layout(Layout::from_size_align(size.get(), align.as_usize())?) }
+    pub fn from_layout_min_size_1(layout: Layout) -> Self { Self(unsafe { Layout::from_size_align_unchecked(layout.size().max(1), layout.align()) }) }
+    pub fn from_layout_min_size_align(layout: Layout) -> Self { Self(unsafe { Layout::from_size_align_unchecked(layout.size().max(layout.align()), layout.align()) }) }
 
     pub fn array<T>(n: NonZeroUsize) -> Result<Self, LayoutError> { Layout::array::<T>(n.get()).map(|l| Self(l)) }
     pub fn new<T>() -> Result<Self, LayoutError> { Self::from_layout(Layout::new::<T>()) }
