@@ -5,6 +5,7 @@ Allocator interface traits for Rust
 [![GitHub](https://img.shields.io/github/stars/MaulingMonkey/ialloc.svg?label=GitHub&style=social)](https://github.com/MaulingMonkey/ialloc)
 [![crates.io](https://img.shields.io/crates/v/ialloc.svg)](https://crates.io/crates/ialloc)
 [![docs.rs](https://docs.rs/ialloc/badge.svg)](https://docs.rs/ialloc)
+[![unsafe: very](https://img.shields.io/badge/unsafe-very-red.svg)](https://github.com/MaulingMonkey/ialloc/search?q=unsafe+path%3Ars)
 [![License](https://img.shields.io/crates/l/ialloc.svg)](https://github.com/MaulingMonkey/ialloc)
 [![Build Status](https://github.com/MaulingMonkey/ialloc/workflows/Rust/badge.svg)](https://github.com/MaulingMonkey/ialloc/actions?query=workflow%3Arust)
 
