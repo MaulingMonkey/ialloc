@@ -161,6 +161,50 @@ pub mod prelude {
 
 
 
+    // unsafe impl ialloc::nzst::{...} for {...} => ialloc::zsty::{...};
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Alloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::zsty::Alloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Alloc for $ty $(where $($where)*)? {
+            const MAX_ALIGN : $crate::Alignment = <$ty as $crate::zsty::Alloc>::MAX_ALIGN;
+            type Error = <$ty as $crate::zsty::Alloc>::Error;
+            fn alloc_uninit(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use $crate::_impls::prelude::*;
+                $crate::zsty::Alloc::alloc_uninit(self, layout.into())
+            }
+            fn alloc_zeroed(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::primitive::u8>, Self::Error> {
+                use $crate::_impls::prelude::*;
+                $crate::zsty::Alloc::alloc_zeroed(self, layout.into())
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Free for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::zsty::Free; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Free for $ty $(where $($where)*)? {
+            unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: $crate::LayoutNZ) {
+                use $crate::_impls::prelude::*;
+                unsafe { $crate::zsty::Free::free(self, ptr, layout.into()) }
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::nzst::Realloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::nzst::Realloc for $ty $(where $($where)*)? {
+            unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: $crate::LayoutNZ, new_layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use $crate::_impls::prelude::*;
+                unsafe { $crate::zsty::Realloc::realloc_uninit(self, ptr, old_layout.into(), new_layout.into()) }
+            }
+            unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: $crate::LayoutNZ, new_layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+                use $crate::_impls::prelude::*;
+                unsafe { $crate::zsty::Realloc::realloc_zeroed(self, ptr, old_layout.into(), new_layout.into()) }
+            }
+        }
+        $crate::impls!($($tt)*);
+    };
+
+
+
     // unsafe impl ialloc::zsty::{...} for {...} => ialloc::nzst::{...};
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Alloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::nzst::Alloc; $($tt:tt)* ) => {
