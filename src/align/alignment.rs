@@ -1,5 +1,3 @@
-#![allow(non_upper_case_globals)] // "KiB", "MiB", "GiB", "EiB", etc.
-
 use crate::*;
 
 #[cfg(doc)] use core::alloc::*;
@@ -73,33 +71,7 @@ impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { al
 //impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
 //impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
 
-impl Debug for Alignment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut v = self.as_usize();
-        for unit in ["B", "KiB", "MiB", "GiB", "TiB", "PiB"] {
-            if v <= 8192 { return write!(f, "{v} {unit}"); }
-            v >>= 10;
-        }
-        write!(f, "{v} EiB")
-    }
-}
-
-#[test] fn alignment_debug() {
-    use alloc::format;
-    assert_eq!("16 B",   format!("{ALIGN_16_B:?}"));
-    assert_eq!("16 KiB", format!("{ALIGN_16_KiB:?}"));
-    #[cfg(not(target_pointer_width = "16"))] {
-        assert_eq!("16 MiB", format!("{ALIGN_16_MiB:?}"));
-        #[cfg(not(target_pointer_width = "32"))] {
-            assert_eq!("16 GiB", format!("{ALIGN_16_GiB:?}"));
-            assert_eq!("16 TiB", format!("{ALIGN_16_TiB:?}"));
-            assert_eq!("16 PiB", format!("{ALIGN_16_PiB:?}"));
-            #[cfg(not(target_pointer_width = "64"))] {
-                assert_eq!("16 EiB", format!("{ALIGN_16_EiB:?}"));
-            }
-        }
-    }
-}
+impl Debug for Alignment { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { util::bytes::pretty(f, self.as_usize()) } }
 
 
 

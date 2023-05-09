@@ -33,3 +33,24 @@ constants! { // 16+-bit
 #[cfg(not(any(target_pointer_width = "16", target_pointer_width = "32", target_pointer_width = "64")))] constants! { // 128+ bit
     ALIGN_16_EiB = 16 << 60, ALIGN_32_EiB = 32 << 60, ALIGN_64_EiB = 64 << 60, // TODO: the rest of the owl
 }
+
+
+
+#[test] fn alignment_debug() {
+    use crate::*;
+    macro_rules! pp { ($expr:expr) => { alloc::format!("{}", crate::util::bytes::Pretty($expr.as_usize())) }; }
+
+    assert_eq!("16 B",   pp!(ALIGN_16_B));
+    assert_eq!("16 KiB", pp!(ALIGN_16_KiB));
+    #[cfg(not(target_pointer_width = "16"))] {
+        assert_eq!("16 MiB", pp!(ALIGN_16_MiB));
+        #[cfg(not(target_pointer_width = "32"))] {
+            assert_eq!("16 GiB", pp!(ALIGN_16_GiB));
+            assert_eq!("16 TiB", pp!(ALIGN_16_TiB));
+            assert_eq!("16 PiB", pp!(ALIGN_16_PiB));
+            #[cfg(not(target_pointer_width = "64"))] {
+                assert_eq!("16 EiB", pp!(ALIGN_16_EiB));
+            }
+        }
+    }
+}
