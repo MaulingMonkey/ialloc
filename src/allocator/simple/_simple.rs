@@ -1,7 +1,6 @@
-//! [`Bump`]
+//! [`Bump`], [`FixedPoolLinearProbe`]
 
 mod bump;            pub use bump::*;
-
-// TODO: object pools?
+mod fixed_pool;     pub use fixed_pool::*;
 // TODO: double ended slice?
 // ...
