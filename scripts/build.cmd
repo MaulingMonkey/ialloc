@@ -1,10 +1,11 @@
 @pushd "%~dp0.." && setlocal
 
+
 :: Nightly
 @cargo +nightly >NUL 2>NUL || ver>NUL && goto :skip-nightly
 @call :run-windows cargo +nightly test                                          || goto :die
 @call :run-windows cargo +nightly build --all-targets                           || goto :die
-@call :run-windows cargo +nightly doc                                           || goto :die
+@call "scripts\doc.cmd" || goto :die
 :skip-nightly
 
 :: Stable
