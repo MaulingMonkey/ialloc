@@ -1,6 +1,3 @@
-//! [`Global`]
-#![cfg(feature = "alloc")]
-
 use crate::*;
 
 #[cfg(allocator_api = "1.50")] use core::alloc::AllocError;
