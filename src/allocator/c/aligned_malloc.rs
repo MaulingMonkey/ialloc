@@ -1,5 +1,6 @@
 use crate::*;
 
+use core::alloc::Layout;
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 
@@ -26,11 +27,11 @@ const _HEAP_MAXREQ : usize = usize::MAX & !0x1F;
 ///
 /// | Rust                              | MSVC Release CRT <br> ~~MSVC Debug CRT~~                                                                                              | !MSVC<br>C11 or C++17     |
 /// | ----------------------------------| --------------------------------------------------------------------------------------------------------------------------------------| --------------------------|
-/// | [`nzst::Alloc::alloc_uninit`]     | <code>[_aligned_malloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc-dbg)}</code>     | [`aligned_alloc`]
-/// | [`nzst::Alloc::alloc_zeroed`]     | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
-/// | [`nzst::Realloc::realloc_uninit`] | <code>[_aligned_realloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc-dbg)}</code>   | [`realloc`] or [`aligned_alloc`] + [`memcpy`]
-/// | [`nzst::Realloc::realloc_zeroed`] | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
-/// | [`nzst::Free::free`]              | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>         | [`free`] or [`free_aligned_sized`] (C23)
+/// | [`zsty::Alloc::alloc_uninit`]     | <code>[_aligned_malloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc-dbg)}</code>     | [`aligned_alloc`]
+/// | [`zsty::Alloc::alloc_zeroed`]     | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
+/// | [`zsty::Realloc::realloc_uninit`] | <code>[_aligned_realloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc-dbg)}</code>   | [`realloc`] or [`aligned_alloc`] + [`memcpy`]
+/// | [`zsty::Realloc::realloc_zeroed`] | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
+/// | [`zsty::Free::free`]              | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>         | [`free`] or [`free_aligned_sized`] (C23)
 /// | [`thin::Free::free`]              | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>         | [`free`]
 ///
 #[doc = include_str!("_refs.md")]
@@ -44,40 +45,40 @@ impl meta::Meta for AlignedMalloc {
     // MSVC MIN_ALIGN is 4 ..= 8
 }
 
-unsafe impl nzst::Alloc for AlignedMalloc {
-    #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size().get(), layout.align().as_usize()) };
-        #[cfg(not(target_env = "msvc"))] let alloc = unsafe { ffi::aligned_alloc(layout.align().as_usize(), layout.size().get()) };
+unsafe impl zsty::Alloc for AlignedMalloc {
+    #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size(), layout.align()) };
+        #[cfg(not(target_env = "msvc"))] let alloc = unsafe { ffi::aligned_alloc(layout.align(), layout.size()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     #[cfg(target_env = "msvc")]
-    #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<NonNull<u8>, Self::Error> {
-        let alloc = unsafe { ffi::_aligned_recalloc(core::ptr::null_mut(), 1, layout.size().get(), layout.align().as_usize()) };
+    #[track_caller] fn alloc_zeroed(&self, layout: Layout) -> Result<NonNull<u8>, Self::Error> {
+        let alloc = unsafe { ffi::_aligned_recalloc(core::ptr::null_mut(), 1, layout.size(), layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
-unsafe impl nzst::Free for AlignedMalloc {
-    #[track_caller] unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: LayoutNZ) {
+unsafe impl zsty::Free for AlignedMalloc {
+    #[track_caller] unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: Layout) {
         #[cfg(target_env = "msvc")] unsafe { ffi::_aligned_free(ptr.as_ptr().cast()) }
         #[cfg(not(target_env = "msvc"))] unsafe {
-            #[cfg(c23)] ffi::free_aligned_sized(ptr.as_ptr().cast(), _layout.align().as_usize(), _layout.size().get());
+            #[cfg(c23)] ffi::free_aligned_sized(ptr.as_ptr().cast(), _layout.align(), _layout.size());
             #[allow(dead_code)] ffi::free(ptr.as_ptr().cast());
         }
     }
 }
 
-unsafe impl nzst::Realloc for AlignedMalloc {
+unsafe impl zsty::Realloc for AlignedMalloc {
     #[cfg(target_env = "msvc")]
-    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size().get(), new_layout.align().as_usize()) };
+    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+        let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     #[cfg(target_env = "msvc")]
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, _old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size().get(), new_layout.align().as_usize()) };
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+        let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
@@ -94,18 +95,6 @@ unsafe impl thin::Free for AlignedMalloc {
 }
 
 // thin::SizeOf is not applicable: _aligned_msize requires alignment/offset, which isn't available for thin::SizeOf::size_of
-
-
-
-#[no_implicit_prelude] mod cleanroom {
-    use super::{impls, AlignedMalloc};
-
-    impls! {
-        unsafe impl ialloc::zsty::Alloc     for AlignedMalloc => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for AlignedMalloc => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for AlignedMalloc => ialloc::nzst::Free;
-    }
-}
 
 
 

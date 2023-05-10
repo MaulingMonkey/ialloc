@@ -1,6 +1,7 @@
 use crate::*;
 use super::ffi;
 
+use core::alloc::Layout;
 use core::ptr::NonNull;
 
 
@@ -16,26 +17,16 @@ impl meta::Meta for NewDeleteArrayAligned {
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
 
-unsafe impl nzst::Alloc for NewDeleteArrayAligned {
-    fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        NonNull::new(unsafe { ffi::operator_new_array_align_nothrow(layout.size().get(), layout.align().as_usize()) }.cast()).ok_or(())
+unsafe impl zsty::Alloc for NewDeleteArrayAligned {
+    fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
+        NonNull::new(unsafe { ffi::operator_new_array_align_nothrow(layout.size(), layout.align()) }.cast()).ok_or(())
     }
 }
 
-unsafe impl nzst::Free for NewDeleteArrayAligned {
-    unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        unsafe { ffi::operator_delete_array_align(ptr.as_ptr().cast(), layout.align().as_usize()) };
+unsafe impl zsty::Free for NewDeleteArrayAligned {
+    unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        unsafe { ffi::operator_delete_array_align(ptr.as_ptr().cast(), layout.align()) };
     }
 }
 
-unsafe impl nzst::Realloc for NewDeleteArrayAligned {}
-
-#[no_implicit_prelude] mod cleanroom {
-    use super::{impls, NewDeleteArrayAligned};
-
-    impls! {
-        unsafe impl ialloc::zsty::Alloc     for NewDeleteArrayAligned => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for NewDeleteArrayAligned => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for NewDeleteArrayAligned => ialloc::nzst::Free;
-    }
-}
+unsafe impl zsty::Realloc for NewDeleteArrayAligned {}

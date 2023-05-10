@@ -1,6 +1,7 @@
 use crate::*;
 use super::ffi;
 
+use core::alloc::Layout;
 use core::ffi::c_char;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
@@ -30,23 +31,19 @@ unsafe impl thin::Alloc for StdAllocator<c_char> {
     }
 }
 
-unsafe impl nzst::Free for StdAllocator<c_char> {
-    unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        unsafe { ffi::std_allocator_char_deallocate(ptr.as_ptr().cast(), layout.size().get()) }
+unsafe impl zsty::Free for StdAllocator<c_char> {
+    unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        unsafe { ffi::std_allocator_char_deallocate(ptr.as_ptr().cast(), layout.size()) }
     }
 }
 
-unsafe impl nzst::Realloc for StdAllocator<c_char> {}
+unsafe impl zsty::Realloc for StdAllocator<c_char> {}
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, StdAllocator, c_char};
 
     impls! {
-        unsafe impl ialloc::nzst::Alloc     for StdAllocator<c_char> => ialloc::thin::Alloc;
-
-        unsafe impl ialloc::zsty::Alloc     for StdAllocator<c_char> => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for StdAllocator<c_char> => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for StdAllocator<c_char> => ialloc::nzst::Free;
+        unsafe impl ialloc::zsty::Alloc     for StdAllocator<c_char> => ialloc::thin::Alloc;
     }
 }
 

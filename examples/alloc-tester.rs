@@ -1,7 +1,7 @@
 extern crate std;
 
+use std::alloc::Layout;
 use std::ffi::c_char as char;
-use std::num::NonZeroUsize;
 
 use ialloc::*;
 use ialloc::allocator::*;
@@ -12,7 +12,7 @@ struct Test<A> {
     pub name:   &'static str,
     pub create: fn()->A,
     pub thin:   Option<AlignmentRange>,
-    pub nzst:   Option<AlignmentRange>,
+    pub fat:    Option<AlignmentRange>,
 }
 
 #[derive(Clone, Copy, Debug)] struct AlignmentRange {
@@ -22,7 +22,7 @@ struct Test<A> {
 
 impl<A> Test<A> {
     pub fn new(name: &'static str, create: fn()->A) -> Self {
-        Self { name, create, thin: None, nzst: None }
+        Self { name, create, thin: None, fat: None }
     }
 
     pub fn thin(&mut self) -> &mut Self where A : thin::Alloc + thin::Free {
@@ -41,59 +41,60 @@ impl<A> Test<A> {
         self
     }
 
-    pub fn nzst(&mut self) -> &mut Self where A : nzst::Alloc + nzst::Free {
-        let mut nzst = AlignmentRange { min: Alignment::MAX, max: ALIGN_1 };
+    pub fn fat(&mut self) -> &mut Self where A : zsty::Alloc + zsty::Free {
+        let mut fat = AlignmentRange { min: Alignment::MAX, max: ALIGN_1 };
 
         for _ in 0 .. 100 {
-            let layout = LayoutNZ::new::<u8>().unwrap(); // 1B
+            let layout = Layout::new::<u8>(); // 1B
             let alloc = (self.create)();
             let addrs = [(); 4096].map(|_| alloc.alloc_uninit(layout).unwrap());
             let addrbits = addrs[..].iter().copied().map(|addr| addr.as_ptr() as usize).reduce(|x,y| x|y).unwrap();
             addrs.iter().copied().for_each(|addr| unsafe { alloc.free(addr, layout) });
             let align = Alignment::new(1 << addrbits.trailing_zeros()).unwrap();
-            nzst.min = align.min(nzst.min);
+            fat.min = align.min(fat.min);
         }
 
-        nzst.max = nzst.min;
+        fat.max = fat.min;
         let alloc = (self.create)();
-        while let Some(next) = nzst.max.as_usize().checked_shl(1) {
+        while let Some(next) = fat.max.as_usize().checked_shl(1) {
             let Some(align) = Alignment::new(next) else { break };
-            let Some(size) = NonZeroUsize::new(next) else { break };
-            let Ok(layout) = LayoutNZ::from_size_align(size, align) else { break };
+            let Ok(layout) = Layout::from_size_align(next, next) else { break };
             let Ok(addr) = alloc.alloc_uninit(layout) else { break };
-            nzst.max = align;
+            fat.max = align;
             unsafe { alloc.free(addr, layout) };
         }
 
-        self.nzst = Some(nzst);
+        self.fat = Some(fat);
         self
     }
 
     pub fn print(&self) {
         let name = self.name;
         let thin = self.thin.map_or_else(|| format!(""), |t| if t.min == t.max { format!("{:?}", t.min) } else { format!("{:?} ..= {:?}", t.min, t.max) });
-        let nzst = self.nzst.map_or_else(|| format!(""), |t| if t.min == t.max { format!("{:?}", t.min) } else { format!("{:?} ..= {:?}", t.min, t.max) });
-        println!("{name: <20}{thin: <20}{nzst: <20}");
+        let fat  = self.fat .map_or_else(|| format!(""), |t| if t.min == t.max { format!("{:?}", t.min) } else { format!("{:?} ..= {:?}", t.min, t.max) });
+        println!("{name: <20}{thin: <20}{fat: <20}");
     }
 }
 
 fn main() {
-    println!("{: <20}{: <20}{: <20}", "",          "thin::Alloc",   "nzst::Alloc",  );
+    println!("{: <20}{: <20}{: <20}", "",          "thin::Alloc",   "fat::Alloc",   );
     println!("{: <20}{: <20}{: <20}", "Allocator", "Alignment",     "Alignment",    );
     println!("{:=<60}", "");
-    #[cfg(feature = "alloc")]   Test::new("Global",                 || alloc::Global                    )       .nzst().print();
-    #[cfg(c89)]                 Test::new("Malloc",                 || c::Malloc                        ).thin().nzst().print();
-    #[cfg(c89)]                 Test::new("AlignedMalloc",          || c::AlignedMalloc                 )       .nzst().print();
-    #[cfg(cpp98)]               Test::new("NewDelete",              || cpp::NewDelete                   ).thin().nzst().print();
-    #[cfg(cpp98)]               Test::new("NewDeleteArray",         || cpp::NewDeleteArray              ).thin().nzst().print();
-    #[cfg(cpp98)]               Test::new("StdAllocator<char>",     || cpp::StdAllocator::<char>::new() )       .nzst().print();
+    #[cfg(feature = "alloc")]   Test::new("Global",                 || alloc::Global                    )       .fat().print();
+    #[cfg(c89)]                 Test::new("Malloc",                 || c::Malloc                        ).thin().fat().print();
+    #[cfg(c89)]                 Test::new("AlignedMalloc",          || c::AlignedMalloc                 )       .fat().print();
+    #[cfg(cpp98)]               Test::new("NewDelete",              || cpp::NewDelete                   ).thin().fat().print();
+    #[cfg(cpp98)]               Test::new("NewDeleteArray",         || cpp::NewDeleteArray              ).thin().fat().print();
+    #[cfg(cpp17)]               Test::new("NewDeleteAligned",       || cpp::NewDeleteAligned            )       .fat().print();
+    #[cfg(cpp17)]               Test::new("NewDeleteArrayAligned",  || cpp::NewDeleteArrayAligned       )       .fat().print();
+    #[cfg(cpp98)]               Test::new("StdAllocator<char>",     || cpp::StdAllocator::<char>::new() )       .fat().print();
     #[cfg(all(windows, feature = "win32"))] {
         println!();
         println!("win32:");
-        Test::new("ProcessHeap",        || win32::ProcessHeap               ).thin().nzst().print();
-        Test::new("Global",             || win32::Global                    ).thin().nzst().print();
-        Test::new("Local",              || win32::Local                     ).thin().nzst().print();
-        Test::new("CryptMem",           || win32::CryptMem                  ).thin().nzst().print();
-        Test::new("CoTaskMem",          || win32::CoTaskMem                 ).thin().nzst().print();
+        Test::new("ProcessHeap",        || win32::ProcessHeap               ).thin().fat().print();
+        Test::new("Global",             || win32::Global                    ).thin().fat().print();
+        Test::new("Local",              || win32::Local                     ).thin().fat().print();
+        Test::new("CryptMem",           || win32::CryptMem                  ).thin().fat().print();
+        Test::new("CoTaskMem",          || win32::CoTaskMem                 ).thin().fat().print();
     }
 }

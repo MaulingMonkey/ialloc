@@ -45,41 +45,6 @@ impl<A: meta::Meta> meta::Meta for PanicOverAlign<A> {
 
 
 
-// nzst::*
-
-unsafe impl<A: nzst::Alloc> nzst::Alloc for PanicOverAlign<A> {
-    #[track_caller] fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
-        A::alloc_uninit(self, layout)
-    }
-    #[track_caller] fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> {
-        assert_valid_alignment(layout.align(), A::MAX_ALIGN);
-        A::alloc_zeroed(self, layout)
-    }
-}
-
-unsafe impl<A: nzst::Free> nzst::Free for PanicOverAlign<A> {
-    #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        freed_old_alignment(layout.align(), A::MAX_ALIGN);
-        unsafe { A::free(self, ptr, layout) }
-    }
-}
-
-unsafe impl<A: nzst::Realloc> nzst::Realloc for PanicOverAlign<A> {
-    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
-        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
-        unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) }
-    }
-    #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
-        assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
-        unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) }
-    }
-}
-
-
-
 // zsty::*
 
 unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {

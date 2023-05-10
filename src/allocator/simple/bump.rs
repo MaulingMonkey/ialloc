@@ -115,10 +115,6 @@ unsafe impl<'a> zsty::Realloc for Bump<'a> {
     impls! {
         unsafe impl     core::alloc::GlobalAlloc for     Bump<'static> => ialloc::zsty::Realloc;
         unsafe impl['o] core::alloc::GlobalAlloc for &'o Bump<'static> => core::ops::Deref;
-
-        unsafe impl['a] ialloc::nzst::Alloc     for Bump<'a> => ialloc::zsty::Alloc;
-        unsafe impl['a] ialloc::nzst::Realloc   for Bump<'a> => ialloc::zsty::Realloc;
-        unsafe impl['a] ialloc::nzst::Free      for Bump<'a> => ialloc::zsty::Free;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {

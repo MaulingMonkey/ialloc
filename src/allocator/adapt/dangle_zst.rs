@@ -1,9 +1,13 @@
 use crate::*;
 use crate::util::nn::dangling;
 
+use core::alloc::Layout;
+use core::mem::MaybeUninit;
+use core::ptr::NonNull;
 
 
-/// Adapt a [`nzst`] allocator to [`zsty`], returning dangling pointers for ZSTs.<br>
+
+/// If the underlying allocator doesn't support ZSTs, add support by returning dangling pointers for ZSTs.<br>
 /// This is efficient, but awkward for C/C++ interop, where the underlying allocator likely chokes on dangling pointers.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct DangleZst<A>(pub A);
 
@@ -16,65 +20,67 @@ impl<A: meta::Meta> meta::Meta for DangleZst<A> {
     const ZST_SUPPORTED : bool  = true;
 }
 
-unsafe impl<A: nzst::Alloc> zsty::Alloc for DangleZst<A> {
-    fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        if let Ok(layout) = LayoutNZ::try_from(layout) {
-            nzst::Alloc::alloc_uninit(&self.0, layout)
-        } else { // Zero sized alloc
-            Ok(dangling(layout))
-        }
+unsafe impl<A: zsty::Alloc> zsty::Alloc for DangleZst<A> {
+    fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if !A::ZST_SUPPORTED && layout.size() == 0 { return Ok(dangling(layout)) }
+        self.0.alloc_uninit(layout)
     }
 
-    fn alloc_zeroed(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::primitive::u8>, Self::Error> {
-        if let Ok(layout) = LayoutNZ::from_layout(layout) {
-            nzst::Alloc::alloc_zeroed(&self.0, layout)
-        } else { // Zero sized alloc
-            Ok(dangling(layout))
-        }
+    fn alloc_zeroed(&self, layout: Layout) -> Result<NonNull<u8>, Self::Error> {
+        if !A::ZST_SUPPORTED && layout.size() == 0 { return Ok(dangling(layout)) }
+        self.0.alloc_zeroed(layout)
     }
 }
 
-unsafe impl<A: nzst::Free> zsty::Free for DangleZst<A> {
-    unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: ::core::alloc::Layout) {
-        match LayoutNZ::from_layout(layout) {
-            Ok(layout) => unsafe { nzst::Free::free(&self.0, ptr, layout) },
-            Err(_zsty) =>        { debug_assert_eq!(ptr, dangling(layout)) },
-        }
+unsafe impl<A: zsty::Free> zsty::Free for DangleZst<A> {
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: Layout) {
+        if !A::ZST_SUPPORTED && layout.size() == 0 { debug_assert_eq!(ptr, dangling(layout)); return }
+        unsafe { self.0.free(ptr, layout) }
     }
 }
 
-unsafe impl<A: nzst::Realloc> zsty::Realloc for DangleZst<A> {
-    unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        match (LayoutNZ::from_layout(old_layout), LayoutNZ::from_layout(new_layout)) {
-            (Err(_old_zsty), Ok(new_layout)) =>        { debug_assert_eq!(ptr, dangling(old_layout       )); nzst::Alloc::alloc_uninit(&self.0, new_layout) },
-            (Ok(old_layout), Ok(new_layout)) => unsafe { debug_assert_ne!(ptr, dangling(old_layout.into())); nzst::Realloc::realloc_uninit(&self.0, ptr, old_layout, new_layout) },
-            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(old_layout.into())); nzst::Free::free(&self.0, ptr, old_layout); Ok(dangling(new_layout)) },
-            (Err(_old_zsty), Err(_new_zsty)) =>        { debug_assert_eq!(ptr, dangling(old_layout       )); Ok(dangling(new_layout)) },
+unsafe impl<A: zsty::Realloc> zsty::Realloc for DangleZst<A> {
+    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if A::ZST_SUPPORTED || (old_layout.size() > 0 && new_layout.size() > 0) {
+            unsafe { self.0.realloc_uninit(ptr, old_layout, new_layout) }
+        } else {
+            let alloc = self.alloc_uninit(new_layout)?;
+            let n = old_layout.size().min(new_layout.size());
+            {
+                let src : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr  .as_ptr(), n) };
+                let dst : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), n) };
+                dst.copy_from_slice(src);
+            }
+            unsafe { self.free(ptr, old_layout) };
+            Ok(alloc)
         }
     }
 
-    unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
-        match (LayoutNZ::from_layout(old_layout), LayoutNZ::from_layout(new_layout)) {
-            (Err(_old_zsty), Ok(new_layout)) =>        { debug_assert_eq!(ptr, dangling(old_layout       )); Ok(nzst::Alloc::alloc_zeroed(&self.0, new_layout)?.cast()) },
-            (Ok(old_layout), Ok(new_layout)) => unsafe { debug_assert_ne!(ptr, dangling(old_layout.into())); nzst::Realloc::realloc_zeroed(&self.0, ptr, old_layout, new_layout) },
-            (Ok(old_layout), Err(_new_zsty)) => unsafe { debug_assert_ne!(ptr, dangling(old_layout.into())); nzst::Free::free(&self.0, ptr, old_layout); Ok(dangling(new_layout)) },
-            (Err(_old_zsty), Err(_new_zsty)) =>        { debug_assert_eq!(ptr, dangling(old_layout       )); Ok(dangling(new_layout)) },
+    unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if A::ZST_SUPPORTED || (old_layout.size() > 0 && new_layout.size() > 0) {
+            unsafe { self.0.realloc_zeroed(ptr, old_layout, new_layout) }
+        } else {
+            let alloc = self.alloc_zeroed(new_layout)?.cast();
+            let n = old_layout.size().min(new_layout.size());
+            {
+                let src : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr  .as_ptr(), n) };
+                let dst : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), n) };
+                dst.copy_from_slice(src);
+            }
+            unsafe { self.free(ptr, old_layout) };
+            Ok(alloc)
         }
     }
 }
 
 #[no_implicit_prelude] mod cleanroom {
-    use super::{impls, nzst, DangleZst};
+    #[allow(unused_imports)] use super::{impls, zsty, DangleZst};
 
     impls! {
         unsafe impl[A: ::core::alloc::GlobalAlloc   ] core::alloc::GlobalAlloc  for DangleZst<A> => core::ops::Deref;
-
-        unsafe impl[A: nzst::Alloc                  ] ialloc::nzst::Alloc       for DangleZst<A> => core::ops::Deref;
-        unsafe impl[A: nzst::Free                   ] ialloc::nzst::Free        for DangleZst<A> => core::ops::Deref;
-        unsafe impl[A: nzst::Realloc                ] ialloc::nzst::Realloc     for DangleZst<A> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl[A: nzst::Realloc                ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: zsty::Realloc                ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::zsty::Realloc;
     }
 }

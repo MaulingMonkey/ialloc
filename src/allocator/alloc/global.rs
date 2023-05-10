@@ -21,37 +21,42 @@ impl meta::Meta for Global {
     const ZST_SUPPORTED : bool  = false;
 }
 
-unsafe impl nzst::Alloc for Global {
-    fn alloc_uninit(&self, layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { alloc::alloc::alloc(layout.into()) };
+unsafe impl zsty::Alloc for Global {
+    fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
+        if layout.size() == 0 { return Err(()) }
+        let alloc = unsafe { alloc::alloc::alloc(layout) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    fn alloc_zeroed(&self, layout: LayoutNZ) -> Result<AllocNN0, Self::Error> {
-        let alloc = unsafe { alloc::alloc::alloc_zeroed(layout.into()) };
+    fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
+        if layout.size() == 0 { return Err(()) }
+        let alloc = unsafe { alloc::alloc::alloc_zeroed(layout) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
-unsafe impl nzst::Free for Global {
-    unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), layout.into()) }
+unsafe impl zsty::Free for Global {
+    unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        debug_assert_ne!(layout.size(), 0, "bug: undefined behavior: free called on a ZST alloc that couldn't have come from Global");
+        unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), layout) }
     }
 }
 
-unsafe impl nzst::Realloc for Global {
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: LayoutNZ, new_layout: LayoutNZ) -> Result<AllocNN, Self::Error> {
+unsafe impl zsty::Realloc for Global {
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
         if old_layout == new_layout {
             Ok(ptr)
         } else if old_layout.align() == new_layout.align() {
-            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), old_layout.into(), new_layout.size().get()) };
+            if new_layout.size() == 0 { return Err(()); }
+            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), old_layout, new_layout.size()) };
             NonNull::new(alloc.cast()).ok_or(())
         } else { // alignment change
-            let alloc = unsafe { alloc::alloc::alloc(new_layout.into()) };
+            if new_layout.size() == 0 { return Err(()); }
+            let alloc = unsafe { alloc::alloc::alloc(new_layout) };
             let alloc : AllocNN = NonNull::new(alloc.cast()).ok_or(())?;
             {
-                let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size().get()) };
-                let new : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(),      new_layout.size().get()) };
+                let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size()) };
+                let new : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(),      new_layout.size()) };
                 let n = old.len().min(new.len());
                 new[..n].copy_from_slice(&old[..n]);
             }
@@ -98,15 +103,5 @@ unsafe impl core::alloc::GlobalAlloc for Global {
     unsafe fn shrink(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         let data = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
         Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
-    }
-}
-
-#[no_implicit_prelude] mod cleanroom {
-    use super::{impls, Global};
-
-    impls! {
-        unsafe impl ialloc::zsty::Alloc     for Global => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for Global => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for Global => ialloc::nzst::Free;
     }
 }

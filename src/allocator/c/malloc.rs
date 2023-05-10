@@ -119,13 +119,9 @@ unsafe impl thin::SizeOfDebug for Malloc {
     use super::{impls, Malloc};
 
     impls! {
-        unsafe impl ialloc::nzst::Alloc     for Malloc => ialloc::thin::Alloc;
-        unsafe impl ialloc::nzst::Realloc   for Malloc => ialloc::thin::Realloc;
-        unsafe impl ialloc::nzst::Free      for Malloc => ialloc::thin::Free;
-
-        unsafe impl ialloc::zsty::Alloc     for Malloc => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for Malloc => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for Malloc => ialloc::nzst::Free;
+        unsafe impl ialloc::zsty::Alloc     for Malloc => ialloc::thin::Alloc;
+        unsafe impl ialloc::zsty::Realloc   for Malloc => ialloc::thin::Realloc;
+        unsafe impl ialloc::zsty::Free      for Malloc => ialloc::thin::Free;
     }
 }
 
