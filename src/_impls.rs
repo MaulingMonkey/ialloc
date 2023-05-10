@@ -1,7 +1,7 @@
 //! Macro implementation details.  These are supposed to be `#[doc(hidden)]` from view and not used directly.
 
 pub mod prelude {
-    pub use crate::{self as ialloc, Alignment, LayoutNZ, meta::Meta as _, meta, thin, fat};
+    pub use crate::{self as ialloc, Alignment, meta::Meta as _, meta, thin, fat};
 
     pub use core::prelude::rust_2021::*;
     pub use core::{assert, assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne};

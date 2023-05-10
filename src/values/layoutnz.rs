@@ -7,7 +7,7 @@ use core::num::NonZeroUsize;
 
 
 /// Like [`Layout`], but size is nonzero ([`Layout`] already requires a nonzero power of 2 alignment.)
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)] #[repr(transparent)] pub struct LayoutNZ(Layout);
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)] #[repr(transparent)] pub(crate) struct LayoutNZ(Layout);
 
 impl LayoutNZ {
     pub(crate) fn from_layout(layout: Layout) -> Result<Self, LayoutError> { if layout.size() == 0 { Err(ERROR_SIZE_0) } else { Ok(Self(layout)) } }
