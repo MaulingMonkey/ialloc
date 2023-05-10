@@ -14,7 +14,7 @@ type AllocNN0   = core::ptr::NonNull<u8>;
 #[doc(hidden)] pub mod _impls;
 
 pub use align::alignment::*;
-pub use align::alignn::AlignN;
+pub(crate) use align::alignn::AlignN;
 #[doc(hidden)] pub use align::constants::*;
 mod align {
     pub mod alignment;
