@@ -27,6 +27,7 @@ pub unsafe trait Alloc : meta::Meta {
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
         let alloc = self.alloc_uninit(layout)?;
+        // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `layout.size()` was just allocated, size <= isize::MAX by Layout
         let all = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), layout.size()) };
         all.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
@@ -68,11 +69,14 @@ pub unsafe trait Realloc : Alloc + Free {
         if old_layout == new_layout { return Ok(ptr) }
         let alloc = self.alloc_uninit(new_layout)?;
         {
+            // SAFETY: ⚠️ `ptr` is non-null by type, `align` is 1/trivial, `old_layout.size()` was previously allocated by fn precondition, size <= isize::MAX implied by Layout
             let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size()) };
+            // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `new_layout.size()` was just allocated, size <= isize::MAX implied by Layout
             let new : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(),      new_layout.size()) };
             let n = old.len().min(new.len());
             new[..n].copy_from_slice(&old[..n]);
         }
+        // SAFETY: ✔️ (ptr, old_layout) was a previous valid alloc by fn safety precondition
         unsafe { self.free(ptr, old_layout) };
         Ok(alloc)
     }
@@ -90,8 +94,10 @@ pub unsafe trait Realloc : Alloc + Free {
     /// *   `ptr` will no longer be accessible after a succesful realloc (`realloc_uninit` returns <code>[Ok]\(...\)</code>)
     /// *   `old_layout` must exactly match the [`Layout`] last used to successfully (re)allocate `ptr`
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ✔️ realloc_uninit has same prereqs as realloc_zeroed
         let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
         if old_layout.size() < new_layout.size() {
+            // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `new_layout.size()` was just allocated and implied <= isize::MAX by Layout
             let all             = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size()) };
             let (_copied, new)  = all.split_at_mut(old_layout.size());
             new.fill(MaybeUninit::new(0u8));
@@ -102,15 +108,18 @@ pub unsafe trait Realloc : Alloc + Free {
 
 
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Alloc> Alloc for &'a A {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN,  Self::Error> { A::alloc_uninit(self, layout) }
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> { A::alloc_zeroed(self, layout) }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Free> Free for &'a A {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) { unsafe { A::free(self, ptr, layout) } }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Realloc> Realloc for &'a A {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) } }
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) } }
