@@ -10,7 +10,7 @@ use core::mem::MaybeUninit;
     value: T,
 }
 
-impl<const A : usize, T> AlignN<A, T> where [(); A] : _align_impl::ValidAlignLessThan1GiB {
+#[allow(dead_code)] impl<const A : usize, T> AlignN<A, T> where [(); A] : _align_impl::ValidAlignLessThan1GiB {
     pub const fn new(value: T) -> Self { Self { value, align: MaybeUninit::uninit() } }
     pub fn into_inner(self) -> T { self.value }
 }
