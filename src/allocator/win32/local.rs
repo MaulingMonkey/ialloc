@@ -64,7 +64,7 @@ unsafe impl thin::Realloc for Local {
 
 unsafe impl thin::Free for Local {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        assert!(unsafe { LocalFree(ptr.cast()) }.is_null());
+        if !unsafe { LocalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 

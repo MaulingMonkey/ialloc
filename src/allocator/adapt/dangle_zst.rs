@@ -97,9 +97,9 @@ unsafe impl<A: fat::Free> fat::Free for DangleZst<A> {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: Layout) {
         if A::ZST_SUPPORTED || layout.size() > 0 {
             unsafe { self.0.free(ptr, layout) };
-        } else {
-            debug_assert!(layout.align() <= A::MAX_ALIGN.as_usize());
-            debug_assert!(ptr == Self::DANGLE);
+        } else if cfg!(debug_assertions) {
+            if ptr != Self::DANGLE                      { bug::ub::invalid_ptr_for_allocator(ptr) }
+            if layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(layout.align()) }
         }
     }
 }
@@ -109,6 +109,10 @@ unsafe impl<A: fat::Realloc> fat::Realloc for DangleZst<A> {
         if A::ZST_SUPPORTED || (old_layout.size() > 0 && new_layout.size() > 0) {
             unsafe { self.0.realloc_uninit(ptr, old_layout, new_layout) }
         } else {
+            if cfg!(debug_assertions) && old_layout.size() == 0 {
+                if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
+                if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
+            }
             let alloc = self.alloc_uninit(new_layout)?;
             let n = old_layout.size().min(new_layout.size());
             {
@@ -125,6 +129,10 @@ unsafe impl<A: fat::Realloc> fat::Realloc for DangleZst<A> {
         if A::ZST_SUPPORTED || (old_layout.size() > 0 && new_layout.size() > 0) {
             unsafe { self.0.realloc_zeroed(ptr, old_layout, new_layout) }
         } else {
+            if cfg!(debug_assertions) && old_layout.size() == 0 {
+                if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
+                if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
+            }
             let alloc = self.alloc_zeroed(new_layout)?.cast();
             let n = old_layout.size().min(new_layout.size());
             {

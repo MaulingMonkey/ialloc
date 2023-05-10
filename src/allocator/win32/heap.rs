@@ -97,7 +97,7 @@ unsafe impl thin::Free for Heap {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         // "This pointer can be NULL."
         // https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree#parameters
-        assert!(0 != unsafe { HeapFree(self.0, 0, ptr.cast()) });
+        if unsafe { HeapFree(self.0, 0, ptr.cast()) } == 0 && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 

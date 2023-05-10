@@ -1,10 +1,10 @@
 //! Macro implementation details.  These are supposed to be `#[doc(hidden)]` from view and not used directly.
 
 pub mod prelude {
-    pub use crate::{self as ialloc, Alignment, meta::Meta as _, meta, thin, fat};
+    pub use crate::{self as ialloc, Alignment, meta::Meta as _, bug, meta, thin, fat};
 
+    pub use core::cfg;
     pub use core::prelude::rust_2021::*;
-    pub use core::{assert, assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne};
     pub use core::primitive::*;
 
     pub use core::alloc::{Layout, *}; // AllocError (unstable)
@@ -114,9 +114,9 @@ pub mod prelude {
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Free for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Free; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::fat::Free for $ty $(where $($where)*)? {
-            unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _layout: ::core::alloc::Layout) {
+            unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: ::core::alloc::Layout) {
                 use $crate::_impls::prelude::*;
-                debug_assert!(_layout.align() <= Self::MAX_ALIGN.as_usize(), "allocation couldn't belong to this allocator: impossible alignment");
+                if cfg!(debug_assertions) && layout.align() > Self::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(layout.align()) }
                 unsafe { $crate::thin::Free::free(self, ptr) }
             }
         }
@@ -125,15 +125,15 @@ pub mod prelude {
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Realloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Realloc; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::fat::Realloc for $ty $(where $($where)*)? {
-            unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
+            unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
                 use $crate::_impls::prelude::*;
-                debug_assert!(_old_layout.align() <= Self::MAX_ALIGN.as_usize(), "allocation couldn't belong to this allocator: impossible alignment");
+                if cfg!(debug_assertions) && old_layout.align() > Self::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
                 if new_layout.align() > Self::MAX_ALIGN.as_usize() { Err($crate::error::ExcessiveAlignmentRequestedError { requested: Alignment::new(new_layout.align()).unwrap_or(Alignment::MAX), supported: Self::MAX_ALIGN })? }
                 unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_layout.size()) }
             }
             unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
                 use $crate::_impls::prelude::*;
-                debug_assert!(old_layout.align() <= Self::MAX_ALIGN.as_usize(), "allocation couldn't belong to this allocator: impossible alignment");
+                if cfg!(debug_assertions) && old_layout.align() > Self::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
                 if new_layout.align() > Self::MAX_ALIGN.as_usize() { Err($crate::error::ExcessiveAlignmentRequestedError { requested: Alignment::new(new_layout.align()).unwrap_or(Alignment::MAX), supported: Self::MAX_ALIGN })? }
                 if <$ty as $crate::thin::Realloc>::CAN_REALLOC_ZEROED {
                     unsafe { $crate::thin::Realloc::realloc_zeroed(self, ptr, new_layout.size()) }
@@ -142,7 +142,7 @@ pub mod prelude {
                     if old_layout.size() < new_layout.size() {
                         let all             = unsafe { ::core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size()) };
                         let (_copied, new)  = all.split_at_mut(old_layout.size());
-                        new.fill(::core::mem::MaybeUninit::new(0u8));
+                        new.fill(MaybeUninit::new(0u8));
                     }
                     Ok(alloc.cast())
                 }

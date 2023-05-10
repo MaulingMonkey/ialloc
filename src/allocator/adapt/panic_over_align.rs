@@ -11,10 +11,6 @@ use core::alloc::Layout;
     panic!("requested alignment {requested:?} > supported {supported:?}")
 }
 
-#[inline(never)] #[track_caller] fn invalid_freed_alignment(freed: usize, supported: usize) -> ! {
-    panic!("alignment being freed {freed:?} > supported {supported:?} - this is Undefined Behavior! (did you free with the wrong allocator?)")
-}
-
 #[inline(always)] #[track_caller] fn assert_valid_alignment(requested: impl Into<usize>, supported: impl Into<usize>) {
     let requested = requested.into();
     let supported = supported.into();
@@ -24,7 +20,7 @@ use core::alloc::Layout;
 #[inline(always)] #[track_caller] fn freed_old_alignment(freed: impl Into<usize>, supported: impl Into<usize>) {
     let freed = freed.into();
     let supported = supported.into();
-    if freed > supported { invalid_freed_alignment(freed, supported) }
+    if freed > supported { bug::ub::invalid_free_align_for_allocator(freed) }
 }
 
 impl<A> core::ops::Deref for PanicOverAlign<A> {

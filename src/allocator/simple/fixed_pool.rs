@@ -92,8 +92,9 @@ unsafe impl<const A: usize, const B: usize, const N: usize> thin::Alloc for &'_ 
 unsafe impl<const A: usize, const B: usize, const N: usize> thin::Free for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
     unsafe fn free(&self, ptr: AllocNN) {
         let index = unsafe { ptr.as_ptr().cast::<Element<A, B>>().offset_from(self.buffer.as_ptr()) } as usize;
-        let state = self.state.get(index).expect("undefined behavior: free called on a ptr that wasn't part of the FixedPoolLinearProbe allocation");
-        debug_assert_ne!(state.get(), State::Free, "undefined behavior: free called on a ptr that was already free");
+        if cfg!(debug_assertions) && index >= self.state.len() { bug::ub::invalid_ptr_for_allocator(ptr) }
+        let state = unsafe { self.state.get_unchecked(index) };
+        if cfg!(debug_assertions) && state.get() == State::Free { bug::ub::freed_ptr_for_allocator(ptr) }
         state.set(State::Free);
     }
 }

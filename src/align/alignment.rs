@@ -4,7 +4,7 @@ use crate::*;
 use core::alloc::Layout;
 use core::fmt::{self, Debug, Formatter};
 use core::mem::{align_of, size_of};
-use core::num::NonZeroUsize;
+use core::num::{NonZeroUsize, TryFromIntError};
 
 
 
@@ -67,11 +67,9 @@ impl From<Layout   > for Alignment      { fn from(value: Layout   ) -> Self { un
 impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
 impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 
-// XXX: u8::try_from(0xFFFF_u16) isn't a const expr
-//type TryFromIntError = core::num::TryFromIntError;
-//const TRY_FROM_INT_ERROR : TryFromIntError = if let Err(e) = u8::try_from(0xFFFFu16) { e } else { panic!("unable to construct TRY_FROM_INT_ERROR") };
-//impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
-//impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or(TRY_FROM_INT_ERROR) } type Error = TryFromIntError; }
+fn try_from_int_error() -> TryFromIntError { unsafe { NonZeroUsize::try_from(0).unwrap_err_unchecked() } }
+impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or_else(|| try_from_int_error()) } type Error = TryFromIntError; }
+impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or_else(|| try_from_int_error()) } type Error = TryFromIntError; }
 
 impl Debug for Alignment { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { util::bytes::pretty(f, self.as_usize()) } }
 

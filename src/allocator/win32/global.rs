@@ -62,7 +62,7 @@ unsafe impl thin::Realloc for Global {
 
 unsafe impl thin::Free for Global {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        assert!(unsafe { GlobalFree(ptr.cast()) }.is_null());
+        if !unsafe { GlobalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 

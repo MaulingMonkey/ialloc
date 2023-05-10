@@ -37,7 +37,7 @@ unsafe impl fat::Alloc for Global {
 
 unsafe impl fat::Free for Global {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
-        debug_assert_ne!(layout.size(), 0, "bug: undefined behavior: free called on a ZST alloc that couldn't have come from Global");
+        if cfg!(debug_assertions) && layout.size() == 0 { bug::ub::invalid_zst_for_allocator(ptr) }
         unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), layout) }
     }
 }
