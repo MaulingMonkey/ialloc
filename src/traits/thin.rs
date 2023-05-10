@@ -4,6 +4,7 @@
 //! This module provides traits for such functionality.
 
 use crate::*;
+use crate::error::ExcessiveSliceRequestedError;
 use crate::meta::Meta;
 
 use core::mem::MaybeUninit;
@@ -38,7 +39,9 @@ pub unsafe trait Alloc : Meta {
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        if size > usize::MAX/2 { return Err(ExcessiveSliceRequestedError { requested: size }.into()) }
         let alloc = self.alloc_uninit(size)?;
+        // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `size` was just allocated, size <= isize::MAX by conditional above
         unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) }.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
     }
@@ -58,7 +61,10 @@ pub unsafe trait Free : meta::Meta {
     /// ### Safety
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
-    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { self.free_nullable(ptr.as_ptr()) } }
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) {
+        // SAFETY: ✔️ free_nullable has ≈identical prereqs
+        unsafe { self.free_nullable(ptr.as_ptr()) }
+    }
 
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
@@ -66,7 +72,10 @@ pub unsafe trait Free : meta::Meta {
     /// *   `ptr` may be null, in which case this is a noop
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
-    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { if let Some(ptr) = NonNull::new(ptr) { unsafe { self.free(ptr) } } }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        // SAFETY: ✔️  free has ≈identical prereqs
+        if let Some(ptr) = NonNull::new(ptr) { unsafe { self.free(ptr) } }
+    }
 }
 
 
@@ -122,7 +131,10 @@ pub unsafe trait SizeOf : SizeOfDebug {
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { SizeOfDebug::size_of(self, ptr) } }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
+        // SAFETY: ✔️ SizeOfDebug::size_of has identical prereqs
+        unsafe { SizeOfDebug::size_of(self, ptr) }
+    }
 }
 
 
@@ -165,26 +177,31 @@ pub unsafe trait SizeOfDebug : meta::Meta {
 
 
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Alloc> Alloc for &'a A {
     fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { A::alloc_uninit(self, size) }
     fn alloc_zeroed(&self, size: usize) -> Result<NonNull<            u8 >, Self::Error> { A::alloc_zeroed(self, size) }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Free> Free for &'a A {
     unsafe fn free(         &self, ptr: NonNull<MaybeUninit<u8>> ) { unsafe { A::free(         self, ptr) } }
     unsafe fn free_nullable(&self, ptr: *mut    MaybeUninit<u8>  ) { unsafe { A::free_nullable(self, ptr) } }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: Realloc> Realloc for &'a A {
     const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { A::realloc_uninit(self, ptr, new_size) } }
     unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, new_size) } }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: SizeOf> SizeOf for &'a A {
     unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { <A as SizeOf>::size_of(self, ptr) } }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
     unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { A::size_of(self, ptr) } }
 }
@@ -199,6 +216,7 @@ pub mod test {
     #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
+        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
         if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
@@ -206,6 +224,7 @@ pub mod test {
     #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free + Meta>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
         if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
