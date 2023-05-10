@@ -15,6 +15,11 @@ use core::ptr::NonNull;
 impl<A> core::ops::Deref for AllocZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
 
 impl<A: Meta> AllocZst<A> {
+    fn fix_thin_size(size: usize) -> usize {
+        if A::ZST_SUPPORTED { size }
+        else { size.max(1) }
+    }
+
     fn fix_layout(layout: Layout) -> Result<Layout, A::Error> {
         if A::ZST_SUPPORTED || layout.size() != 0 {
             Ok(layout)
@@ -34,6 +39,45 @@ impl<A: Meta> Meta for AllocZst<A> {
     const MAX_SIZE  : usize     = A::MAX_SIZE;
     const ZST_SUPPORTED : bool  = true;
 }
+
+
+
+// thin::*
+
+unsafe impl<A: thin::Alloc> thin::Alloc for AllocZst<A> {
+    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        let size = Self::fix_thin_size(size);
+        self.0.alloc_uninit(size)
+    }
+
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        let size = Self::fix_thin_size(size);
+        self.0.alloc_zeroed(size)
+    }
+}
+
+unsafe impl<A: thin::Free> thin::Free for AllocZst<A> {
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { self.0.free(ptr) } }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { self.0.free_nullable(ptr) } }
+}
+
+unsafe impl<A: thin::Realloc> thin::Realloc for AllocZst<A> {
+    const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
+
+    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        let new_size = Self::fix_thin_size(new_size);
+        unsafe { self.0.realloc_uninit(ptr, new_size) }
+    }
+
+    unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        let new_size = Self::fix_thin_size(new_size);
+        unsafe { self.0.realloc_zeroed(ptr, new_size) }
+    }
+}
+
+
+
+// fat::*
 
 unsafe impl<A: fat::Alloc> fat::Alloc for AllocZst<A> {
     fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {

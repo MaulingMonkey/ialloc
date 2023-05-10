@@ -1,5 +1,5 @@
 use crate::*;
-use crate::util::nn::dangling;
+use crate::error::ExcessiveAlignmentRequestedError;
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
@@ -11,6 +11,10 @@ use core::ptr::NonNull;
 /// This is efficient, but awkward for C/C++ interop, where the underlying allocator likely chokes on dangling pointers.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct DangleZst<A>(pub A);
 
+impl<A: meta::Meta> DangleZst<A> {
+    const DANGLE : NonNull<MaybeUninit<u8>> = unsafe { NonNull::new_unchecked(A::MAX_ALIGN.as_usize() as _) };
+}
+
 impl<A> core::ops::Deref for DangleZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
 
 impl<A: meta::Meta> meta::Meta for DangleZst<A> {
@@ -20,22 +24,83 @@ impl<A: meta::Meta> meta::Meta for DangleZst<A> {
     const ZST_SUPPORTED : bool  = true;
 }
 
+
+
+// thin::*
+
+unsafe impl<A: thin::Alloc> thin::Alloc for DangleZst<A> {
+    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if !A::ZST_SUPPORTED && size == 0 { return Ok(Self::DANGLE) }
+        self.0.alloc_uninit(size)
+    }
+
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        if !A::ZST_SUPPORTED && size == 0 { return Ok(Self::DANGLE.cast()) }
+        self.0.alloc_zeroed(size)
+    }
+}
+
+unsafe impl<A: thin::Free> thin::Free for DangleZst<A> {
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) {
+        if !A::ZST_SUPPORTED && ptr == Self::DANGLE { return }
+        unsafe { self.0.free(ptr) }
+    }
+}
+
+unsafe impl<A: thin::Realloc> thin::Realloc for DangleZst<A> {
+    const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
+
+    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if !A::ZST_SUPPORTED {
+            if ptr == Self::DANGLE  { return self.0.alloc_uninit(new_size) }
+            if new_size == 0        { unsafe { self.0.free(ptr) }; return Ok(Self::DANGLE) }
+        }
+        unsafe { self.0.realloc_uninit(ptr, new_size) }
+    }
+
+    unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        if !A::ZST_SUPPORTED {
+            if ptr == Self::DANGLE  { return self.0.alloc_zeroed(new_size).map(|a| a.cast()) }
+            if new_size == 0        { unsafe { self.0.free(ptr) }; return Ok(Self::DANGLE) }
+        }
+        unsafe { self.0.realloc_uninit(ptr, new_size) }
+    }
+}
+
+
+
+// fat::*
+
 unsafe impl<A: fat::Alloc> fat::Alloc for DangleZst<A> {
     fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        if !A::ZST_SUPPORTED && layout.size() == 0 { return Ok(dangling(layout)) }
-        self.0.alloc_uninit(layout)
+        if A::ZST_SUPPORTED || layout.size() > 0 {
+            self.0.alloc_uninit(layout)
+        } else if layout.align() <= A::MAX_ALIGN.as_usize() {
+            Ok(Self::DANGLE)
+        } else {
+            Err(ExcessiveAlignmentRequestedError{ requested: layout.into(), supported: A::MAX_ALIGN }.into())
+        }
     }
 
     fn alloc_zeroed(&self, layout: Layout) -> Result<NonNull<u8>, Self::Error> {
-        if !A::ZST_SUPPORTED && layout.size() == 0 { return Ok(dangling(layout)) }
-        self.0.alloc_zeroed(layout)
+        if A::ZST_SUPPORTED || layout.size() > 0 {
+            self.0.alloc_zeroed(layout)
+        } else if layout.align() <= A::MAX_ALIGN.as_usize() {
+            Ok(Self::DANGLE.cast())
+        } else {
+            Err(ExcessiveAlignmentRequestedError{ requested: layout.into(), supported: A::MAX_ALIGN }.into())
+        }
     }
 }
 
 unsafe impl<A: fat::Free> fat::Free for DangleZst<A> {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: Layout) {
-        if !A::ZST_SUPPORTED && layout.size() == 0 { debug_assert_eq!(ptr, dangling(layout)); return }
-        unsafe { self.0.free(ptr, layout) }
+        if A::ZST_SUPPORTED || layout.size() > 0 {
+            unsafe { self.0.free(ptr, layout) };
+        } else {
+            debug_assert!(layout.align() <= A::MAX_ALIGN.as_usize());
+            debug_assert!(ptr == Self::DANGLE);
+        }
     }
 }
 
@@ -81,6 +146,6 @@ unsafe impl<A: fat::Realloc> fat::Realloc for DangleZst<A> {
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl[A: fat::Realloc                ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::fat::Realloc;
+        unsafe impl[A: fat::Realloc                 ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::fat::Realloc;
     }
 }
