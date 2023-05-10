@@ -1,4 +1,5 @@
 use crate::*;
+use crate::error::ExcessiveAlignmentRequestedError;
 use crate::meta::Meta;
 
 use core::alloc::Layout;
@@ -15,8 +16,15 @@ impl<A> core::ops::Deref for AllocZst<A> { fn deref(&self) -> &Self::Target { &s
 
 impl<A: Meta> AllocZst<A> {
     fn fix_layout(layout: Layout) -> Result<Layout, A::Error> {
-        if A::ZST_SUPPORTED || layout.size() != 0 { return Ok(layout) }
-        LayoutNZ::from_layout_min_size_1(layout).map(|l| l.into()).map_err(|e| e.into())
+        if A::ZST_SUPPORTED || layout.size() != 0 {
+            Ok(layout)
+        } else {
+            const ALIGN_HALF_MAX : Alignment = Alignment::constant(Alignment::MAX.as_usize()/2);
+            Layout::from_size_align(1, layout.align()).map_err(|_| ExcessiveAlignmentRequestedError {
+                requested: Alignment::from(layout),
+                supported: ALIGN_HALF_MAX, // only alignment that would cause 1 to OOB is ALIGN_MAX
+            }.into())
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::*;
 
 #[cfg(doc)] use core::alloc::*;
+use core::alloc::Layout;
 use core::fmt::{self, Debug, Formatter};
 use core::mem::{align_of, size_of};
 use core::num::NonZeroUsize;
@@ -62,6 +63,7 @@ impl Alignment {
 
 }
 
+impl From<Layout   > for Alignment      { fn from(value: Layout   ) -> Self { unsafe { Self::new_unchecked(value.align()) } } }
 impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
 impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 

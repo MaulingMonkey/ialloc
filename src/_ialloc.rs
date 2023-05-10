@@ -26,6 +26,5 @@ mod align {
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
 #[path = "util/_util.rs"                ] mod util;
-#[path = "values/_values.rs"            ] mod values; pub use values::*;
 
 pub mod error;
