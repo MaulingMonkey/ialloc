@@ -63,7 +63,7 @@ unsafe impl<'a> fat::Alloc for Bump<'a> {
         let align = layout.align();
         let size = layout.size();
 
-        if align == 0 { unsafe { core::hint::unreachable_unchecked() } } // violation of Layout
+        let _ = Alignment::from(layout); // XXX: possibly hint to compiler that layout is nonzero
         if size == 0 {
             #[cfg(debug_assertions)] self.outstanding_allocs.set(self.outstanding_allocs.get() + 1);
             return Ok(crate::util::nn::dangling(layout));
