@@ -40,9 +40,9 @@ impl<T: Clone, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
-    /// let mut a = ABox::new_in('a', Malloc);
-    /// let     b = ABox::new_in('b', Malloc);
+    /// use ialloc::{allocator::{alloc::Global, debug::Null}, boxed::ABox};
+    /// let mut a = ABox::new_in('a', Global);
+    /// let     b = ABox::new_in('b', Global);
     /// a.clone_from(&b);
     /// assert_eq!(*a, 'b');
     /// ```
@@ -58,8 +58,8 @@ impl<T: Clone, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let a = ABox::new_in('a', Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let a = ABox::new_in('a', Global);
     /// let b = a.try_clone().unwrap();
     /// assert_eq!(*b, 'a');
     /// ```
@@ -78,15 +78,15 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ## Examples
     /// ```
     /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
-    /// let a = ABox::new_in('a', Malloc);
-    /// let b = a.try_clone_in(Malloc).unwrap();
+    /// let a = ABox::new_in('a', Global);
+    /// let b = a.try_clone_in(Global).unwrap();
     /// assert_eq!(*b, 'a');
     /// ```
     ///
     /// ```
     /// // will return Err(...) - Null can't allocate anything
     /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
-    /// # let a = ABox::new_in('a', Malloc);
+    /// # let a = ABox::new_in('a', Global);
     /// let err = a.try_clone_in(Null).unwrap_err();
     /// ```
     ///
@@ -112,15 +112,15 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ## Examples
     /// ```
     /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
-    /// let a = ABox::new_in('a', Malloc);
-    /// let b = a.clone_in(Malloc);
+    /// let a = ABox::new_in('a', Global);
+    /// let b = a.clone_in(Global);
     /// assert_eq!(*b, 'a');
     /// ```
     ///
     /// ```should_panic
     /// // will panic - Null can't allocate anything
     /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
-    /// # let a = ABox::new_in('a', Malloc);
+    /// # let a = ABox::new_in('a', Global);
     /// let b = a.clone_in(Null);
     /// ```
     ///
@@ -148,14 +148,14 @@ impl<T: Default, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
+    /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// let err = ABox::<u32, Null>::try_default().unwrap_err();
-    /// let b = ABox::<u32, Malloc>::try_default().unwrap();
+    /// let b = ABox::<u32, Global>::try_default().unwrap();
     /// assert_eq!(*b, 0);
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
+    /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// impl Default for Page { fn default() -> Self { Self([0u8; 4096]) } }
@@ -174,14 +174,14 @@ impl<T: Default, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
+    /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// let err = ABox::<u32, _>::try_default_in(Null).unwrap_err();
-    /// let b = ABox::<u32, _>::try_default_in(Malloc).unwrap();
+    /// let b = ABox::<u32, _>::try_default_in(Global).unwrap();
     /// assert_eq!(*b, 0);
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
+    /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// impl Default for Page { fn default() -> Self { Self([0u8; 4096]) } }
@@ -200,7 +200,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
+    /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// let b = ABox::<u32, _>::default_in(Malloc);
     /// assert_eq!(*b, 0);
     /// ```

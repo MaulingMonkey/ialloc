@@ -55,8 +55,8 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     /// let (data, allocator) = ABox::into_raw_with_allocator(b);
     ///
     /// let b = unsafe { ABox::from_raw_in(data, allocator) };
@@ -78,11 +78,11 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     /// let data = ABox::into_raw(b);
     ///
-    /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
+    /// let b = unsafe { ABox::<_, Global>::from_raw(data) };
     /// ```
     pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Default {
         let _ = Self::ASSERT_A_IS_ZST_FROM_RAW;
@@ -93,8 +93,8 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     ///
     /// let (data, allocator) = ABox::into_raw_with_allocator(b);
     ///
@@ -115,12 +115,12 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     ///
     /// let data = ABox::into_raw(b);
     ///
-    /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
+    /// let b = unsafe { ABox::<_, Global>::from_raw(data) };
     /// ```
     pub fn into_raw(this: Self) -> NonNull<T> {
         let _ = Self::ASSERT_A_IS_ZST_INTO_RAW;
@@ -136,8 +136,8 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     ///
     /// let v : &'static u32 = ABox::leak(b);
     /// ```
@@ -159,8 +159,8 @@ impl<T, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     ///
     /// let v : u32 = ABox::into_inner(b);
     /// ```
@@ -171,10 +171,10 @@ impl<T, A: Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
-    /// let b = ABox::new_in(42_u32, Malloc);
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
+    /// let b = ABox::new_in(42_u32, Global);
     ///
-    /// let (v, a) : (u32, Malloc) = ABox::into_inner_with_allocator(b);
+    /// let (v, a) : (u32, Global) = ABox::into_inner_with_allocator(b);
     ///
     /// let b = ABox::new_in(v, a);
     /// ```

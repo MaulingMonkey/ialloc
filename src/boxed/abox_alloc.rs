@@ -54,7 +54,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::try_new_uninit_in(Malloc).unwrap();
     /// let a = ABox::<(),  _>::try_new_uninit_in(Malloc).unwrap();
     /// ```
@@ -67,7 +67,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     ///
     /// ```compile_fail,E0080
     /// // won't compile - requires too much alignment for Malloc
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::try_new_uninit_in(Malloc).unwrap();
     /// ```
@@ -87,7 +87,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::try_new_uninit_slice_in(0, Malloc).unwrap();
     /// # assert_eq!(a.len(), 0);
     /// let a = ABox::<(),  _>::try_new_uninit_slice_in(0, Malloc).unwrap();
@@ -102,18 +102,18 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     ///
     /// ```
     /// // will return Err(...) - too much memory requested
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let err = ABox::<u32, _>::try_new_uninit_slice_in(usize::MAX, Malloc).err().unwrap();
     /// ```
     ///
     /// ```
     /// // will return Err(...) - still too much memory (half the address space → `Layout` overflows)
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let err = ABox::<u32, _>::try_new_uninit_slice_in(usize::MAX/8+1, Malloc).err().unwrap();
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::try_new_uninit_slice_in(1, Malloc).unwrap();
@@ -198,7 +198,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::try_new_uninit_slice(0).unwrap();
     /// # assert_eq!(a.len(), 0);
     /// let a = ABox::<(),  Malloc>::try_new_uninit_slice(0).unwrap();
@@ -213,18 +213,18 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ```
     /// // will return Err(...) - too much memory requested
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let err = ABox::<u32, Malloc>::try_new_uninit_slice(usize::MAX).err().unwrap();
     /// ```
     ///
     /// ```
     /// // will return Err(...) - still too much memory (half the address space → `Layout` overflows)
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let err = ABox::<u32, Malloc>::try_new_uninit_slice(usize::MAX/8+1).err().unwrap();
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::try_new_uninit_slice(1).unwrap();
@@ -276,7 +276,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::new_uninit_in(Malloc);
     /// let a = ABox::<(),  _>::new_uninit_in(Malloc);
     /// ```
@@ -289,7 +289,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ```compile_fail,E0080
     /// // won't compile - requires too much alignment for Malloc
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::new_uninit_in(Malloc);
     /// ```
@@ -307,7 +307,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::new_uninit_slice_in(0, Malloc);
     /// # assert_eq!(a.len(), 0);
     /// let a = ABox::<(),  _>::new_uninit_slice_in(0, Malloc);
@@ -322,18 +322,18 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ```should_panic
     /// // will panic - too much memory requested
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::new_uninit_slice_in(usize::MAX, Malloc);
     /// ```
     ///
     /// ```should_panic
     /// // will panic - still too much memory (half the address space → `Layout` overflows)
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, _>::new_uninit_slice_in(usize::MAX/8+1, Malloc);
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::new_uninit_slice_in(1, Malloc);
@@ -416,7 +416,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ## Examples
     /// ```
-    /// use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::new_uninit_slice(0);
     /// # assert_eq!(a.len(), 0);
     /// let a = ABox::<(),  Malloc>::new_uninit_slice(0);
@@ -431,18 +431,18 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     ///
     /// ```should_panic
     /// // will panic - too much memory requested
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::new_uninit_slice(usize::MAX);
     /// ```
     ///
     /// ```should_panic
     /// // will panic - still too much memory (half the address space → `Layout` overflows)
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::new_uninit_slice(usize::MAX/8+1);
     /// ```
     ///
     /// ```compile_fail,E0080
-    /// # use ialloc::{allocator::c::Malloc, boxed::ABox};
+    /// # use ialloc::{allocator::alloc::Global, boxed::ABox};
     /// // won't compile - requires too much alignment for Malloc
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, Malloc>::new_uninit_slice(1);

@@ -46,9 +46,5 @@ unsafe impl nzst::Realloc for NewDelete {}
     impls! {
         unsafe impl ialloc::nzst::Alloc     for NewDelete => ialloc::thin::Alloc;
         unsafe impl ialloc::nzst::Free      for NewDelete => ialloc::thin::Free;
-
-        unsafe impl ialloc::zsty::Alloc     for NewDelete => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for NewDelete => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for NewDelete => ialloc::nzst::Free;
     }
 }

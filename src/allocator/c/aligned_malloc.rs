@@ -97,18 +97,6 @@ unsafe impl thin::Free for AlignedMalloc {
 
 
 
-#[no_implicit_prelude] mod cleanroom {
-    use super::{impls, AlignedMalloc};
-
-    impls! {
-        unsafe impl ialloc::zsty::Alloc     for AlignedMalloc => ialloc::nzst::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for AlignedMalloc => ialloc::nzst::Realloc;
-        unsafe impl ialloc::zsty::Free      for AlignedMalloc => ialloc::nzst::Free;
-    }
-}
-
-
-
 mod ffi {
     pub use libc::*;
     #[allow(unused_imports)] use core::ptr::NonNull;

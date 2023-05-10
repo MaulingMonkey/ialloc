@@ -136,10 +136,10 @@ unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
 
 
 #[cfg(allocator_api = "*")] #[test] fn allocator_api() {
-    use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
+    use crate::allocator::{adapt::*, c::Malloc};
     use alloc::vec::Vec;
 
-    let mut v = Vec::new_in(PanicOverAlign(Malloc));
+    let mut v = Vec::new_in(PanicOverAlign(DangleZst(Malloc)));
     v.push(1);
     v.push(2);
     v.push(3);
@@ -149,13 +149,13 @@ unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
 }
 
 #[cfg(allocator_api = "*")] #[should_panic] #[test] fn allocator_api_overalign() {
-    use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
+    use crate::allocator::{adapt::*, c::Malloc};
     use alloc::vec::Vec;
 
     #[derive(Clone, Copy)] #[repr(C, align(4096))] struct Page([u8; 4096]);
     impl Page { pub fn new() -> Self { Self([0u8; 4096]) } }
 
-    let mut v = Vec::new_in(PanicOverAlign(Malloc));
+    let mut v = Vec::new_in(PanicOverAlign(DangleZst(Malloc)));
     v.push(Page::new());
     v.push(Page::new());
     v.push(Page::new());
