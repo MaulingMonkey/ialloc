@@ -34,9 +34,7 @@ const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::Alignment::constan
 
 
 
-#[inline(always)] fn check_size<N: TryFrom<usize>>(size: core::num::NonZeroUsize) -> Result<N, ()> {
-    let size = size.get();
-
+#[inline(always)] fn check_size<N: TryFrom<usize>>(size: usize) -> Result<N, ()> {
     // XXX: not entirely sure if this is excessive or not.
     // Will *Alloc(2.5 GiB) reasonably succeed?
     // My understanding is that >isize::MAX allocs/pointer ranges/spatial provenances are super cursed by LLVM / the compiler

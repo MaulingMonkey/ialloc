@@ -4,7 +4,6 @@ use winapi::um::errhandlingapi::{GetLastError, SetLastError};
 use winapi::um::winbase::{GlobalAlloc, GlobalReAlloc, GlobalFree, GlobalSize, GMEM_ZEROINIT};
 
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -28,17 +27,17 @@ impl meta::Meta for Global {
     //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX/2;
-    const ZST_SUPPORTED : bool  = false;
+    const ZST_SUPPORTED : bool  = true;
 }
 
 unsafe impl thin::Alloc for Global {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { GlobalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> {
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { GlobalAlloc(GMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -48,13 +47,13 @@ unsafe impl thin::Alloc for Global {
 unsafe impl thin::Realloc for Global {
     const CAN_REALLOC_ZEROED : bool = true;
 
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(new_size)?;
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), size, 0) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(new_size)?;
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), size, GMEM_ZEROINIT) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -104,7 +103,6 @@ unsafe impl thin::SizeOfDebug for Global {
 #[test] fn test_align() {
     use crate::{meta::*, thin::*};
     for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-        let size = NonZeroUsize::new(size).unwrap();
         std::dbg!(size);
         let mut addr_bits = 0;
         for _ in 0 .. 1000 {
@@ -117,3 +115,7 @@ unsafe impl thin::SizeOfDebug for Global {
         assert!(align >= Global::MAX_ALIGN.as_usize());
     }
 }
+
+
+
+#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(Global)) }

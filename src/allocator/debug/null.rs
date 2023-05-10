@@ -20,7 +20,7 @@ impl meta::Meta for Null {
 // thin::*
 
 unsafe impl thin::Alloc for Null {
-    fn alloc_uninit(&self, size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> { Err(()) }
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> { Err(()) }
 }
 
 unsafe impl thin::Free for Null {
@@ -29,8 +29,8 @@ unsafe impl thin::Free for Null {
 
 unsafe impl thin::Realloc for Null {
     const CAN_REALLOC_ZEROED : bool = true;
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> { Err(()) }
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> { Err(()) }
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { Err(()) }
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { Err(()) }
 }
 
 unsafe impl thin::SizeOf for Null {}
@@ -74,3 +74,8 @@ unsafe impl zsty::Realloc for Null {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
 }
+
+
+
+// XXX: Null doesn't allocate *anything*, but is meant to be "compatible" with everything
+//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(Null)) }

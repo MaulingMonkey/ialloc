@@ -30,7 +30,7 @@ impl<A> Test<A> {
         for (dst, min_size) in [(&mut thin.min, 1), (&mut thin.max, 4096)] {
             for _ in 0 .. 100 {
                 let alloc = (self.create)();
-                let addrs = [(); 4096].into_iter().enumerate().map(|(i, _)| alloc.alloc_uninit(NonZeroUsize::new(i%16+min_size).unwrap()).unwrap()).collect::<Vec<_>>();
+                let addrs = [(); 4096].into_iter().enumerate().map(|(i, _)| alloc.alloc_uninit(i%16+min_size).unwrap()).collect::<Vec<_>>();
                 let addrbits = addrs[..].iter().copied().map(|addr| addr.as_ptr() as usize).reduce(|x,y| x|y).unwrap();
                 addrs.iter().copied().for_each(|addr| unsafe { alloc.free(addr) });
                 let align = Alignment::new(1 << addrbits.trailing_zeros()).unwrap();

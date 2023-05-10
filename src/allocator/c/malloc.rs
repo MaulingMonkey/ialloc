@@ -3,7 +3,6 @@ use crate::*;
 use libc::*;
 
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -23,13 +22,12 @@ use core::ptr::NonNull;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Malloc;
 
 impl Malloc {
-    #[inline(always)] fn check_size(size: NonZeroUsize) -> Result<usize, ()> {
+    #[inline(always)] fn check_size(size: usize) -> Result<usize, ()> {
         // XXX: not entirely sure if this is excessive or not.
         // Is there any 32-bit platform for which malloc(2.5 GiB) succeeds?
         // My understanding is that >isize::MAX allocs/pointer ranges/spatial provenances are super cursed by LLVM / the compiler
         // https://doc.rust-lang.org/core/alloc/struct.Layout.html#method.from_size_align
         // https://doc.rust-lang.org/core/primitive.pointer.html#method.add
-        let size = size.get();
         if size > usize::MAX/2 { return Err(()) }
         Ok(size)
     }
@@ -60,13 +58,13 @@ impl meta::Meta for Malloc {
 }
 
 unsafe impl thin::Alloc for Malloc {
-    #[track_caller] fn alloc_uninit(&self, size: NonZeroUsize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+    #[track_caller] fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         let size = Self::check_size(size)?;
         let alloc = unsafe { malloc(size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    #[track_caller] fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<NonNull<u8>, Self::Error> {
+    #[track_caller] fn alloc_zeroed(&self, size: usize) -> Result<NonNull<u8>, Self::Error> {
         let size = Self::check_size(size)?;
         let alloc = unsafe { calloc(1, size) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -82,13 +80,13 @@ unsafe impl thin::Free for Malloc {
 unsafe impl thin::Realloc for Malloc {
     const CAN_REALLOC_ZEROED : bool = cfg!(target_env = "msvc");
 
-    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = Self::check_size(new_size)?;
         let alloc = unsafe { realloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         #[cfg(target_env = "msvc")] {
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/recalloc
             extern "C" { fn _recalloc(memblock: *mut c_void, num: size_t, size: size_t) -> *mut c_void; }
@@ -130,3 +128,10 @@ unsafe impl thin::SizeOfDebug for Malloc {
         unsafe impl ialloc::zsty::Free      for Malloc => ialloc::nzst::Free;
     }
 }
+
+
+
+// standard is underdefined: malloc(0) may return null even if plenty of memory is available
+// as such we report ZST_SUPPORTED = false despite many impls supporting them.
+// ref: <https://en.cppreference.com/w/c/memory/malloc>
+//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(Malloc)) }

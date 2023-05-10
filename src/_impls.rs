@@ -102,13 +102,13 @@ pub mod prelude {
                 use $crate::_impls::prelude::*;
                 if layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: layout.align(), supported: Self::MAX_ALIGN })? }
                 let size = layout.size().max(layout.align().as_nonzero());
-                $crate::thin::Alloc::alloc_uninit(self, size)
+                $crate::thin::Alloc::alloc_uninit(self, size.get())
             }
             fn alloc_zeroed(&self, layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::primitive::u8>, Self::Error> {
                 use $crate::_impls::prelude::*;
                 if layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: layout.align(), supported: Self::MAX_ALIGN })? }
                 let size = layout.size().max(layout.align().as_nonzero());
-                $crate::thin::Alloc::alloc_zeroed(self, size)
+                $crate::thin::Alloc::alloc_zeroed(self, size.get())
             }
         }
         $crate::impls!($($tt)*);
@@ -132,7 +132,7 @@ pub mod prelude {
                 ::core::debug_assert!(_old_layout.align() <= Self::MAX_ALIGN, "allocation couldn't belong to this allocator: impossible alignment");
                 if new_layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: new_layout.align(), supported: Self::MAX_ALIGN })? }
                 let new_size = new_layout.size().max(new_layout.align().as_nonzero());
-                unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size) }
+                unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size.get()) }
             }
             unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: $crate::LayoutNZ, new_layout: $crate::LayoutNZ) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
                 use $crate::_impls::prelude::*;
@@ -140,9 +140,9 @@ pub mod prelude {
                 if new_layout.align() > Self::MAX_ALIGN { ::core::result::Result::Err($crate::error::ExcessiveAlignmentRequestedError { requested: new_layout.align(), supported: Self::MAX_ALIGN })? }
                 let new_size = new_layout.size().max(new_layout.align().as_nonzero());
                 if <$ty as $crate::thin::Realloc>::CAN_REALLOC_ZEROED {
-                    unsafe { $crate::thin::Realloc::realloc_zeroed(self, ptr, new_size) }
+                    unsafe { $crate::thin::Realloc::realloc_zeroed(self, ptr, new_size.get()) }
                 } else {
-                    let alloc = unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size)? };
+                    let alloc = unsafe { $crate::thin::Realloc::realloc_uninit(self, ptr, new_size.get())? };
                     if old_layout.size() < new_layout.size() {
                         let all             = unsafe { ::core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size().get()) };
                         let (_copied, new)  = all.split_at_mut(old_layout.size().get());
@@ -266,8 +266,8 @@ pub mod prelude {
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::thin::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::thin::Alloc for $ty {
-            #[inline(always)] #[track_caller] fn alloc_uninit(&self, size: ::core::num::NonZeroUsize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { $crate::thin::Alloc::alloc_uninit(&**self, size) }
-            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, size: ::core::num::NonZeroUsize) -> ::core::result::Result<::core::ptr::NonNull<                         ::core::primitive::u8 >, Self::Error> { $crate::thin::Alloc::alloc_zeroed(&**self, size) }
+            #[inline(always)] #[track_caller] fn alloc_uninit(&self, size: ::core::primitive::usize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { $crate::thin::Alloc::alloc_uninit(&**self, size) }
+            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, size: ::core::primitive::usize) -> ::core::result::Result<::core::ptr::NonNull<                         ::core::primitive::u8 >, Self::Error> { $crate::thin::Alloc::alloc_zeroed(&**self, size) }
         }
         $crate::impls!($($tt)*);
     };
@@ -282,8 +282,8 @@ pub mod prelude {
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::thin::Realloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::thin::Realloc for $ty {
             const CAN_REALLOC_ZEROED : ::core::primitive::bool = <<$ty as ::core::ops::Deref>::Target as $crate::thin::Realloc>::CAN_REALLOC_ZEROED;
-            #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, new_size: ::core::num::NonZeroUsize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::thin::Realloc::realloc_uninit(&**self, ptr, new_size) } }
-            #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, new_size: ::core::num::NonZeroUsize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::thin::Realloc::realloc_zeroed(&**self, ptr, new_size) } }
+            #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, new_size: ::core::primitive::usize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::thin::Realloc::realloc_uninit(&**self, ptr, new_size) } }
+            #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, new_size: ::core::primitive::usize) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::thin::Realloc::realloc_zeroed(&**self, ptr, new_size) } }
         }
         $crate::impls!($($tt)*);
     };

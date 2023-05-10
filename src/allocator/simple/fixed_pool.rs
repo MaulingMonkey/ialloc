@@ -4,7 +4,6 @@ use crate::align::alignn::_align_impl::ValidAlignLessThan1GiB;
 use core::cell::*;
 use core::fmt::{self, Debug, Formatter};
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -67,8 +66,8 @@ impl<const A: usize, const B: usize, const N: usize> meta::Meta for &'_ FixedPoo
 }
 
 unsafe impl<const A: usize, const B: usize, const N: usize> thin::Alloc for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
-    fn alloc_uninit(&self, size: core::num::NonZeroUsize) -> Result<AllocNN, Self::Error> {
-        if size.get() > B { return Err(()) }
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        if size > B { return Err(()) }
 
         let start = self.next.get();
         let mut pos = start;
@@ -102,12 +101,12 @@ unsafe impl<const A: usize, const B: usize, const N: usize> thin::Free for &'_ F
 unsafe impl<const A: usize, const B: usize, const N: usize> thin::Realloc for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
     const CAN_REALLOC_ZEROED : bool = false;
 
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
-        if new_size.get() > B { return Err(()) }
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if new_size > B { return Err(()) }
         Ok(ptr)
     }
 
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let _ = (ptr, new_size);
         Err(())
     }

@@ -7,37 +7,35 @@ use crate::*;
 use crate::meta::Meta;
 
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
 
 /// Allocation functions with alignment (up to <code>[Meta]::[MAX_ALIGN](Meta::MAX_ALIGN)</code>) implied by size:
 /// <code>
-/// fn [alloc_uninit](Self::alloc_uninit)(size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
-/// fn [alloc_zeroed](Self::alloc_zeroed)(size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
+/// fn [alloc_uninit](Self::alloc_uninit)(size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
+/// fn [alloc_zeroed](Self::alloc_zeroed)(size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
 /// </code><br>
 ///
 /// ## Alignment Guarantees
 ///
 /// | Requested Size                                                                        | Guaranteed Alignment (if successful)  |
 /// | --------------------------------------------------------------------------------------| --------------------------------------|
-/// | 0                                                                                     | Doesn't compile thanks to [`NonZeroUsize`]
-/// | <code>1 .. [Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>                                | <code>[Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>
+/// | <code>0 .. [Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>                                | <code>[Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>
 /// | <code>[Meta]::[MIN_ALIGN](Meta::MIN_ALIGN) .. [MAX_ALIGN](Meta::MAX_ALIGN)</code>     | The largest power of two that fits within `size`
 /// | <code>[Meta]::[MAX_ALIGN](Meta::MAX_ALIGN) ..</code>                                  | <code>[Meta]::[MAX_ALIGN](Meta::MAX_ALIGN)</code>
 pub unsafe trait Alloc : Meta {
     /// Allocate at least `size` bytes of uninitialized memory.
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
+    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
 
     /// Allocate at least `size` bytes of zeroed memory.
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
-    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> {
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
         let alloc = self.alloc_uninit(size)?;
-        unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size.get()) }.fill(MaybeUninit::new(0u8));
+        unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) }.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
     }
 }
@@ -53,7 +51,7 @@ pub unsafe trait Free : meta::Meta {
     /// ### Safety
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
-    unsafe fn free(&self, ptr: AllocNN) { unsafe { self.free_nullable(ptr.as_ptr()) } }
+    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { self.free_nullable(ptr.as_ptr()) } }
 
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
@@ -67,17 +65,17 @@ pub unsafe trait Free : meta::Meta {
 
 
 /// Reallocation function:<br>
-/// <code>[realloc_uninit](Self::realloc_uninit)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
-/// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [NonZeroUsize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
+/// <code>[realloc_uninit](Self::realloc_uninit)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
+/// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Realloc : Alloc + Free {
     const CAN_REALLOC_ZEROED : bool;
 
     // TODO: determine exact API contract
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
+    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
 
     // TODO: determine exact API contract
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error>;
+    unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
 }
 
 
@@ -96,7 +94,7 @@ pub unsafe trait SizeOf : SizeOfDebug {
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { SizeOfDebug::size_of(self, ptr) } }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { SizeOfDebug::size_of(self, ptr) } }
 }
 
 
@@ -129,31 +127,41 @@ pub unsafe trait SizeOfDebug : meta::Meta {
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize>;
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize>;
 }
 
 
 
 unsafe impl<'a, A: Alloc> Alloc for &'a A {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN,  Self::Error> { A::alloc_uninit(self, size) }
-    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { A::alloc_zeroed(self, size) }
+    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { A::alloc_uninit(self, size) }
+    fn alloc_zeroed(&self, size: usize) -> Result<NonNull<            u8 >, Self::Error> { A::alloc_zeroed(self, size) }
 }
 
 unsafe impl<'a, A: Free> Free for &'a A {
-    unsafe fn free(         &self, ptr: AllocNN             ) { unsafe { A::free(         self, ptr) } }
-    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { A::free_nullable(self, ptr) } }
+    unsafe fn free(         &self, ptr: NonNull<MaybeUninit<u8>> ) { unsafe { A::free(         self, ptr) } }
+    unsafe fn free_nullable(&self, ptr: *mut    MaybeUninit<u8>  ) { unsafe { A::free_nullable(self, ptr) } }
 }
 
 unsafe impl<'a, A: Realloc> Realloc for &'a A {
     const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_uninit(self, ptr, new_size) } }
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, new_size) } }
+    unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { A::realloc_uninit(self, ptr, new_size) } }
+    unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, new_size) } }
 }
 
 unsafe impl<'a, A: SizeOf> SizeOf for &'a A {
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { <A as SizeOf>::size_of(self, ptr) } }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { <A as SizeOf>::size_of(self, ptr) } }
 }
 
 unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { A::size_of(self, ptr) } }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { A::size_of(self, ptr) } }
+}
+
+
+
+#[allow(dead_code)] pub(crate) fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) -> bool {
+    let alloc = allocator.alloc_uninit(0);
+    std::dbg!(&alloc);
+    let r = alloc.is_ok() == A::ZST_SUPPORTED;
+    alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
+    r
 }

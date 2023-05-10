@@ -1,7 +1,6 @@
 use crate::*;
 use super::ffi;
 
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -23,12 +22,12 @@ impl meta::Meta for NewDeleteArray {
     };
 
     const MAX_SIZE : usize = usize::MAX; // *slightly* less in practice
-    const ZST_SUPPORTED : bool = false; // platform behavior too inconsistent
+    const ZST_SUPPORTED : bool = false; // works on both MSVC and Linux/Clang, no idea how standard this is however
 }
 
 unsafe impl thin::Alloc for NewDeleteArray {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
-        NonNull::new(unsafe { ffi::operator_new_array_nothrow(size.get()) }.cast()).ok_or(())
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        NonNull::new(unsafe { ffi::operator_new_array_nothrow(size) }.cast()).ok_or(())
     }
 }
 
@@ -52,3 +51,8 @@ unsafe impl nzst::Realloc for NewDeleteArray {}
         unsafe impl ialloc::zsty::Free      for NewDeleteArray => ialloc::nzst::Free;
     }
 }
+
+
+
+// XXX: not sure how guaranteed ZST support is for new/delete
+//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(NewDeleteArray)) }

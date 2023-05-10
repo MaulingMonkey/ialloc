@@ -4,7 +4,6 @@ use winapi::um::heapapi::{HeapAlloc, HeapReAlloc, HeapFree, HeapSize, GetProcess
 use winapi::um::winnt::{HANDLE, HEAP_ZERO_MEMORY};
 
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -61,17 +60,17 @@ impl meta::Meta for Heap {
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX/2;
-    const ZST_SUPPORTED : bool  = false;
+    const ZST_SUPPORTED : bool  = true;
 }
 
 unsafe impl thin::Alloc for Heap {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { HeapAlloc(self.0, 0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> {
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { HeapAlloc(self.0, HEAP_ZERO_MEMORY, size) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -81,13 +80,13 @@ unsafe impl thin::Alloc for Heap {
 unsafe impl thin::Realloc for Heap {
     const CAN_REALLOC_ZEROED : bool = true;
 
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, 0, ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, HEAP_ZERO_MEMORY, ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -144,18 +143,18 @@ impl meta::Meta for ProcessHeap {
     /// <https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#remarks>
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX/2;
-    const ZST_SUPPORTED : bool  = false;
+    const ZST_SUPPORTED : bool  = true;
 }
 
 unsafe impl thin::Alloc for ProcessHeap {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error>  { Heap::process().alloc_uninit(size) }
-    fn alloc_zeroed(&self, size: NonZeroUsize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error>  { Heap::process().alloc_uninit(size) }
+    fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }
 }
 
 unsafe impl thin::Realloc for ProcessHeap {
     const CAN_REALLOC_ZEROED : bool = Heap::CAN_REALLOC_ZEROED;
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } }
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } }
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } }
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } }
 }
 unsafe impl thin::Free          for ProcessHeap {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { Heap::process().free(ptr) } }
@@ -198,7 +197,6 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
 #[test] fn test_align() {
     use crate::{meta::*, thin::*};
     for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-        let size = NonZeroUsize::new(size).unwrap();
         std::dbg!(size);
         let mut addr_bits = 0;
         for _ in 0 .. 1000 {
@@ -210,4 +208,11 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
         assert!(align >= ProcessHeap::MIN_ALIGN.as_usize());
         assert!(align >= ProcessHeap::MAX_ALIGN.as_usize());
     }
+}
+
+
+
+#[test] fn thin_zst_support() {
+    assert!(thin::zst_supported_accurate(ProcessHeap));
+    assert!(thin::zst_supported_accurate(Heap::process()));
 }

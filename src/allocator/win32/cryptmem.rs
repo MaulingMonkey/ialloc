@@ -3,7 +3,6 @@ use crate::*;
 use winapi::um::wincrypt::{CryptMemAlloc, CryptMemRealloc, CryptMemFree};
 
 use core::mem::MaybeUninit;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -24,11 +23,11 @@ impl meta::Meta for CryptMem {
     //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX/2;
-    const ZST_SUPPORTED : bool  = false;
+    const ZST_SUPPORTED : bool  = true;
 }
 
 unsafe impl thin::Alloc for CryptMem {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         let size = super::check_size(size)?;
         let alloc = unsafe { CryptMemAlloc(size) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -40,13 +39,13 @@ unsafe impl thin::Alloc for CryptMem {
 unsafe impl thin::Realloc for CryptMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
-    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = super::check_size(new_size)?;
         let alloc = unsafe { CryptMemRealloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
-    unsafe fn realloc_zeroed(&self, _ptr: AllocNN, _new_size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_zeroed(&self, _ptr: AllocNN, _new_size: usize) -> Result<AllocNN, Self::Error> {
         Err(())
     }
 }
@@ -81,7 +80,6 @@ unsafe impl thin::Free for CryptMem {
 #[test] fn test_align() {
     use crate::{meta::*, thin::*};
     for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-        let size = NonZeroUsize::new(size).unwrap();
         std::dbg!(size);
         let mut addr_bits = 0;
         for _ in 0 .. 1000 {
@@ -94,3 +92,7 @@ unsafe impl thin::Free for CryptMem {
         assert!(align >= CryptMem::MAX_ALIGN.as_usize());
     }
 }
+
+
+
+#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(CryptMem)) }

@@ -3,7 +3,6 @@ use super::ffi;
 
 use core::ffi::c_char;
 use core::marker::PhantomData;
-use core::num::NonZeroUsize;
 use core::ptr::NonNull;
 
 
@@ -22,12 +21,12 @@ impl<T> meta::Meta for StdAllocator<T> {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::of::<T>(); // more in practice, but this is what I'll rely on
     const MAX_SIZE  : usize     = usize::MAX;           // less in practice
-    const ZST_SUPPORTED : bool  = false;                // platform behavior too inconsistent
+    const ZST_SUPPORTED : bool  = false;                // supported on some linux, unsupported on windows
 }
 
 unsafe impl thin::Alloc for StdAllocator<c_char> {
-    fn alloc_uninit(&self, size: NonZeroUsize) -> Result<AllocNN, Self::Error> {
-        NonNull::new(unsafe { ffi::std_allocator_char_allocate(size.get()) }.cast()).ok_or(())
+    fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        NonNull::new(unsafe { ffi::std_allocator_char_allocate(size) }.cast()).ok_or(())
     }
 }
 
@@ -50,3 +49,9 @@ unsafe impl nzst::Realloc for StdAllocator<c_char> {}
         unsafe impl ialloc::zsty::Free      for StdAllocator<c_char> => ialloc::nzst::Free;
     }
 }
+
+
+
+// inconsistent behavior across platforms
+// also no thin::Free support
+//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(StdAllocator::<c_char>::new())) }
