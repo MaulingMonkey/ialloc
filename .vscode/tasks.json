@@ -46,6 +46,11 @@
             "command":          "cargo +nightly doc --open",
             "windows":          { "command": "scripts\\doc --open" },
         },
+        {
+            "label":            "stats",
+            "command":          "scripts/stats.sh",
+            "windows":          { "command": "bash -c 'scripts/stats.sh'" },
+        },
 
 
 
