@@ -127,7 +127,6 @@ unsafe impl thin::SizeOfDebug for Malloc {
 
 
 
-// standard is underdefined: malloc(0) may return null even if plenty of memory is available
-// as such we report ZST_SUPPORTED = false despite many impls supporting them.
-// ref: <https://en.cppreference.com/w/c/memory/malloc>
-//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(Malloc)) }
+#[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(Malloc) }
+#[test] fn thin_zst_support_dangle()    { thin::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
+#[test] fn thin_zst_support_alloc()     { thin::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }

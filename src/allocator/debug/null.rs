@@ -58,5 +58,4 @@ unsafe impl fat::Realloc for Null {
 
 
 
-// XXX: Null doesn't allocate *anything*, but is meant to be "compatible" with everything
-//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(Null)) }
+//#[test] fn thin_zst_support() { thin::test::zst_supported_conservative(Null) } // XXX: Null intentionally claims support for anything but won't ever allocate

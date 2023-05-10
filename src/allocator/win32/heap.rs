@@ -205,6 +205,6 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
 
 
 #[test] fn thin_zst_support() {
-    assert!(thin::zst_supported_accurate(ProcessHeap));
-    assert!(thin::zst_supported_accurate(Heap::process()));
+    thin::test::zst_supported_accurate(ProcessHeap);
+    thin::test::zst_supported_accurate(Heap::process());
 }

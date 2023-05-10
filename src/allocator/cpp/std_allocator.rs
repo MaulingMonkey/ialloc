@@ -49,6 +49,4 @@ unsafe impl fat::Realloc for StdAllocator<c_char> {}
 
 
 
-// inconsistent behavior across platforms
-// also no thin::Free support
-//#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(StdAllocator::<c_char>::new())) }
+#[test] fn thin_zst_support() { thin::test::zst_supported_conservative_leak(StdAllocator::<c_char>::new()) }

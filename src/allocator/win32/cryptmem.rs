@@ -91,4 +91,4 @@ unsafe impl thin::Free for CryptMem {
 
 
 
-#[test] fn thin_zst_support() { assert!(thin::zst_supported_accurate(CryptMem)) }
+#[test] fn thin_zst_support() { thin::test::zst_supported_accurate(CryptMem) }

@@ -176,10 +176,27 @@ unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
 
 
 
-#[allow(dead_code)] pub(crate) fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) -> bool {
-    let alloc = allocator.alloc_uninit(0);
-    std::dbg!(&alloc);
-    let r = alloc.is_ok() == A::ZST_SUPPORTED;
-    alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
-    r
+/// Testing functions to verify implementations of [`thin`] traits.
+pub mod test {
+    use super::*;
+
+    /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
+    #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
+        alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
+    }
+
+    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
+    #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free + Meta>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+        alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
+    }
+
+    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.
+    #[track_caller] pub fn zst_supported_conservative_leak<A: Alloc + Meta>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+    }
 }
