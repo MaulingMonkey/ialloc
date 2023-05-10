@@ -60,7 +60,7 @@ unsafe impl<A: nzst::Alloc> nzst::Alloc for PanicOverAlign<A> {
 
 unsafe impl<A: nzst::Free> nzst::Free for PanicOverAlign<A> {
     #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: LayoutNZ) {
-        //freed_old_alignment(layout.align(), A::MAX_ALIGN);
+        freed_old_alignment(layout.align(), A::MAX_ALIGN);
         unsafe { A::free(self, ptr, layout) }
     }
 }
@@ -95,7 +95,7 @@ unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {
 
 unsafe impl<A: zsty::Free> zsty::Free for PanicOverAlign<A> {
     #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
-        //freed_old_alignment(layout.align(), A::MAX_ALIGN);
+        freed_old_alignment(layout.align(), A::MAX_ALIGN);
         unsafe { A::free(self, ptr, layout) }
     }
 }
