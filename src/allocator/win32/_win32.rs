@@ -13,7 +13,7 @@
 //! | (TODO)                        |
 //! | `IMalloc`                     | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
 //! |
-//! | (TODO)                        | [`zsty::Alloc`]       | [`zsty::Realloc`]     | [`zsty::Free`]    | [`thin::SizeOf`]      |
+//! | (TODO)                        | [`fat::Alloc`]        | [`fat::Realloc`]      | [`fat::Free`]     | [`thin::SizeOf`]      |
 //! | `Virtual(Commit?)`            | [`VirtualAlloc`]      | ❌                    | [`VirtualFree`]   | ❌                    |
 //!
 #![doc = include_str!("_refs.md")]

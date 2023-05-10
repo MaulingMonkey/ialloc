@@ -60,9 +60,9 @@ unsafe impl thin::Free for CryptMem {
     use super::{impls, CryptMem};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for CryptMem => ialloc::thin::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for CryptMem => ialloc::thin::Realloc;
-        unsafe impl ialloc::zsty::Free      for CryptMem => ialloc::thin::Free;
+        unsafe impl ialloc::fat::Alloc      for CryptMem => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Realloc    for CryptMem => ialloc::thin::Realloc;
+        unsafe impl ialloc::fat::Free       for CryptMem => ialloc::thin::Free;
     }
 }
 

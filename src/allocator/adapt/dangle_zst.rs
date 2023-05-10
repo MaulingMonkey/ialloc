@@ -20,7 +20,7 @@ impl<A: meta::Meta> meta::Meta for DangleZst<A> {
     const ZST_SUPPORTED : bool  = true;
 }
 
-unsafe impl<A: zsty::Alloc> zsty::Alloc for DangleZst<A> {
+unsafe impl<A: fat::Alloc> fat::Alloc for DangleZst<A> {
     fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         if !A::ZST_SUPPORTED && layout.size() == 0 { return Ok(dangling(layout)) }
         self.0.alloc_uninit(layout)
@@ -32,14 +32,14 @@ unsafe impl<A: zsty::Alloc> zsty::Alloc for DangleZst<A> {
     }
 }
 
-unsafe impl<A: zsty::Free> zsty::Free for DangleZst<A> {
+unsafe impl<A: fat::Free> fat::Free for DangleZst<A> {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: Layout) {
         if !A::ZST_SUPPORTED && layout.size() == 0 { debug_assert_eq!(ptr, dangling(layout)); return }
         unsafe { self.0.free(ptr, layout) }
     }
 }
 
-unsafe impl<A: zsty::Realloc> zsty::Realloc for DangleZst<A> {
+unsafe impl<A: fat::Realloc> fat::Realloc for DangleZst<A> {
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         if A::ZST_SUPPORTED || (old_layout.size() > 0 && new_layout.size() > 0) {
             unsafe { self.0.realloc_uninit(ptr, old_layout, new_layout) }
@@ -74,13 +74,13 @@ unsafe impl<A: zsty::Realloc> zsty::Realloc for DangleZst<A> {
 }
 
 #[no_implicit_prelude] mod cleanroom {
-    #[allow(unused_imports)] use super::{impls, zsty, DangleZst};
+    #[allow(unused_imports)] use super::{impls, fat, DangleZst};
 
     impls! {
         unsafe impl[A: ::core::alloc::GlobalAlloc   ] core::alloc::GlobalAlloc  for DangleZst<A> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl[A: zsty::Realloc                ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: fat::Realloc                ] core::alloc::Allocator(unstable 1.50) for DangleZst<A> => ialloc::fat::Realloc;
     }
 }

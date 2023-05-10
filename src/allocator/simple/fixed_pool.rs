@@ -117,9 +117,9 @@ unsafe impl<const A: usize, const B: usize, const N: usize> thin::Realloc for &'
     use super::{FixedPoolLinearProbe, ValidAlignLessThan1GiB};
 
     impls! {
-        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::zsty::Alloc     for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Alloc;
-        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::zsty::Realloc   for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Realloc;
-        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::zsty::Free      for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Free;
+        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::fat::Alloc      for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Alloc;
+        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::fat::Realloc    for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Realloc;
+        unsafe impl['a, const A: usize, const B: usize, const N: usize] ialloc::fat::Free       for &'a FixedPoolLinearProbe<A, B, N> where [[(); A] : ValidAlignLessThan1GiB] => ialloc::thin::Free;
     }
 }
 

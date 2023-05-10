@@ -37,14 +37,14 @@ unsafe impl thin::Free for NewDelete {
     }
 }
 
-unsafe impl zsty::Realloc for NewDelete {}
+unsafe impl fat::Realloc for NewDelete {}
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, NewDelete};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for NewDelete => ialloc::thin::Alloc;
-        unsafe impl ialloc::zsty::Free      for NewDelete => ialloc::thin::Free;
+        unsafe impl ialloc::fat::Alloc      for NewDelete => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Free       for NewDelete => ialloc::thin::Free;
     }
 }
 

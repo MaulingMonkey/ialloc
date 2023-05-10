@@ -58,7 +58,7 @@ impl<'a> meta::Meta for Bump<'a> {
     const ZST_SUPPORTED : bool  = true;
 }
 
-unsafe impl<'a> zsty::Alloc for Bump<'a> {
+unsafe impl<'a> fat::Alloc for Bump<'a> {
     fn alloc_uninit(&self, layout: Layout) -> Result<crate::AllocNN, Self::Error> {
         let align = layout.align();
         let size = layout.size();
@@ -98,13 +98,13 @@ unsafe impl<'a> zsty::Alloc for Bump<'a> {
     }
 }
 
-unsafe impl<'a> zsty::Free for Bump<'a> {
+unsafe impl<'a> fat::Free for Bump<'a> {
     unsafe fn free(&self, _ptr: crate::AllocNN, _layout: Layout) {
         #[cfg(debug_assertions)] self.outstanding_allocs.set(self.outstanding_allocs.get() - 1);
     }
 }
 
-unsafe impl<'a> zsty::Realloc for Bump<'a> {
+unsafe impl<'a> fat::Realloc for Bump<'a> {
     // TODO: if an allocation was the last allocation, add a in-place fast path?
 }
 
@@ -113,12 +113,12 @@ unsafe impl<'a> zsty::Realloc for Bump<'a> {
     use super::Bump;
 
     impls! {
-        unsafe impl     core::alloc::GlobalAlloc for     Bump<'static> => ialloc::zsty::Realloc;
+        unsafe impl     core::alloc::GlobalAlloc for     Bump<'static> => ialloc::fat::Realloc;
         unsafe impl['o] core::alloc::GlobalAlloc for &'o Bump<'static> => core::ops::Deref;
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl['a] core::alloc::Allocator(unstable 1.50) for Bump<'a> => ialloc::zsty::Realloc;
+        unsafe impl['a] core::alloc::Allocator(unstable 1.50) for Bump<'a> => ialloc::fat::Realloc;
         //unsafe impl['o, 'i: 'o] core::alloc::Allocator(unstable 1.50) for &'o Bump<'i>  => core::ops::Deref; // XXX: already auto-implemented
     }
 }

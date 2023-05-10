@@ -31,19 +31,19 @@ unsafe impl thin::Alloc for StdAllocator<c_char> {
     }
 }
 
-unsafe impl zsty::Free for StdAllocator<c_char> {
+unsafe impl fat::Free for StdAllocator<c_char> {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         unsafe { ffi::std_allocator_char_deallocate(ptr.as_ptr().cast(), layout.size()) }
     }
 }
 
-unsafe impl zsty::Realloc for StdAllocator<c_char> {}
+unsafe impl fat::Realloc for StdAllocator<c_char> {}
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, StdAllocator, c_char};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for StdAllocator<c_char> => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Alloc for StdAllocator<c_char> => ialloc::thin::Alloc;
     }
 }
 

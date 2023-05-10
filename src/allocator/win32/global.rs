@@ -83,9 +83,9 @@ unsafe impl thin::SizeOfDebug for Global {
     use super::{impls, Global};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for Global => ialloc::thin::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for Global => ialloc::thin::Realloc;
-        unsafe impl ialloc::zsty::Free      for Global => ialloc::thin::Free;
+        unsafe impl ialloc::fat::Alloc      for Global => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Realloc    for Global => ialloc::thin::Realloc;
+        unsafe impl ialloc::fat::Free       for Global => ialloc::thin::Free;
     }
 }
 

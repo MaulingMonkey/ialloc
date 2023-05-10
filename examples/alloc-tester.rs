@@ -41,7 +41,7 @@ impl<A> Test<A> {
         self
     }
 
-    pub fn fat(&mut self) -> &mut Self where A : zsty::Alloc + zsty::Free {
+    pub fn fat(&mut self) -> &mut Self where A : fat::Alloc + fat::Free {
         let mut fat = AlignmentRange { min: Alignment::MAX, max: ALIGN_1 };
 
         for _ in 0 .. 100 {

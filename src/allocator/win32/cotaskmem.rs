@@ -60,9 +60,9 @@ unsafe impl thin::Free for CoTaskMem {
     use super::{impls, CoTaskMem};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for CoTaskMem => ialloc::thin::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for CoTaskMem => ialloc::thin::Realloc;
-        unsafe impl ialloc::zsty::Free      for CoTaskMem => ialloc::thin::Free;
+        unsafe impl ialloc::fat::Alloc      for CoTaskMem => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Realloc    for CoTaskMem => ialloc::thin::Realloc;
+        unsafe impl ialloc::fat::Free       for CoTaskMem => ialloc::thin::Free;
     }
 }
 

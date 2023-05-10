@@ -50,7 +50,7 @@ pub trait Meta {
     const MAX_SIZE : usize;
 
     /// Indicates if this allocator supports zero-sized allocations.
-    /// This generally goes hand in hand with implementing [`zsty`].
+    /// While this is nice and Rust-friendly, it may not be supported by C or C++ allocators.
     const ZST_SUPPORTED : bool;
 }
 

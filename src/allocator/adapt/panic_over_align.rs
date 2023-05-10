@@ -45,9 +45,9 @@ impl<A: meta::Meta> meta::Meta for PanicOverAlign<A> {
 
 
 
-// zsty::*
+// fat::*
 
-unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {
+unsafe impl<A: fat::Alloc> fat::Alloc for PanicOverAlign<A> {
     #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
         assert_valid_alignment(layout.align(), A::MAX_ALIGN);
         A::alloc_uninit(self, layout)
@@ -58,14 +58,14 @@ unsafe impl<A: zsty::Alloc> zsty::Alloc for PanicOverAlign<A> {
     }
 }
 
-unsafe impl<A: zsty::Free> zsty::Free for PanicOverAlign<A> {
+unsafe impl<A: fat::Free> fat::Free for PanicOverAlign<A> {
     #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         freed_old_alignment(layout.align(), A::MAX_ALIGN);
         unsafe { A::free(self, ptr, layout) }
     }
 }
 
-unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
+unsafe impl<A: fat::Realloc> fat::Realloc for PanicOverAlign<A> {
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
         freed_old_alignment(old_layout.align(), A::MAX_ALIGN);
         assert_valid_alignment(new_layout.align(), A::MAX_ALIGN);
@@ -81,10 +81,10 @@ unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
 
 
 #[no_implicit_prelude] mod cleanroom {
-    use super::{impls, thin, zsty, PanicOverAlign};
+    use super::{impls, thin, fat, PanicOverAlign};
 
     impls! {
-        unsafe impl[A: zsty::Realloc        ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: fat::Realloc         ] core::alloc::GlobalAlloc  for PanicOverAlign<A> => ialloc::fat::Realloc;
 
         unsafe impl[A: thin::Alloc          ] ialloc::thin::Alloc       for PanicOverAlign<A> => core::ops::Deref;
         unsafe impl[A: thin::Free           ] ialloc::thin::Free        for PanicOverAlign<A> => core::ops::Deref;
@@ -94,7 +94,7 @@ unsafe impl<A: zsty::Realloc> zsty::Realloc for PanicOverAlign<A> {
     }
 
     #[cfg(allocator_api = "1.50")] impls! {
-        unsafe impl[A: zsty::Realloc        ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::zsty::Realloc;
+        unsafe impl[A: fat::Realloc         ] core::alloc::Allocator(unstable 1.50) for PanicOverAlign<A> => ialloc::fat::Realloc;
     }
 }
 

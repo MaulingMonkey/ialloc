@@ -40,18 +40,18 @@ unsafe impl thin::SizeOfDebug for Null {
 
 
 
-// zsty::*
+// fat::*
 
-unsafe impl zsty::Alloc for Null {
+unsafe impl fat::Alloc for Null {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> { Err(()) }
 }
 
-unsafe impl zsty::Free for Null {
+unsafe impl fat::Free for Null {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) { panic!("bug: Null allocator can't allocate anything, ergo freeing anything it supposedly allocated is a serious bug") }
 }
 
-unsafe impl zsty::Realloc for Null {
+unsafe impl fat::Realloc for Null {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { Err(()) }
 }

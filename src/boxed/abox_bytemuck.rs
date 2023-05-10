@@ -2,8 +2,8 @@
 
 use crate::boxed::ABox;
 use crate::error::ExcessiveSliceRequestedError;
+use crate::fat::*;
 use crate::util;
-use crate::zsty::*;
 
 use bytemuck::*;
 

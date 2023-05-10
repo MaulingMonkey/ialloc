@@ -85,9 +85,9 @@ unsafe impl thin::SizeOfDebug for Local {
     use super::{impls, Local};
 
     impls! {
-        unsafe impl ialloc::zsty::Alloc     for Local => ialloc::thin::Alloc;
-        unsafe impl ialloc::zsty::Realloc   for Local => ialloc::thin::Realloc;
-        unsafe impl ialloc::zsty::Free      for Local => ialloc::thin::Free;
+        unsafe impl ialloc::fat::Alloc      for Local => ialloc::thin::Alloc;
+        unsafe impl ialloc::fat::Realloc    for Local => ialloc::thin::Realloc;
+        unsafe impl ialloc::fat::Free       for Local => ialloc::thin::Free;
     }
 }
 

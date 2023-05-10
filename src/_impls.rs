@@ -1,7 +1,7 @@
 //! Macro implementation details.  These are supposed to be `#[doc(hidden)]` from view and not used directly.
 
 pub mod prelude {
-    pub use crate::{self as ialloc, Alignment, LayoutNZ, meta::Meta as _, meta, thin, zsty};
+    pub use crate::{self as ialloc, Alignment, LayoutNZ, meta::Meta as _, meta, thin, fat};
 
     pub use core::prelude::rust_2021::*;
     pub use core::{assert, assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne};
@@ -21,70 +21,70 @@ pub mod prelude {
 
 
 
-    // unsafe impl core::alloc::{...} for {...} => ialloc::zsty::{...};
+    // unsafe impl core::alloc::{...} for {...} => ialloc::fat::{...};
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::GlobalAlloc for $ty:ty => $(::)? ialloc::fat::Realloc; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? ::core::alloc::GlobalAlloc for $ty {
             #[track_caller] unsafe fn alloc(&self, layout: ::core::alloc::Layout) -> *mut ::core::primitive::u8 {
                 use $crate::_impls::prelude::*;
-                zsty::Alloc::alloc_uninit(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
+                fat::Alloc::alloc_uninit(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
             }
 
             #[track_caller] unsafe fn alloc_zeroed(&self, layout: ::core::alloc::Layout) -> *mut ::core::primitive::u8 {
                 use $crate::_impls::prelude::*;
-                zsty::Alloc::alloc_zeroed(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
+                fat::Alloc::alloc_zeroed(self, layout).map_or(null_mut(), |p| p.as_ptr().cast())
             }
 
             #[track_caller] unsafe fn dealloc(&self, ptr: *mut u8, layout: ::core::alloc::Layout) {
                 use $crate::_impls::prelude::*;
-                NonNull::new(ptr).map(|ptr| unsafe { zsty::Free::free(self, ptr.cast(), layout) });
+                NonNull::new(ptr).map(|ptr| unsafe { fat::Free::free(self, ptr.cast(), layout) });
             }
 
             #[track_caller] unsafe fn realloc(&self, ptr: *mut u8, old_layout: ::core::alloc::Layout, new_size: ::core::primitive::usize) -> *mut ::core::primitive::u8 {
                 use $crate::_impls::prelude::*;
                 let Some(ptr) = NonNull::new(ptr) else { return null_mut() };
                 let Ok(new_layout) = Layout::from_size_align(new_size, old_layout.align()) else { return null_mut() };
-                unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_or(null_mut(), |p| p.as_ptr().cast())
+                unsafe { fat::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_or(null_mut(), |p| p.as_ptr().cast())
             }
         }
 
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::Allocator(unstable $(1.50$(.0)?)?) for $ty:ty => $(::)? ialloc::zsty::Realloc; $($tt:tt)* ) => {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? core::alloc::Allocator(unstable $(1.50$(.0)?)?) for $ty:ty => $(::)? ialloc::fat::Realloc; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? ::core::alloc::Allocator for $ty {
             #[track_caller] fn allocate(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<[::core::primitive::u8]>, ::core::alloc::AllocError> {
                 use $crate::_impls::prelude::*;
-                let alloc = zsty::Alloc::alloc_uninit(self, layout).map_err(|_| AllocError)?;
+                let alloc = fat::Alloc::alloc_uninit(self, layout).map_err(|_| AllocError)?;
                 NonNull::new(slice_from_raw_parts_mut(alloc.as_ptr().cast(), layout.size())).ok_or(AllocError)
             }
 
             #[track_caller] fn allocate_zeroed(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<[::core::primitive::u8]>, ::core::alloc::AllocError> {
                 use $crate::_impls::prelude::*;
-                let alloc = zsty::Alloc::alloc_zeroed(self, layout).map_err(|_| AllocError)?;
+                let alloc = fat::Alloc::alloc_zeroed(self, layout).map_err(|_| AllocError)?;
                 NonNull::new(slice_from_raw_parts_mut(alloc.as_ptr().cast(), layout.size())).ok_or(AllocError)
             }
 
             #[track_caller] unsafe fn deallocate(&self, ptr: ::core::ptr::NonNull<::core::primitive::u8>, layout: ::core::alloc::Layout) {
                 use $crate::_impls::prelude::*;
-                unsafe { zsty::Free::free(self, ptr.cast(), layout) }
+                unsafe { fat::Free::free(self, ptr.cast(), layout) }
             }
 
             #[track_caller] unsafe fn grow(&self, ptr: ::core::ptr::NonNull<::core::primitive::u8>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<[::core::primitive::u8]>, ::core::alloc::AllocError> {
                 use $crate::_impls::prelude::*;
-                let alloc = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+                let alloc = unsafe { fat::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
                 NonNull::new(slice_from_raw_parts_mut(alloc.as_ptr().cast(), new_layout.size())).ok_or(AllocError)
             }
 
             #[track_caller] unsafe fn grow_zeroed(&self, ptr: ::core::ptr::NonNull<::core::primitive::u8>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<[::core::primitive::u8]>, ::core::alloc::AllocError> {
                 use $crate::_impls::prelude::*;
-                let alloc = unsafe { zsty::Realloc::realloc_zeroed(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+                let alloc = unsafe { fat::Realloc::realloc_zeroed(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
                 NonNull::new(slice_from_raw_parts_mut(alloc.as_ptr().cast(), new_layout.size())).ok_or(AllocError)
             }
 
             #[track_caller] unsafe fn shrink(&self, ptr: ::core::ptr::NonNull<::core::primitive::u8>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<[::core::primitive::u8]>, ::core::alloc::AllocError> {
                 use $crate::_impls::prelude::*;
-                let alloc = unsafe { zsty::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
+                let alloc = unsafe { fat::Realloc::realloc_uninit(self, ptr.cast(), old_layout, new_layout) }.map_err(|_| AllocError)?;
                 NonNull::new(slice_from_raw_parts_mut(alloc.as_ptr().cast(), new_layout.size())).ok_or(AllocError)
             }
         }
@@ -94,10 +94,10 @@ pub mod prelude {
 
 
 
-    // unsafe impl ialloc::zsty::{...} for {...} => ialloc::thin::{...};
+    // unsafe impl ialloc::fat::{...} for {...} => ialloc::thin::{...};
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Alloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Alloc; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Alloc for $ty $(where $($where)*)? {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Alloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Alloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Alloc for $ty $(where $($where)*)? {
             fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
                 use $crate::_impls::prelude::*;
                 if layout.align() > Self::MAX_ALIGN.as_usize() { Err($crate::error::ExcessiveAlignmentRequestedError { requested: Alignment::new(layout.align()).unwrap_or(Alignment::MAX), supported: Self::MAX_ALIGN })? }
@@ -112,8 +112,8 @@ pub mod prelude {
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Free for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Free; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Free for $ty $(where $($where)*)? {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Free for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Free; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Free for $ty $(where $($where)*)? {
             unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _layout: ::core::alloc::Layout) {
                 use $crate::_impls::prelude::*;
                 debug_assert!(_layout.align() <= Self::MAX_ALIGN.as_usize(), "allocation couldn't belong to this allocator: impossible alignment");
@@ -123,8 +123,8 @@ pub mod prelude {
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Realloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Realloc; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Realloc for $ty $(where $($where)*)? {
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Realloc for $ty:ty $(where [$($where:tt)*])? => $(::)? ialloc::thin::Realloc; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Realloc for $ty $(where $($where)*)? {
             unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, _old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> {
                 use $crate::_impls::prelude::*;
                 debug_assert!(_old_layout.align() <= Self::MAX_ALIGN.as_usize(), "allocation couldn't belong to this allocator: impossible alignment");
@@ -193,25 +193,25 @@ pub mod prelude {
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Alloc for $ty {
-            #[inline(always)] #[track_caller] fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { $crate::zsty::Alloc::alloc_uninit(&**self, layout) }
-            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<                         ::core::primitive::u8 >, Self::Error> { $crate::zsty::Alloc::alloc_zeroed(&**self, layout) }
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Alloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Alloc for $ty {
+            #[inline(always)] #[track_caller] fn alloc_uninit(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { $crate::fat::Alloc::alloc_uninit(&**self, layout) }
+            #[inline(always)] #[track_caller] fn alloc_zeroed(&self, layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<                         ::core::primitive::u8 >, Self::Error> { $crate::fat::Alloc::alloc_zeroed(&**self, layout) }
         }
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Free for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Free for $ty {
-            #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: ::core::alloc::Layout) { unsafe { $crate::zsty::Free::free(&**self, ptr, layout) } }
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Free for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Free for $ty {
+            #[inline(always)] #[track_caller] unsafe fn free(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, layout: ::core::alloc::Layout) { unsafe { $crate::fat::Free::free(&**self, ptr, layout) } }
         }
         $crate::impls!($($tt)*);
     };
 
-    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::zsty::Realloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
-        unsafe impl $(<$($gdef)*>)? $crate::zsty::Realloc for $ty {
-            #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::zsty::Realloc::realloc_uninit(&**self, ptr, old_layout, new_layout) } }
-            #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::zsty::Realloc::realloc_zeroed(&**self, ptr, old_layout, new_layout) } }
+    ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::fat::Realloc for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
+        unsafe impl $(<$($gdef)*>)? $crate::fat::Realloc for $ty {
+            #[inline(always)] #[track_caller] unsafe fn realloc_uninit(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::fat::Realloc::realloc_uninit(&**self, ptr, old_layout, new_layout) } }
+            #[inline(always)] #[track_caller] unsafe fn realloc_zeroed(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, old_layout: ::core::alloc::Layout, new_layout: ::core::alloc::Layout) -> ::core::result::Result<::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>, Self::Error> { unsafe { $crate::fat::Realloc::realloc_zeroed(&**self, ptr, old_layout, new_layout) } }
         }
         $crate::impls!($($tt)*);
     };

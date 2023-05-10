@@ -1,6 +1,6 @@
 #[cfg(doc)] use crate as ialloc;
 use crate::*;
-use zsty::*;
+use fat::*;
 
 use core::alloc::Layout;
 use core::marker::PhantomData;
@@ -9,13 +9,13 @@ use core::ptr::*;
 
 
 
-/// [`zsty::Alloc`]-friendly [`alloc::boxed::Box`] alternative
+/// [`fat::Alloc`]-friendly [`alloc::boxed::Box`] alternative
 ///
 /// ## Notable Differences
 /// | Feature           | [`ialloc::boxed::ABox`]                           | [`alloc::boxed::Box`]                                 |
 /// | ------------------| --------------------------------------------------| ------------------------------------------------------|
 /// | `#![no_std]`      | [`core`]-only friendly!                           | requires [`core`] + [`alloc`]
-/// | Allocator API     | stable lean [`zsty::Free`] (+ ...)                | nightly wide [`alloc::alloc::Allocator`]
+/// | Allocator API     | stable lean [`fat::Free`] (+ ...)                 | nightly wide [`alloc::alloc::Allocator`]
 /// | Zeroed Allocs     | stable [`bytemuck::Zeroable`]-aware               | nightly ugly [`MaybeUninit`]
 /// | Panic-on-OOM APIs | `--features panicy-memory`                        | unless `-Z build-std --cfg no_global_oom_handling`
 /// | Alignment         | compile time checked allocator support            | allocator must be general or fail at runtime
@@ -41,7 +41,7 @@ impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
 }
 
 impl<T: ?Sized, A: Free> ABox<T, A> {
-    /// Retrieve the [`zsty::Free`] (+ [`zsty::Alloc`] + [`zsty::Realloc`] + ...) associated with this [`ABox`].
+    /// Retrieve the [`fat::Free`] (+ [`fat::Alloc`] + [`fat::Realloc`] + ...) associated with this [`ABox`].
     #[inline(always)] pub fn allocator(this: &Self) -> &A { &this.allocator }
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
     #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }

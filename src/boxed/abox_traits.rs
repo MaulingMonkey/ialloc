@@ -1,5 +1,5 @@
 use crate::boxed::ABox;
-use crate::zsty::*;
+use crate::fat::*;
 
 use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;

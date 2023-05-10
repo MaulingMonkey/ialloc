@@ -17,16 +17,16 @@ impl meta::Meta for NewDeleteArrayAligned {
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
 
-unsafe impl zsty::Alloc for NewDeleteArrayAligned {
+unsafe impl fat::Alloc for NewDeleteArrayAligned {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
         NonNull::new(unsafe { ffi::operator_new_array_align_nothrow(layout.size(), layout.align()) }.cast()).ok_or(())
     }
 }
 
-unsafe impl zsty::Free for NewDeleteArrayAligned {
+unsafe impl fat::Free for NewDeleteArrayAligned {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         unsafe { ffi::operator_delete_array_align(ptr.as_ptr().cast(), layout.align()) };
     }
 }
 
-unsafe impl zsty::Realloc for NewDeleteArrayAligned {}
+unsafe impl fat::Realloc for NewDeleteArrayAligned {}
