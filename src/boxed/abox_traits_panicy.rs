@@ -11,13 +11,13 @@ use crate::fat::*;
     /// ## Failure Modes
     /// *   [`panic!`]s or [`handle_alloc_error`](alloc::alloc::handle_alloc_error)s when out of memory
     fn clone(&self) -> Self {
-        //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
+        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
         Self::new_in(T::clone(self), Self::allocator(self).clone())
     }
 
     /// Clone the contents of `source` into `self` without reallocating the [`ABox`].
     fn clone_from(&mut self, source: &Self) {
-        //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
+        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
         T::clone_from(self, source)
     }
 }
@@ -29,7 +29,7 @@ use crate::fat::*;
     /// *   Fails to compile on impossible alignments (e.g. attempting to allocate 4 KiB alignment pages via 8/16 byte aligned malloc)
     /// *   [`panic!`]s or [`handle_alloc_error`](alloc::alloc::handle_alloc_error)s when out of memory
     fn default() -> Self {
-        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = Self::ASSERT_A_CAN_ALLOC_T;
         Self::new(T::default())
     }
 }
@@ -47,7 +47,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// assert_eq!(*a, 'b');
     /// ```
     pub fn clone_from(&mut self, source: &ABox<T, impl Free>) {
-        //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
+        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
         T::clone_from(self, source)
     }
 
@@ -65,7 +65,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ```
     // TODO: show failure example via allocator with strict memory limits
     pub fn try_clone(&self) -> Result<ABox<T, A >, A ::Error> where A : Alloc + Clone {
-        //let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T; // implied by `self`
+        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
         ABox::try_new_in(T::clone(self), Self::allocator(self).clone())
     }
 
@@ -99,7 +99,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// let b = a.try_clone_in(Malloc);
     /// ```
     pub fn try_clone_in<A2>(&self, allocator: A2) -> Result<ABox<T, A2>, A2::Error> where A2 : Alloc + Free {
-        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_T;
         ABox::try_new_in(T::clone(self), allocator)
     }
 
@@ -133,7 +133,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// let b = a.clone_in(Malloc);
     /// ```
     #[cfg(feature = "panicy-memory")] pub fn clone_in<A2>(&self, allocator: A2) -> ABox<T, A2> where A2 : Alloc + Free {
-        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_T;
         ABox::new_in(T::clone(self), allocator)
     }
 }
@@ -162,7 +162,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// let b = ABox::<Page, Malloc>::try_default().unwrap();
     /// ```
     pub fn try_default() -> Result<ABox<T, A>, A::Error> where T : Default, A : Alloc + Default {
-        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = Self::ASSERT_A_CAN_ALLOC_T;
         ABox::try_new_in(T::default(), A::default())
     }
 
@@ -188,7 +188,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// let b = ABox::<Page, _>::try_default_in(Malloc).unwrap();
     /// ```
     pub fn try_default_in(allocator: A) -> Result<ABox<T, A>, A::Error> where T : Default, A: Alloc {
-        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = Self::ASSERT_A_CAN_ALLOC_T;
         ABox::try_new_in(T::default(), allocator)
     }
 
@@ -219,7 +219,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// let b = ABox::<Page, _>::default_in(Malloc);
     /// ```
     #[cfg(feature = "panicy-memory")] pub fn default_in(allocator: A) -> ABox<T, A> where T : Default, A : Alloc {
-        let _ = Self::ASSERT_A_CAN_ALLOC_ALIGNED_T;
+        let _ = Self::ASSERT_A_CAN_ALLOC_T;
         ABox::new_in(T::default(), allocator)
     }
 }
