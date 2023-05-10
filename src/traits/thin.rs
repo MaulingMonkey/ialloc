@@ -69,12 +69,30 @@ pub unsafe trait Free : meta::Meta {
 /// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
 pub unsafe trait Realloc : Alloc + Free {
+    /// Indicate if [`realloc_zeroed`](Self::realloc_zeroed) is supported / likely to work.
     const CAN_REALLOC_ZEROED : bool;
 
-    // TODO: determine exact API contract
+    /// Reallocate an existing allocation, `ptr`, belonging to `self`.
+    ///
+    /// ### Safety
+    /// *   `ptr` must belong to `self`
+    /// *   `ptr` will no longer be accessible after a succesful realloc (`realloc_uninit` returns <code>[Ok]\(...\)</code>)
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
 
-    // TODO: determine exact API contract
+    /// Reallocate an existing allocation, `ptr`, belonging to `self`.
+    ///
+    /// Any newly allocated memory will be zeroed.
+    /// This might be *no* new memory, even if you pass a larger `new_size` than you did previously - the implementation could've rounded both the old and new sizes up to the same value.
+    /// As such, it's almost certainly a bug to use this to (re)allocate memory that came from <code>{,[re](Self::realloc_uninit)}[alloc_uninit](Alloc::alloc_uninit)</code>.
+    /// Reallocate memory that came from <code>{,[re](Self::realloc_zeroed)}[alloc_zeroed](Alloc::alloc_zeroed)</code> instead.
+    ///
+    /// Additionally, not all implementations of [`thin::Realloc`] actually support this function.
+    /// Check [`Self::CAN_REALLOC_ZEROED`].
+    /// While it should be safe to call this function even if [`CAN_REALLOC_ZEROED`](Self::CAN_REALLOC_ZEROED) is false, [`realloc_zeroed`](Self::realloc_zeroed) will likely return <code>[Err]\(...\)</code>.
+    ///
+    /// ### Safety
+    /// *   `ptr` must belong to `self`
+    /// *   `ptr` will no longer be accessible after a succesful realloc (`realloc_uninit` returns <code>[Ok]\(...\)</code>)
     unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
 }
 
