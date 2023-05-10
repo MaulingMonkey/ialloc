@@ -3,6 +3,7 @@
 #![doc = include_str!("../doc/features.md")]
 #![no_std]
 #![forbid(unsafe_op_in_unsafe_fn)]
+#![allow(clippy::let_unit_value)] // very common for const assertions
 
 #[cfg(any(feature = "alloc", doc, test))] extern crate alloc;
 #[cfg(any(feature = "std",   doc, test))] extern crate std;

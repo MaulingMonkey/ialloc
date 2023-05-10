@@ -17,6 +17,10 @@ use core::ptr::NonNull;
 /// fn [alloc_zeroed](Self::alloc_zeroed)(size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;
 /// </code><br>
 ///
+/// ## Safety
+/// *   Allocations created by this trait must be compatible with any other [`thin`] traits implemented on this allocator type.
+/// *   Returned allocations must be valid for at least `size` bytes.
+///
 /// ## Alignment Guarantees
 ///
 /// | Requested Size                                                                        | Guaranteed Alignment (if successful)  |
@@ -45,6 +49,9 @@ pub unsafe trait Alloc : Meta {
 /// Deallocation function:<br>
 /// <code>[free](Self::free)(ptr: [NonNull]<[MaybeUninit]<[u8]>>)</code><br>
 /// <br>
+///
+/// ## Safety
+/// *   This trait must be able to free allocations made by any other [`thin`] traits implemented on this allocator type.
 pub unsafe trait Free : meta::Meta {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
@@ -68,6 +75,10 @@ pub unsafe trait Free : meta::Meta {
 /// <code>[realloc_uninit](Self::realloc_uninit)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <code>[realloc_zeroed](Self::realloc_zeroed)(ptr: [NonNull]<[MaybeUninit]<[u8]>>, new_size: [usize]) -> [Result]&lt;[NonNull]&lt;\_&gt;, \_&gt;</code><br>
 /// <br>
+///
+/// ## Safety
+/// *   This trait must be able to reallocate allocations made by any other [`thin`] traits implemented on this allocator type.
+/// *   Returned allocations must be valid for at least `new_size` bytes.
 pub unsafe trait Realloc : Alloc + Free {
     /// Indicate if [`realloc_zeroed`](Self::realloc_zeroed) is supported / likely to work.
     const CAN_REALLOC_ZEROED : bool;
@@ -102,10 +113,9 @@ pub unsafe trait Realloc : Alloc + Free {
 /// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
 /// <br>
 ///
-/// ### Safety
-/// It wouldn't be entirely unreasonable for an implementor to implement realloc in terms of this trait.
-/// Such an implementor would generally rely on the `ptr[..a.size_of(ptr)]` being valid memory when `ptr` is a valid allocation owned by `a`.
-/// By implementing this trait, you pinky promise that such a size is valid.
+/// ## Safety
+/// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
+/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
 pub unsafe trait SizeOf : SizeOfDebug {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
@@ -121,6 +131,11 @@ pub unsafe trait SizeOf : SizeOfDebug {
 /// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
 /// <br>
 ///
+/// ## Safety
+/// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
+/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
+///
+/// ## Remarks
 /// This trait may fail (returning [`None`]) even if `ptr` is a thin allocation belonging to `self`.
 /// This is intended for size queries where the system may or may not be able to query the underlying system allocator for sizes.
 ///
@@ -184,14 +199,14 @@ pub mod test {
     #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
-        alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
+        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
     #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free + Meta>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
-        alloc.ok().map(|alloc| unsafe { allocator.free(alloc) });
+        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.

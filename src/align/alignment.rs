@@ -36,6 +36,7 @@ impl Alignment {
     pub const fn of<T>() -> Self { unsafe { Self::new_unchecked(core::mem::align_of::<T>()) } }
 
     /// **Undefined behavior** unless `align` is a valid power of 2 (which also implies nonzero)
+    #[allow(clippy::missing_safety_doc)] // I put it in the very 1st line instead
     pub const unsafe fn new_unchecked(align: usize) -> Self { unsafe { core::mem::transmute(align) } }
 
     /// Returns the alignment as a [`usize`] (the nicheless underlying type)
@@ -68,26 +69,30 @@ impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { al
 impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 
 fn try_from_int_error() -> TryFromIntError { unsafe { NonZeroUsize::try_from(0).unwrap_err_unchecked() } }
-impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or_else(|| try_from_int_error()) } type Error = TryFromIntError; }
-impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or_else(|| try_from_int_error()) } type Error = TryFromIntError; }
+impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or_else(try_from_int_error) } type Error = TryFromIntError; }
+impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or_else(try_from_int_error) } type Error = TryFromIntError; }
 
 impl Debug for Alignment { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { util::bytes::pretty(f, self.as_usize()) } }
 
 
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "16")] #[repr(usize)] enum AlignImpl {
+#[cfg(target_pointer_width = "16")] type AlignImpl = AlignImpl16;
+#[cfg(target_pointer_width = "32")] type AlignImpl = AlignImpl32;
+#[cfg(target_pointer_width = "64")] type AlignImpl = AlignImpl64;
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u16)] enum AlignImpl16 {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "32")] #[repr(usize)] enum AlignImpl {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u32)] enum AlignImpl32 {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
     _10 = 1 << 0x10, _11 = 1 << 0x11, _12 = 1 << 0x12, _13 = 1 << 0x13, _14 = 1 << 0x14, _15 = 1 << 0x15, _16 = 1 << 0x16, _17 = 1 << 0x17,
     _18 = 1 << 0x18, _19 = 1 << 0x19, _1A = 1 << 0x1A, _1B = 1 << 0x1B, _1C = 1 << 0x1C, _1D = 1 << 0x1D, _1E = 1 << 0x1E, _1F = 1 << 0x1F,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[cfg(target_pointer_width = "64")] #[repr(usize)] enum AlignImpl {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u64)] enum AlignImpl64 {
     _00 = 1 << 0x00, _01 = 1 << 0x01, _02 = 1 << 0x02, _03 = 1 << 0x03, _04 = 1 << 0x04, _05 = 1 << 0x05, _06 = 1 << 0x06, _07 = 1 << 0x07,
     _08 = 1 << 0x08, _09 = 1 << 0x09, _0A = 1 << 0x0A, _0B = 1 << 0x0B, _0C = 1 << 0x0C, _0D = 1 << 0x0D, _0E = 1 << 0x0E, _0F = 1 << 0x0F,
     _10 = 1 << 0x10, _11 = 1 << 0x11, _12 = 1 << 0x12, _13 = 1 << 0x13, _14 = 1 << 0x14, _15 = 1 << 0x15, _16 = 1 << 0x16, _17 = 1 << 0x17,

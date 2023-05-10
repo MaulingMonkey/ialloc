@@ -60,7 +60,7 @@ unsafe impl fat::Realloc for Global {
                 let n = old.len().min(new.len());
                 new[..n].copy_from_slice(&old[..n]);
             }
-            unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), old_layout.into()) };
+            unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), old_layout) };
             Ok(alloc)
         }
     }

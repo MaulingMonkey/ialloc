@@ -35,6 +35,7 @@ impl<T: ?Sized + Eq,        A: Free> Eq     for ABox<T, A> {}
 impl<T: ?Sized + Ord,       A: Free> Ord    for ABox<T, A> { fn cmp(&self, other: &Self) -> Ordering { T::cmp(self, other) } } // TODO: clamp, min, max? Nah, awkward to impl, and alloc::alloc::Box doesn't bother either.
 impl<T: ?Sized + Hash,      A: Free> Hash   for ABox<T, A> { fn hash<H: Hasher>(&self, state: &mut H) { T::hash::<H>(self, state) } }
 
+#[allow(clippy::partialeq_ne_impl)] // unnecessary but why not
 impl<T: ?Sized + PartialEq, A: Free> PartialEq  for ABox<T, A> {
     fn eq(&self, other: &Self) -> bool { T::eq(self, other) }
     fn ne(&self, other: &Self) -> bool { T::ne(self, other) }

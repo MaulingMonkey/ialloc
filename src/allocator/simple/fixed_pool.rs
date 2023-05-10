@@ -42,6 +42,7 @@ pub struct FixedPoolLinearProbe<const A: usize, const B: usize, const N: usize> 
 impl<const A: usize, const B: usize, const N: usize> FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
     pub fn new() -> Self {
         Self {
+            #[allow(clippy::uninit_assumed_init)] // the generics confuse clippy, but [UnsafeCell<MaybeUninit<T>>; N] should be safe... probably!
             buffer: unsafe { MaybeUninit::uninit().assume_init() },
             state:  [(); N].map(|_| Cell::new(State::Free)), // XXX: prevents `new` from being `const`
             //state:  unsafe { MaybeUninit::zeroed().assume_init() }, // XXX: not yet stable
@@ -128,8 +129,7 @@ unsafe impl<const A: usize, const B: usize, const N: usize> thin::Realloc for &'
 
 type Element<const A : usize, const B : usize> = UnsafeCell<MaybeUninit<AlignN<A, [u8; B]>>>;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u8)] enum State { Free = 0, Allocated } // TODO: more states?
-impl Default for State { fn default() -> Self { State::Free } }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u8)] enum State { #[default] Free = 0, Allocated } // TODO: more states?
 //unsafe impl bytemuck::Zeroable for State {}
 
 

@@ -51,6 +51,10 @@
             "command":          "scripts/stats.sh",
             "windows":          { "command": "bash -c 'scripts/stats.sh'" },
         },
+        {
+            "label":            "clippy",
+            "command":          "cargo clippy",
+        },
 
 
 

@@ -10,11 +10,11 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::{Command, Stdio};
 
-#[cfg(feature = "cc")] const C : &'static [&'static str] = &[
+#[cfg(feature = "cc")] const C : &[&str] = &[
     //"src/allocator/c/ffi.c",
 ];
 
-#[cfg(feature = "cc")] const CPP : &'static [&'static str] = &[
+#[cfg(feature = "cc")] const CPP : &[&str] = &[
     "src/allocator/cpp/ffi.cpp",
 ];
 
@@ -85,7 +85,7 @@ fn use_cc() {
         for yy in cpp_standards { println!("cargo:rustc-cfg=cpp{yy}") }
         for yy in c_standards   { println!("cargo:rustc-cfg=c{yy}") }
 
-        let version = env!("CARGO_PKG_VERSION").replace(".", "_").replace("-", "_");
+        let version = env!("CARGO_PKG_VERSION").replace('.', "_").replace('-', "_");
         let prefix  = format!("ialloc_{version}_");
         let cpplib  = format!("ialloc_{version}_cpp");
         let clib    = format!("ialloc_{version}_c");

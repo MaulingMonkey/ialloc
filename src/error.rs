@@ -20,8 +20,8 @@ use core::fmt::{self, Debug, Display, Formatter};
 
 impl Display for ExcessiveAlignmentRequestedError { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "requested {:?} alignment, but a maximum of {:?} is supported", self.requested, self.supported) } }
 impl Display for ExcessiveSliceRequestedError     { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "requested {} elements, but that would result in a LayoutError", self.requested) } }
-impl From<ExcessiveAlignmentRequestedError> for () { fn from(_: ExcessiveAlignmentRequestedError) -> Self { () } }
-impl From<ExcessiveSliceRequestedError    > for () { fn from(_: ExcessiveSliceRequestedError) -> Self { () } }
+impl From<ExcessiveAlignmentRequestedError> for () { fn from(_: ExcessiveAlignmentRequestedError) -> Self {} }
+impl From<ExcessiveSliceRequestedError    > for () { fn from(_: ExcessiveSliceRequestedError) -> Self {} }
 #[cfg(feature = "std")] impl std::error::Error for ExcessiveAlignmentRequestedError { fn description(&self) -> &str { "requested more alignment than was supported" } }
 #[cfg(feature = "std")] impl std::error::Error for ExcessiveSliceRequestedError     { fn description(&self) -> &str { "requested too many elements" } }
 #[cfg(allocator_api = "*")] impl From<ExcessiveAlignmentRequestedError> for core::alloc::AllocError { fn from(_: ExcessiveAlignmentRequestedError) -> Self { core::alloc::AllocError } }
