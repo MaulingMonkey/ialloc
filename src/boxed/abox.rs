@@ -29,13 +29,17 @@ pub struct ABox<T: ?Sized, A: Free> {
     _phantom:   PhantomData<T>,
 }
 
+// SAFETY: ✔️ (T, A) are Send
 unsafe impl<T: ?Sized + Send, A: Free + Send> Send for ABox<T, A> {}
+// SAFETY: ✔️ (T, A) are Sync
 unsafe impl<T: ?Sized + Sync, A: Free + Sync> Sync for ABox<T, A> {} // A: Sync is mainly required to safely clone/default allocator
 
 impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
     fn drop(&mut self) {
         let layout = self.layout();
+        // SAFETY: ✔️ `self` is going out of scope, nothing else will ever access `*self.data` again
         unsafe { self.data.as_ptr().drop_in_place() };
+        // SAFETY: ✔️ we previously allocated `*self.data` with `(self.allocator, self.layout)` and will never access that allocation again
         unsafe { self.allocator.free(self.data.cast(), layout) };
     }
 }
@@ -86,6 +90,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     /// ```
     pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Default {
         let _ = Self::ASSERT_A_IS_ZST_FROM_RAW;
+        // SAFETY: ✔️ same preconditions as documented
         unsafe { Self::from_raw_in(data, A::default()) }
     }
 
@@ -103,6 +108,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     pub fn into_raw_with_allocator(this: Self) -> (NonNull<T>, A) {
         let this        = ManuallyDrop::new(this);
         let data        = this.data;
+        // SAFETY: ✔️ `this.allocator` will never be read again, including for Drop
         let allocator   = unsafe { core::ptr::read(&this.allocator) };
         (data, allocator)
     }
@@ -141,7 +147,13 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// let v : &'static u32 = ABox::leak(b);
     /// ```
-    pub fn leak<'a>(this: Self) -> &'a mut T where A: 'a { unsafe { ABox::into_raw_with_allocator(this).0.as_mut() } }
+    pub fn leak<'a>(this: Self) -> &'a mut T where A: 'a {
+        let mut raw = ABox::into_raw_with_allocator(this).0;
+        // SAFETY: ✔️ `raw` is guaranteed to point to a valid allocated `T`.  We just:
+        // • Threw out the last means of deallocating it (`.1`)
+        // • Threw out the last means of accessing it (consumed `this`)
+        unsafe { raw.as_mut() }
+    }
 }
 
 // TODO:
@@ -181,7 +193,9 @@ impl<T, A: Free> ABox<T, A> {
     pub fn into_inner_with_allocator(this: Self) -> (T, A) {
         let layout = this.layout();
         let (ptr, allocator) = ABox::into_raw_with_allocator(this);
+        // SAFETY: ✔️ ptr is guaranteed to point at a valid allocation of T
         let data = unsafe { ptr.as_ptr().read() };
+        // SAFETY: ✔️ ptr is guaranteed to point at a valid allocation of T belonging to allocator (were decomposed from the same box) with the box-known layout
         unsafe { allocator.free(ptr.cast(), layout) };
         (data, allocator)
     }
@@ -193,12 +207,15 @@ impl<T, A: Free> ABox<MaybeUninit<T>, A> {
     // XXX: make pub?
     pub(super) unsafe fn assume_init(self) -> ABox<T, A> {
         let (data, allocator) = ABox::into_raw_with_allocator(self);
+        // SAFETY: ✔️ we just decomposed (data, allocator) from a compatible-layout box
         unsafe { ABox::from_raw_in(data.cast(), allocator) }
     }
 
     // XXX: make pub?
     pub(super) fn write(boxed: Self, value: T) -> ABox<T, A> {
+        // SAFETY: ✔️ boxed.data is guaranteed to point at a valid allocation of T
         unsafe { boxed.data.as_ptr().write(MaybeUninit::new(value)) };
+        // SAFETY: ✔️ we just wrote to `boxed`
         unsafe { boxed.assume_init() }
     }
 }
@@ -210,6 +227,7 @@ impl<T, A: Free> ABox<[MaybeUninit<T>], A> {
     #[allow(dead_code)] pub(super) unsafe fn assume_init(self) -> ABox<[T], A> {
         let (data, allocator) = ABox::into_raw_with_allocator(self);
         let data = util::nn::slice_from_raw_parts(data.cast(), data.len());
+        // SAFETY: ✔️ we just decomposed (data, allocator) from a compatible-layout box
         unsafe { ABox::from_raw_in(data, allocator) }
     }
 }
