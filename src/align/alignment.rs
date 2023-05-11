@@ -33,17 +33,27 @@ impl Alignment {
     pub const fn new(align: usize) -> Option<Self> { Self::try_from_usize(align) }
 
     /// Returns the [`Alignment`] of `T`.
-    pub const fn of<T>() -> Self { unsafe { Self::new_unchecked(core::mem::align_of::<T>()) } }
+    pub const fn of<T>() -> Self {
+        struct For<T>(T);
+        impl<T> For<T> { const VALUE : Alignment = Alignment::constant(core::mem::align_of::<T>()); }
+        For::<T>::VALUE
+    }
 
     /// **Undefined behavior** unless `align` is a valid power of 2 (which also implies nonzero)
     #[allow(clippy::missing_safety_doc)] // I put it in the very 1st line instead
-    pub const unsafe fn new_unchecked(align: usize) -> Self { unsafe { core::mem::transmute(align) } }
+    pub const unsafe fn new_unchecked(align: usize) -> Self {
+        // SAFETY: ✔️ precondition as documented
+        unsafe { core::mem::transmute(align) }
+    }
 
     /// Returns the alignment as a [`usize`] (the nicheless underlying type)
     pub const fn as_usize   (self) -> usize         { self.0 as usize }
 
     /// Returns the alignment as a [`NonZeroUsize`]
-    pub const fn as_nonzero (self) -> NonZeroUsize  { unsafe { NonZeroUsize::new_unchecked(self.as_usize()) } }
+    pub const fn as_nonzero (self) -> NonZeroUsize {
+        // SAFETY: ✔️ powers of 2 are guaranteed nonzero
+        unsafe { NonZeroUsize::new_unchecked(self.as_usize()) }
+    }
 
     /// Minimum representable alignment (e.g. `1`)
     pub const MIN : Alignment = ALIGN_1;
@@ -58,17 +68,34 @@ impl Alignment {
     /// | 128   | 2<sup>127</sup> B = ???       |
     pub const MAX : Alignment = Alignment::constant(usize::MAX/2+1);
 
-    #[allow(dead_code)]
-    const fn try_from_nzusize(align: NonZeroUsize   ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align.get()) }) } else { None } }
-    const fn try_from_usize  (align: usize          ) -> Option<Self> { if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align      ) }) } else { None } }
+    #[allow(dead_code)] const fn try_from_nzusize(align: NonZeroUsize) -> Option<Self> {
+        // SAFETY: ✔️ explicit check of `is_power_of_two` meets `new_unchecked`'s only precondition: that it is a power of two.
+        if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align.get()) }) }
+        else { None }
+    }
+
+    const fn try_from_usize(align: usize) -> Option<Self> {
+        // SAFETY: ✔️ explicit check of `is_power_of_two` meets `new_unchecked`'s only precondition: that it is a power of two.
+        if align.is_power_of_two() { Some(unsafe { Self::new_unchecked(align) }) }
+        else { None }
+    }
 
 }
 
-impl From<Layout   > for Alignment      { fn from(value: Layout   ) -> Self { unsafe { Self::new_unchecked(value.align()) } } }
+impl From<Layout > for Alignment { fn from(value: Layout) -> Self {
+    // SAFETY: ✔️ `Layout` enforces valid alignment on construction
+    unsafe { Self::new_unchecked(value.align()) }
+}}
+
 impl From<Alignment> for usize          { fn from(align: Alignment) -> Self { align.as_usize()   } }
 impl From<Alignment> for NonZeroUsize   { fn from(align: Alignment) -> Self { align.as_nonzero() } }
 
-fn try_from_int_error() -> TryFromIntError { unsafe { NonZeroUsize::try_from(0).unwrap_err_unchecked() } }
+fn try_from_int_error() -> TryFromIntError {
+    let r = NonZeroUsize::try_from(0);
+    // SAFETY: ✔️ 0 is never nonzero
+    unsafe { r.unwrap_err_unchecked() }
+}
+
 impl TryFrom<usize          > for Alignment { fn try_from(align: usize          ) -> Result<Self, Self::Error> { Self::try_from_usize  (align).ok_or_else(try_from_int_error) } type Error = TryFromIntError; }
 impl TryFrom<NonZeroUsize   > for Alignment { fn try_from(align: NonZeroUsize   ) -> Result<Self, Self::Error> { Self::try_from_nzusize(align).ok_or_else(try_from_int_error) } type Error = TryFromIntError; }
 
