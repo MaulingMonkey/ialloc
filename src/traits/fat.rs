@@ -27,8 +27,8 @@ pub unsafe trait Alloc : meta::Meta {
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
         let alloc = self.alloc_uninit(layout)?;
-        // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `layout.size()` was just allocated, size <= isize::MAX by Layout
-        let all = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), layout.size()) };
+        // SAFETY: ✔️ `alloc` was just allocated using `layout`
+        let all = unsafe { util::slice::from_raw_bytes_layout_mut(alloc, layout) };
         all.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
     }
@@ -69,10 +69,10 @@ pub unsafe trait Realloc : Alloc + Free {
         if old_layout == new_layout { return Ok(ptr) }
         let alloc = self.alloc_uninit(new_layout)?;
         {
-            // SAFETY: ⚠️ `ptr` is non-null by type, `align` is 1/trivial, `old_layout.size()` was previously allocated by fn precondition, size <= isize::MAX implied by Layout
-            let old : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr.as_ptr().cast(), old_layout.size()) };
-            // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `new_layout.size()` was just allocated, size <= isize::MAX implied by Layout
-            let new : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(),      new_layout.size()) };
+            // SAFETY: ✔️ `ptr` documented to be valid for `old_layout` by fn precondition
+            let old : &    [MaybeUninit<u8>] = unsafe { util::slice::from_raw_bytes_layout(ptr.cast(), old_layout) };
+            // SAFETY: ✔️ `alloc` was just (re)allocated using `new_layout`
+            let new : &mut [MaybeUninit<u8>] = unsafe { util::slice::from_raw_bytes_layout_mut(alloc, new_layout) };
             let n = old.len().min(new.len());
             new[..n].copy_from_slice(&old[..n]);
         }
@@ -97,8 +97,8 @@ pub unsafe trait Realloc : Alloc + Free {
         // SAFETY: ✔️ realloc_uninit has same prereqs as realloc_zeroed
         let alloc = unsafe { self.realloc_uninit(ptr, old_layout, new_layout) }?;
         if old_layout.size() < new_layout.size() {
-            // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `new_layout.size()` was just allocated and implied <= isize::MAX by Layout
-            let all             = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), new_layout.size()) };
+            // SAFETY: ✔️ `alloc` was just (re)allocated using `new_layout`
+            let all = unsafe { util::slice::from_raw_bytes_layout_mut(alloc, new_layout) };
             let (_copied, new)  = all.split_at_mut(old_layout.size());
             new.fill(MaybeUninit::new(0u8));
         }

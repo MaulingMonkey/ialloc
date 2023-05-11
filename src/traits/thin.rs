@@ -7,6 +7,7 @@ use crate::*;
 use crate::error::ExcessiveSliceRequestedError;
 use crate::meta::Meta;
 
+use core::alloc::Layout;
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 
@@ -39,10 +40,10 @@ pub unsafe trait Alloc : Meta {
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
-        if size > usize::MAX/2 { return Err(ExcessiveSliceRequestedError { requested: size }.into()) }
+        let layout = Layout::from_size_align(size, 1).map_err(|_| ExcessiveSliceRequestedError { requested: size })?;
         let alloc = self.alloc_uninit(size)?;
-        // SAFETY: ⚠️ `alloc` is non-null by type, `align` is 1/trivial, `size` was just allocated, size <= isize::MAX by conditional above
-        unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) }.fill(MaybeUninit::new(0u8));
+        // SAFETY: ✔️ `alloc` was just allocated using `layout`
+        unsafe { util::slice::from_raw_bytes_layout_mut(alloc, layout) }.fill(MaybeUninit::new(0u8));
         Ok(alloc.cast())
     }
 }
@@ -73,7 +74,7 @@ pub unsafe trait Free : meta::Meta {
     /// *   `ptr` must belong to `self`
     /// *   `ptr` will no longer be accessible after free
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        // SAFETY: ✔️  free has ≈identical prereqs
+        // SAFETY: ✔️ free has ≈identical prereqs
         if let Some(ptr) = NonNull::new(ptr) { unsafe { self.free(ptr) } }
     }
 }
