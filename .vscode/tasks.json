@@ -53,7 +53,7 @@
         },
         {
             "label":            "clippy",
-            "command":          "cargo clippy",
+            "command":          "cargo +nightly clippy",
         },
 
 
