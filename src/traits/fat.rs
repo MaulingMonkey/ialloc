@@ -69,14 +69,17 @@ pub unsafe trait Realloc : Alloc + Free {
         if old_layout == new_layout { return Ok(ptr) }
         let alloc = self.alloc_uninit(new_layout)?;
         {
-            // SAFETY: ✔️ `ptr` documented to be valid for `old_layout` by fn precondition
-            let old : &    [MaybeUninit<u8>] = unsafe { util::slice::from_raw_bytes_layout(ptr.cast(), old_layout) };
-            // SAFETY: ✔️ `alloc` was just (re)allocated using `new_layout`
+            // SAFETY: ✔️ `ptr` is valid for `old_layout` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
+            // SAFETY: ✔️ `alloc` was just allocated using `new_layout`
+            #![allow(clippy::undocumented_unsafe_blocks)]
+
+            let old : &    [MaybeUninit<u8>] = unsafe { util::slice::from_raw_bytes_layout    (ptr,   old_layout) };
             let new : &mut [MaybeUninit<u8>] = unsafe { util::slice::from_raw_bytes_layout_mut(alloc, new_layout) };
             let n = old.len().min(new.len());
             new[..n].copy_from_slice(&old[..n]);
         }
-        // SAFETY: ✔️ (ptr, old_layout) was a previous valid alloc by fn safety precondition
+        // SAFETY: ✔️ `ptr` is valid for `old_layout` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
+        // SAFETY: ✔️ `ptr` belongs to `self` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
         unsafe { self.free(ptr, old_layout) };
         Ok(alloc)
     }
