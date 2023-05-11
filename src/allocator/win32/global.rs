@@ -9,6 +9,7 @@ use core::ptr::NonNull;
 
 
 /// [`GlobalAlloc`] / [`GlobalReAlloc`] / [`GlobalFree`] / [`GlobalSize`]
+/// (prefer [`ProcessHeap`](crate::allocator::win32::ProcessHeap)† unless required by doc)
 ///
 /// | Rust                                      | C                     |
 /// | ------------------------------------------| ----------------------|
@@ -18,6 +19,21 @@ use core::ptr::NonNull;
 /// | [`thin::Realloc::realloc_zeroed`]         | <code>[`GlobalReAlloc`](ptr, size, GMEM_ZEROINIT)</code>
 /// | [`thin::Free::free`]                      | [`GlobalFree`]
 /// | [`thin::SizeOf::size_of`]                 | [`GlobalSize`]
+///
+/// ## † Legacy Notes
+///
+/// "The global and local functions are supported for porting from 16-bit code, or for maintaining source code compatibility with 16-bit Windows.
+/// Starting with 32-bit Windows, the global and local functions are implemented as wrapper functions that call the corresponding [heap functions] using a handle to the process's default heap.
+/// Therefore, the global and local functions have greater overhead than other memory management functions."
+///
+/// "The [heap functions] provide more features and control than the global and local functions.
+/// New applications should use the heap functions unless documentation specifically states that a global or local function should be used.
+/// For example, some Windows functions allocate memory that must be freed with [`LocalFree`], and the global functions are still used with Dynamic Data Exchange (DDE), the clipboard functions, and OLE data objects.
+/// For a complete list of global and local functions, see the table in [Memory Management Functions](https://learn.microsoft.com/en-us/windows/win32/memory/memory-management-functions)."
+///
+/// <https://learn.microsoft.com/en-us/windows/win32/memory/global-and-local-functions>
+///
+/// [heap functions]:   https://learn.microsoft.com/en-us/windows/win32/memory/heap-functions
 ///
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
