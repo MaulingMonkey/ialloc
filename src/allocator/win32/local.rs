@@ -109,27 +109,6 @@ unsafe impl thin::SizeOfDebug for Local {
 
 
 
-#[test] fn test_nullable() {
-    use crate::thin::Free;
-    unsafe { Local.free_nullable(core::ptr::null_mut()) }
-}
-
-#[test] fn test_align() {
-    use crate::{meta::*, thin::*};
-    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-        std::dbg!(size);
-        let mut addr_bits = 0;
-        for _ in 0 .. 1000 {
-            let alloc = Local.alloc_uninit(size).unwrap();
-            addr_bits |= alloc.as_ptr() as usize;
-            unsafe { Local.free(alloc) };
-        }
-        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
-        assert!(align >= Local::MIN_ALIGN.as_usize());
-        assert!(align >= Local::MAX_ALIGN.as_usize());
-    }
-}
-
-
-
-#[test] fn thin_zst_support() { thin::test::zst_supported_accurate(Local) }
+#[test] fn thin_alignment()     { thin::test::alignment(Local) }
+#[test] fn thin_nullable()      { thin::test::nullable(Local) }
+#[test] fn thin_zst_support()   { thin::test::zst_supported_accurate(Local) }

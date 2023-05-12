@@ -68,27 +68,6 @@ unsafe impl thin::Free for CoTaskMem {
 
 
 
-#[test] fn test_nullable() {
-    use crate::thin::Free;
-    unsafe { CoTaskMem.free_nullable(core::ptr::null_mut()) }
-}
-
-#[test] fn test_align() {
-    use crate::{meta::*, thin::*};
-    for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-        std::dbg!(size);
-        let mut addr_bits = 0;
-        for _ in 0 .. 1000 {
-            let alloc = CoTaskMem.alloc_uninit(size).unwrap();
-            addr_bits |= alloc.as_ptr() as usize;
-            unsafe { CoTaskMem.free(alloc) };
-        }
-        let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
-        assert!(align >= CoTaskMem::MIN_ALIGN.as_usize());
-        assert!(align >= CoTaskMem::MAX_ALIGN.as_usize());
-    }
-}
-
-
-
-#[test] fn thin_zst_support() { thin::test::zst_supported_accurate(CoTaskMem) }
+#[test] fn thin_alignment()     { thin::test::alignment(CoTaskMem) }
+#[test] fn thin_nullable()      { thin::test::nullable(CoTaskMem) }
+#[test] fn thin_zst_support()   { thin::test::zst_supported_accurate(CoTaskMem) }

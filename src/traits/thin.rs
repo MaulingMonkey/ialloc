@@ -214,7 +214,7 @@ pub mod test {
     use super::*;
 
     /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
-    #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
+    pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
         // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
@@ -222,7 +222,7 @@ pub mod test {
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
-    #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
+    pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
         // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
@@ -230,8 +230,48 @@ pub mod test {
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.
-    #[track_caller] pub fn zst_supported_conservative_leak<A: Alloc>(allocator: A) {
+    pub fn zst_supported_conservative_leak<A: Alloc>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+    }
+
+    /// Assert that `allocator` meets all it's nullable allocation requirements
+    pub fn nullable<A: Free>(allocator: A) {
+        // SAFETY: ✔️ freeing null should always be safe
+        unsafe { allocator.free_nullable(core::ptr::null_mut()) }
+    }
+
+    /// Assert that `allocator` meets all it's alignment requirements
+    pub fn alignment<A: Alloc + Free>(allocator: A) {
+        // First, a quick test
+        let mut align = A::MAX_ALIGN;
+        loop {
+            let unaligned_mask = align.as_usize() - 1;
+            if let Ok(alloc) = allocator.alloc_uninit(align.as_usize()) {
+                let addr = alloc.as_ptr() as usize;
+                assert_eq!(0, addr & unaligned_mask, "allocation for size {align:?} @ {alloc:?} had less than expected alignment ({align:?} <= MAX_ALIGN)");
+                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+                unsafe { allocator.free(alloc) };
+            }
+            let Some(next) = Alignment::new(align.as_usize() >> 1) else { break };
+            align = next;
+        }
+
+        // Something a little more stress testy
+        for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
+            std::dbg!(size);
+            let mut addr_bits = 0;
+            for _ in 0 .. 100 {
+                if let Ok(alloc) = allocator.alloc_uninit(size) {
+                    addr_bits |= alloc.as_ptr() as usize;
+                    // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+                    unsafe { allocator.free(alloc) };
+                }
+            }
+            if addr_bits == 0 { continue }
+            let align = 1 << addr_bits.trailing_zeros(); // usually 16, occasionally 32+
+            let expected_align = A::MAX_ALIGN.as_usize().min(size).max(A::MIN_ALIGN.as_usize());
+            assert!(align >= expected_align);
+        }
     }
 }

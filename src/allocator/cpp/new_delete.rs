@@ -50,4 +50,6 @@ unsafe impl fat::Realloc for NewDelete {}
 
 
 
-#[test] fn thin_zst_support() { thin::test::zst_supported_conservative(NewDelete) }
+#[test] fn thin_alignment()     { thin::test::alignment(NewDelete) }
+#[test] fn thin_nullable()      { thin::test::nullable(NewDelete) }
+#[test] fn thin_zst_support()   { thin::test::zst_supported_conservative(NewDelete) }
