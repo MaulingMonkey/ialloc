@@ -76,6 +76,8 @@ unsafe impl fat::Realloc for Null {
 
 
 
-#[test] fn thin_alignment() { thin::test::alignment(Null) }
-#[test] fn thin_nullable() { thin::test::nullable(Null) }
+#[test] fn thin_alignment()         { thin::test::alignment(Null) }
+#[test] fn thin_nullable()          { thin::test::nullable(Null) }
+#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(Null) } }
+#[test] fn thin_zeroed()            { thin::test::zeroed_alloc(Null) }
 //#[test] fn thin_zst_support() { thin::test::zst_supported_conservative(Null) } // XXX: Null intentionally claims support for anything but won't ever allocate

@@ -133,4 +133,6 @@ unsafe impl thin::SizeOfDebug for Local {
 #[test] fn thin_alignment()         { thin::test::alignment(Local) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(Local) }
 #[test] fn thin_nullable()          { thin::test::nullable(Local) }
+#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(Local) } }
+#[test] fn thin_zeroed()            { thin::test::zeroed_alloc(Local) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(Local) }

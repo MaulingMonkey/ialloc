@@ -205,4 +205,6 @@ type Element<const A : usize, const B : usize> = UnsafeCell<MaybeUninit<AlignN<A
 #[test] fn thin_alignment()         { thin::test::alignment(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 #[test] fn thin_nullable()          { thin::test::nullable(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
+#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(&FixedPoolLinearProbe::<4, 4, 128>::new()) } }
+#[test] fn thin_zeroed()            { thin::test::zeroed_alloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }

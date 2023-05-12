@@ -280,6 +280,50 @@ pub mod test {
         unsafe { allocator.free_nullable(core::ptr::null_mut()) }
     }
 
+    /// **UNSOUND:** Verify `A` allocates uninitialized memory by reading `MaybeUninit<u8>`s.
+    ///
+    /// This is technically completely unnecessary - but educational for verifying assumptions.  Use this only in non-production unit tests.
+    #[allow(clippy::missing_safety_doc)] // It's in the first line instead
+    pub unsafe fn uninit_alloc_unsound<A: Alloc + Free>(allocator: A) {
+        let mut any = false;
+        for _ in 0 .. 1000 {
+            if let Ok(mut alloc) = allocator.alloc_uninit(1) {
+                any = true;
+
+                // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc
+                let byte = unsafe { alloc.as_mut() };
+
+                // SAFETY: ❌ this is unsound per the fn preamble!
+                let is_uninit = unsafe { byte.assume_init() } != 0;
+
+                byte.write(0xFF); // ensure we'll detect "uninitialized" memory if this alloc is reused
+
+                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+                unsafe { allocator.free(alloc) };
+
+                if is_uninit { return } // success!
+            }
+        }
+        assert!(!any, "A::alloc_uninit appears to allocate zeroed memory");
+    }
+
+    pub fn zeroed_alloc<A: Alloc + Free>(allocator: A) {
+        for _ in 0 .. 1000 {
+            if let Ok(mut alloc) = allocator.alloc_zeroed(1) {
+                // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc
+                let byte = unsafe { alloc.as_mut() };
+
+                let is_zeroed = *byte == 0u8;
+                *byte = 0xFF; // ensure we'll detect "unzeroed" memory if this alloc is reused without zeroing
+
+                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+                unsafe { allocator.free(alloc.cast()) };
+
+                assert!(is_zeroed, "A::alloc_zeroed returned unzeroed memory!");
+            }
+        }
+    }
+
     /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
     pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);

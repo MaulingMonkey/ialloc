@@ -74,4 +74,6 @@ unsafe impl thin::Free for CryptMem {
 #[test] fn thin_alignment()         { thin::test::alignment(CryptMem) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(CryptMem) }
 #[test] fn thin_nullable()          { thin::test::nullable(CryptMem) }
+//#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(CryptMem) } } // Interestingly, CryptMem appears to zero it's memory.  This isn't documented, so I choose not to rely on it, but it's interesting...
+#[test] fn thin_zeroed()            { thin::test::zeroed_alloc(CryptMem) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(CryptMem) }

@@ -305,6 +305,22 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
     Heap::with_process(|heap| thin::test::nullable(heap));
 }
 
+#[test] fn thin_uninit() {
+    unsafe {
+        thin::test::uninit_alloc_unsound(ProcessHeap);
+        thin::test::uninit_alloc_unsound(create_test_heap(None, None));
+        thin::test::uninit_alloc_unsound(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+        Heap::with_process(|heap| thin::test::uninit_alloc_unsound(heap));
+    }
+}
+
+#[test] fn thin_zeroed() {
+    thin::test::zeroed_alloc(ProcessHeap);
+    thin::test::zeroed_alloc(create_test_heap(None, None));
+    thin::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| thin::test::zeroed_alloc(heap));
+}
+
 #[test] fn thin_zst_support() {
     thin::test::zst_supported_accurate(ProcessHeap);
     thin::test::zst_supported_accurate(create_test_heap(None, None));

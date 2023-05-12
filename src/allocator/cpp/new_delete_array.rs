@@ -60,4 +60,6 @@ unsafe impl fat::Realloc for NewDeleteArray {}
 #[test] fn thin_alignment()         { thin::test::alignment(NewDeleteArray) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(NewDeleteArray) }
 #[test] fn thin_nullable()          { thin::test::nullable(NewDeleteArray) }
+#[test] fn thin_uninit()            { if !cfg!(target_os = "linux") { unsafe { thin::test::uninit_alloc_unsound(NewDeleteArray) } } } // `::operator new[]` returns zeroed memory on some platforms
+#[test] fn thin_zeroed()            { thin::test::zeroed_alloc(NewDeleteArray) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_conservative(NewDeleteArray) }
