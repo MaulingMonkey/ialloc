@@ -99,6 +99,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T;
         let layout = Layout::new::<T>();
         let data = allocator.alloc_uninit(layout)?.cast();
+        // SAFETY: ✔️ we just allocated `data` with `allocator`
         Ok(unsafe { ABox::from_raw_in(data, allocator) })
     }
 
@@ -157,6 +158,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         let layout = Layout::array::<T>(len).map_err(|_| ExcessiveSliceRequestedError{ requested: len }.into())?;
         let data = util::nn::slice_from_raw_parts(allocator.alloc_uninit(layout)?.cast(), len);
+        // SAFETY: ✔️ we just allocated `data` with `allocator`
         Ok(unsafe { ABox::from_raw_in(data, allocator) })
     }
 }
