@@ -45,6 +45,7 @@ impl meta::Meta for AlignedMalloc {
     // MSVC MIN_ALIGN is 4 ..= 8
 }
 
+// SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Alloc for AlignedMalloc {
     #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size(), layout.align()) };
@@ -59,6 +60,7 @@ unsafe impl fat::Alloc for AlignedMalloc {
     }
 }
 
+// SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Free for AlignedMalloc {
     #[track_caller] unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: Layout) {
         #[cfg(target_env = "msvc")] unsafe { ffi::_aligned_free(ptr.as_ptr().cast()) }
@@ -69,6 +71,7 @@ unsafe impl fat::Free for AlignedMalloc {
     }
 }
 
+// SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Realloc for AlignedMalloc {
     #[cfg(target_env = "msvc")]
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {

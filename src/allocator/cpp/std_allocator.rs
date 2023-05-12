@@ -25,24 +25,31 @@ impl<T> meta::Meta for StdAllocator<T> {
     const ZST_SUPPORTED : bool  = false;                // supported on some linux, unsupported on windows
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for StdAllocator<c_char> {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         NonNull::new(unsafe { ffi::std_allocator_char_allocate(size) }.cast()).ok_or(())
     }
 }
 
+// DO NOT IMPLEMENT: thin::Free
+// std::allocator requires a size, and thus cannot implement this interface without an adapter allocator
+
+// SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Free for StdAllocator<c_char> {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
         unsafe { ffi::std_allocator_char_deallocate(ptr.as_ptr().cast(), layout.size()) }
     }
 }
 
+// SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Realloc for StdAllocator<c_char> {}
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, StdAllocator, c_char};
 
     impls! {
+        // SAFETY: ✔️ all {thin, fat}::* impls intercompatible with each other where implemented
         unsafe impl ialloc::fat::Alloc for StdAllocator<c_char> => ialloc::thin::Alloc;
     }
 }
