@@ -25,18 +25,25 @@ impl meta::Meta for NewDeleteArray {
     const ZST_SUPPORTED : bool = false; // works on both MSVC and Linux/Clang, no idea how standard this is however
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for NewDeleteArray {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ this "should" be safe for all `size`.  Unsound C++ stdlibs are #[test]ed for at the end of this file.
         NonNull::new(unsafe { ffi::operator_new_array_nothrow(size) }.cast()).ok_or(())
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for NewDeleteArray {
     unsafe fn free_nullable(&self, ptr: *mut core::mem::MaybeUninit<u8>) {
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `::operator new(size)`.
         unsafe { ffi::operator_delete_array(ptr.cast()) };
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl fat::Realloc for NewDeleteArray {}
 
 #[no_implicit_prelude] mod cleanroom {
