@@ -1,12 +1,12 @@
 #![cfg(all(target_os = "windows", feature = "win32"))]
-//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`HeapRef`], [`ProcessHeap`], [`Local`]
+//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`Local`]
 //!
 //! | Allocator                     | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |
 //! | ------------------------------| ----------------------| ----------------------| ------------------| ----------------------|
 //! | [`CoTaskMem`]                 | [`CoTaskMemAlloc`]    | [`CoTaskMemRealloc`]  | [`CoTaskMemFree`] | ❌                    |
 //! | [`CryptMem`]                  | [`CryptMemAlloc`]     | [`CryptMemRealloc`]   | [`CryptMemFree`]  | ❌                    |
 //! | [`Global`]                    | [`GlobalAlloc`]       | [`GlobalReAlloc`]     | [`GlobalFree`]    | [`GlobalSize`]        |
-//! |<code>[HeapRef]\(HANDLE\)</code>|[`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | <code>[Heap]\(HANDLE\)</code> | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`ProcessHeap`]               | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`Local`]                     | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
 //! |
@@ -31,3 +31,15 @@ mod local;              pub use local::*;
 /// | i686      |  8    |
 /// | x86_64    | 16    |
 const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::Alignment::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
+
+/// <code>[SetLastError](https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-setlasterror)\(0\)</code>
+fn clear_last_error() {
+    // SAFETY: ✔️ if writing this TLS var is ever unsafe, something has gone *horrifically* wrong.
+    unsafe { winapi::um::errhandlingapi::SetLastError(0) };
+}
+
+/// [`GetLastError`](https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror)
+fn get_last_error() -> u32 {
+    // SAFETY: ✔️ if accessing this TLS var is ever unsafe, something has gone *horrifically* wrong.
+    unsafe { winapi::um::errhandlingapi::GetLastError() }
+}

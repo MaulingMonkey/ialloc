@@ -4,12 +4,16 @@
 [`CoTaskMemFree`]:                  https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
 
 [`HeapAlloc`]:                      https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
+[`HeapCreate`]:                     https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate
+[`HeapDestroy`]:                    https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapdestroy
 [`HeapReAlloc`]:                    https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heaprealloc
 [`HeapFree`]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
 [`HeapSize`]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsize
 [`GetProcessHeap`]:                 https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-getprocessheap
 
 [HeapAlloc]:                        https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
+[HeapCreate]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate
+[HeapDestroy]:                      https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapdestroy
 [HeapReAlloc]:                      https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heaprealloc
 [HeapFree]:                         https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
 [HeapSize]:                         https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsize
