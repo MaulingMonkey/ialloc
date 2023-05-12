@@ -44,6 +44,7 @@ impl<A: Meta> Meta for AllocZst<A> {
 
 // thin::*
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: thin::Alloc> thin::Alloc for AllocZst<A> {
     fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         let size = Self::fix_thin_size(size);
@@ -56,11 +57,13 @@ unsafe impl<A: thin::Alloc> thin::Alloc for AllocZst<A> {
     }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: thin::Free> thin::Free for AllocZst<A> {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { self.0.free(ptr) } }
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { self.0.free_nullable(ptr) } }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: thin::Realloc> thin::Realloc for AllocZst<A> {
     const CAN_REALLOC_ZEROED : bool = A::CAN_REALLOC_ZEROED;
 
@@ -79,6 +82,7 @@ unsafe impl<A: thin::Realloc> thin::Realloc for AllocZst<A> {
 
 // fat::*
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: fat::Alloc> fat::Alloc for AllocZst<A> {
     fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         let layout = Self::fix_layout(layout)?;
@@ -91,6 +95,7 @@ unsafe impl<A: fat::Alloc> fat::Alloc for AllocZst<A> {
     }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: fat::Free> fat::Free for AllocZst<A> {
     unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, layout: Layout) {
         let layout = Self::fix_layout(layout).expect("bug: undefined behavior: invalid old_layout");
@@ -98,6 +103,7 @@ unsafe impl<A: fat::Free> fat::Free for AllocZst<A> {
     }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl<A: fat::Realloc> fat::Realloc for AllocZst<A> {
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         let old_layout = Self::fix_layout(old_layout).expect("bug: undefined behavior: invalid old_layout");
