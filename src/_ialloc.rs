@@ -12,6 +12,7 @@ type AllocNN    = core::ptr::NonNull<core::mem::MaybeUninit<u8>>;
 type AllocNN0   = core::ptr::NonNull<u8>;
 
 
+#[macro_use] mod _macros;
 #[doc(hidden)] pub mod _impls;
 
 pub use align::alignment::*;
