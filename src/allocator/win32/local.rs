@@ -41,7 +41,7 @@ use core::ptr::NonNull;
 impl meta::Meta for Local {
     type Error = ();
 
-    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX/2;
     const ZST_SUPPORTED : bool  = true;

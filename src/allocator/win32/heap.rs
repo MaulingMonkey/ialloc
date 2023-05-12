@@ -116,7 +116,7 @@ impl Heap {
 impl meta::Meta for Heap {
     type Error = ();
 
-    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
 
     /// The alignment of memory returned by `HeapAlloc` is `MEMORY_ALLOCATION_ALIGNMENT` in WinNT.h:
     /// ```cpp
@@ -219,7 +219,7 @@ unsafe impl thin::SizeOfDebug for Heap {
 impl meta::Meta for ProcessHeap {
     type Error = ();
 
-    //const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
+    const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
 
     /// The alignment of memory returned by `HeapAlloc` is `MEMORY_ALLOCATION_ALIGNMENT` in WinNT.h:
     /// ```cpp
