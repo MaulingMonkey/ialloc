@@ -30,7 +30,12 @@ impl meta::Meta for CryptMem {
 unsafe impl thin::Alloc for CryptMem {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         let size = size.try_into().map_err(|_| {})?;
+
+        // SAFETY: ⚠️ presumably thread safe per LocalAlloc/HeapAlloc
+        // SAFETY: ✔️ this "should" be safe for all `size`.  Unsoundness is #[test]ed for at the end of this file.
         let alloc = unsafe { CryptMemAlloc(size) };
+        // In practice, this just calls `LocalAlloc(LMEM_ZEROINIT, size)`, which in turn invokes `HeapAlloc`
+
         NonNull::new(alloc.cast()).ok_or(())
     }
 
@@ -43,7 +48,11 @@ unsafe impl thin::Realloc for CryptMem {
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = new_size.try_into().map_err(|_| {})?;
+
+        // SAFETY: ⚠️ presumably thread safe per LocalReAlloc/HeapReAlloc
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with CryptMem{Alloc,Realloc}
         let alloc = unsafe { CryptMemRealloc(ptr.as_ptr().cast(), new_size) };
+
         NonNull::new(alloc.cast()).ok_or(())
     }
 
@@ -55,6 +64,8 @@ unsafe impl thin::Realloc for CryptMem {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for CryptMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        // SAFETY: ⚠️ presumably thread safe per LocalFree/HeapFree
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe, tested), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with CryptMem{Alloc,Realloc}
         unsafe { CryptMemFree(ptr.cast()) }
     }
 }
