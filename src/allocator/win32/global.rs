@@ -1,6 +1,5 @@
 use crate::*;
 
-use winapi::um::errhandlingapi::{GetLastError, SetLastError};
 use winapi::um::winbase::{GlobalAlloc, GlobalReAlloc, GlobalFree, GlobalSize, GMEM_ZEROINIT};
 
 use core::mem::MaybeUninit;
@@ -87,10 +86,10 @@ unsafe impl thin::SizeOf for Global {}
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Global {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
-        unsafe { SetLastError(0) };
+        super::clear_last_error();
         let size = unsafe { GlobalSize(ptr.as_ptr().cast()) };
         if size == 0 {
-            let err = unsafe { GetLastError() };
+            let err = super::get_last_error();
             if err != 0 { return None }
         }
         Some(size)
