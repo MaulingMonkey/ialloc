@@ -32,8 +32,8 @@ unsafe impl thin::Alloc for NewDeleteArray {
 }
 
 unsafe impl thin::Free for NewDeleteArray {
-    unsafe fn free(&self, ptr: AllocNN) {
-        unsafe { ffi::operator_delete_array(ptr.as_ptr().cast()) };
+    unsafe fn free_nullable(&self, ptr: *mut core::mem::MaybeUninit<u8>) {
+        unsafe { ffi::operator_delete_array(ptr.cast()) };
     }
 }
 
