@@ -214,7 +214,7 @@ pub mod test {
     use super::*;
 
     /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
-    #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free + Meta>(allocator: A) {
+    #[track_caller] pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
         // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
@@ -222,7 +222,7 @@ pub mod test {
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
-    #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free + Meta>(allocator: A) {
+    #[track_caller] pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
         // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
@@ -230,7 +230,7 @@ pub mod test {
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.
-    #[track_caller] pub fn zst_supported_conservative_leak<A: Alloc + Meta>(allocator: A) {
+    #[track_caller] pub fn zst_supported_conservative_leak<A: Alloc>(allocator: A) {
         let alloc = allocator.alloc_uninit(0);
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
     }
