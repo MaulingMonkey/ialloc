@@ -67,7 +67,7 @@ unsafe impl thin::Alloc for Malloc {
 unsafe impl thin::Free for Malloc {
     #[track_caller] unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `::operator new(size)`.
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `free`.
         unsafe { free(ptr.cast()) }
     }
 }
