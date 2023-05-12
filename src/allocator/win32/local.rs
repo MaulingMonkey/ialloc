@@ -50,11 +50,18 @@ impl meta::Meta for Local {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for Local {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
+        // SAFETY: ✔️ no oddball flags like `LMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
         let alloc = unsafe { LocalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
+        // SAFETY: ✔️ no oddball flags like `LMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `LMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
         let alloc = unsafe { LocalAlloc(LMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -65,11 +72,20 @@ unsafe impl thin::Realloc for Local {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
+        // SAFETY: ✔️ no oddball flags like `LMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalReAlloc`.
         let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
+        // SAFETY: ✔️ no oddball flags like `LMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `LMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalReAlloc`.
         let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, LMEM_ZEROINIT) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -78,6 +94,8 @@ unsafe impl thin::Realloc for Local {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for Local {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalFree`.
         if !unsafe { LocalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
@@ -89,6 +107,8 @@ unsafe impl thin::SizeOf for Local {}
 unsafe impl thin::SizeOfDebug for Local {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         super::clear_last_error();
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalSize`.
         let size = unsafe { LocalSize(ptr.as_ptr().cast()) };
         if size == 0 {
             let err = super::get_last_error();

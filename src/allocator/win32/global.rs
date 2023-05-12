@@ -48,11 +48,18 @@ impl meta::Meta for Global {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for Global {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
+        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
         let alloc = unsafe { GlobalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
+        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
         let alloc = unsafe { GlobalAlloc(GMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -63,11 +70,20 @@ unsafe impl thin::Realloc for Global {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
+        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
+        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, GMEM_ZEROINIT) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -76,6 +92,8 @@ unsafe impl thin::Realloc for Global {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for Global {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalFree`.
         if !unsafe { GlobalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
@@ -87,6 +105,8 @@ unsafe impl thin::SizeOf for Global {}
 unsafe impl thin::SizeOfDebug for Global {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         super::clear_last_error();
+        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalSize`.
         let size = unsafe { GlobalSize(ptr.as_ptr().cast()) };
         if size == 0 {
             let err = super::get_last_error();
