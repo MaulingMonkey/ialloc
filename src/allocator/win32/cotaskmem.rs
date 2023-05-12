@@ -43,8 +43,8 @@ unsafe impl thin::Realloc for CoTaskMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ⚠️ presumably thread safe - just uses g_CMalloc::Realloc → HeapRealloc with dwFlags=0 (e.g. not using HEAP_NO_SERIALIZE) under the hood?
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus must've been allocated with CoTaskMem{Alloc,Realloc}
+        // SAFETY: ⚠️ presumably thread safe - just uses g_CMalloc::Realloc → HeapReAlloc with dwFlags=0 (e.g. not using HEAP_NO_SERIALIZE) under the hood?
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with CoTaskMem{Alloc,Realloc}
         let alloc = unsafe { CoTaskMemRealloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -58,7 +58,7 @@ unsafe impl thin::Realloc for CoTaskMem {
 unsafe impl thin::Free for CoTaskMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         // SAFETY: ⚠️ presumably thread safe - just uses g_CMalloc::Free → HeapFree with dwFlags=0 (e.g. not using HEAP_NO_SERIALIZE) under the hood?
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with CoTaskMem{Alloc,Realloc}
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe, tested), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with CoTaskMem{Alloc,Realloc}
         unsafe { CoTaskMemFree(ptr.cast()) }
     }
 }

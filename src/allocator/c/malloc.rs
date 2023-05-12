@@ -79,7 +79,7 @@ unsafe impl thin::Realloc for Malloc {
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
         // SAFETY: ✔️ this "should" be safe for all `new_size`.  Unsound C stdlibs are #[test]ed for at the end of this file.
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus must've been allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `realloc`.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `realloc`.
         let alloc = unsafe { realloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -90,7 +90,7 @@ unsafe impl thin::Realloc for Malloc {
             extern "C" { fn _recalloc(memblock: *mut c_void, num: size_t, size: size_t) -> *mut c_void; }
             // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
             // SAFETY: ✔️ this "should" be safe for all `new_size`.  Unsound C stdlibs are #[test]ed for at the end of this file.
-            // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus must've been allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `_recalloc`.
+            // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `_recalloc`.
             // SAFETY: ✔️ `_recalloc` zeros memory
             let alloc = unsafe { _recalloc(ptr.as_ptr().cast(), 1, new_size) };
             NonNull::new(alloc.cast()).ok_or(())
@@ -109,7 +109,7 @@ unsafe impl thin::SizeOfDebug for Malloc {
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/msize
             extern "C" { fn _msize(memblock: *mut c_void) -> size_t; }
             // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
-            // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions, and thus must've been allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `_msize`.
+            // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions, and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `_msize`.
             let size = unsafe { _msize(_ptr.as_ptr().cast()) };
             if size == !0 { return None } // error - but only if `_ptr` was null (impossible)?
             if size != 0 { return Some(size) }
