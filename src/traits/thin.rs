@@ -213,34 +213,6 @@ unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
 pub mod test {
     use super::*;
 
-    /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
-    pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
-        let alloc = allocator.alloc_uninit(0);
-        assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
-        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
-    }
-
-    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
-    pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
-        let alloc = allocator.alloc_uninit(0);
-        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
-        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
-    }
-
-    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.
-    pub fn zst_supported_conservative_leak<A: Alloc>(allocator: A) {
-        let alloc = allocator.alloc_uninit(0);
-        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
-    }
-
-    /// Assert that `allocator` meets all it's nullable allocation requirements
-    pub fn nullable<A: Free>(allocator: A) {
-        // SAFETY: ✔️ freeing null should always be safe
-        unsafe { allocator.free_nullable(core::ptr::null_mut()) }
-    }
-
     /// Assert that `allocator` meets all it's alignment requirements
     pub fn alignment<A: Alloc + Free>(allocator: A) {
         // First, a quick test
@@ -273,5 +245,33 @@ pub mod test {
             let expected_align = A::MAX_ALIGN.as_usize().min(size).max(A::MIN_ALIGN.as_usize());
             assert!(align >= expected_align);
         }
+    }
+
+    /// Assert that `allocator` meets all it's nullable allocation requirements
+    pub fn nullable<A: Free>(allocator: A) {
+        // SAFETY: ✔️ freeing null should always be safe
+        unsafe { allocator.free_nullable(core::ptr::null_mut()) }
+    }
+
+    /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
+    pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
+        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
+    }
+
+    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
+    pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
+    }
+
+    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.
+    pub fn zst_supported_conservative_leak<A: Alloc>(allocator: A) {
+        let alloc = allocator.alloc_uninit(0);
+        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
     }
 }
