@@ -186,6 +186,11 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: 
     thin::test::alignment(Heap::process());
 }
 
+#[test] fn thin_edge_case_sizes() {
+    thin::test::edge_case_sizes(ProcessHeap);
+    thin::test::edge_case_sizes(Heap::process());
+}
+
 #[test] fn thin_nullable() {
     thin::test::nullable(ProcessHeap);
     thin::test::nullable(Heap::process());

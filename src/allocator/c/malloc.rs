@@ -128,6 +128,7 @@ unsafe impl thin::SizeOfDebug for Malloc {
 
 
 #[test] fn thin_alignment()             { thin::test::alignment(Malloc) }
+#[test] fn thin_edge_case_sizes()       { thin::test::edge_case_sizes(Malloc) }
 #[test] fn thin_nullable()              { thin::test::nullable(Malloc) }
 #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(Malloc) }
 #[test] fn thin_zst_support_dangle()    { thin::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }

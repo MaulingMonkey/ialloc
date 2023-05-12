@@ -247,6 +247,33 @@ pub mod test {
         }
     }
 
+    /// Check edge cases near 2 GiB, 4 GiB, usize::MAX/2, and usize::MAX watermarks.
+    pub fn edge_case_sizes<A: Alloc + Free>(allocator: A) {
+        let boundaries = if cfg!(target_pointer_width = "64") {
+            &[0, (u32::MAX/2) as usize, (u32::MAX  ) as usize, usize::MAX/2, usize::MAX][..]
+        } else {
+            &[0, usize::MAX/2, usize::MAX][..]
+        };
+        for boundary in boundaries.iter().copied() {
+            for offset in -64_isize .. 64_isize {
+                let Some(size) = boundary.checked_add_signed(offset) else { continue };
+                std::dbg!(size);
+                let Ok(alloc) = allocator.alloc_uninit(size) else { continue };
+                if let Some(last_byte_index) = size.checked_sub(1) {
+                    let last_byte_index = last_byte_index.min(isize::MAX as usize);
+                    // SAFETY: ✔️ in bounds of allocated object
+                    // SAFETY: ✔️ cannot overflow an isize (capped immediately above)
+                    // SAFETY: ✔️ does not wrap around address space
+                    let last_byte = unsafe { alloc.as_ptr().add(last_byte_index) };
+                    // SAFETY: ✔️ in bounds of allocated object
+                    unsafe { last_byte.write_volatile(MaybeUninit::new(42u8)) };
+                }
+                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
+                unsafe { allocator.free(alloc) };
+            }
+        }
+    }
+
     /// Assert that `allocator` meets all it's nullable allocation requirements
     pub fn nullable<A: Free>(allocator: A) {
         // SAFETY: ✔️ freeing null should always be safe

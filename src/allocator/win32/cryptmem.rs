@@ -68,6 +68,7 @@ unsafe impl thin::Free for CryptMem {
 
 
 
-#[test] fn thin_alignment()     { thin::test::alignment(CryptMem) }
-#[test] fn thin_nullable()      { thin::test::nullable(CryptMem) }
-#[test] fn thin_zst_support()   { thin::test::zst_supported_accurate(CryptMem) }
+#[test] fn thin_alignment()         { thin::test::alignment(CryptMem) }
+#[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(CryptMem) }
+#[test] fn thin_nullable()          { thin::test::nullable(CryptMem) }
+#[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(CryptMem) }

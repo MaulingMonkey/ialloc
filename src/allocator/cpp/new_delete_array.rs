@@ -50,6 +50,7 @@ unsafe impl fat::Realloc for NewDeleteArray {}
 
 
 
-#[test] fn thin_alignment()     { thin::test::alignment(NewDeleteArray) }
-#[test] fn thin_nullable()      { thin::test::nullable(NewDeleteArray) }
-#[test] fn thin_zst_support()   { thin::test::zst_supported_conservative(NewDeleteArray) }
+#[test] fn thin_alignment()         { thin::test::alignment(NewDeleteArray) }
+#[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(NewDeleteArray) }
+#[test] fn thin_nullable()          { thin::test::nullable(NewDeleteArray) }
+#[test] fn thin_zst_support()       { thin::test::zst_supported_conservative(NewDeleteArray) }
