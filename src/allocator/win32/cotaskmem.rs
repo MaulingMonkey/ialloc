@@ -26,9 +26,9 @@ impl meta::Meta for CoTaskMem {
     const ZST_SUPPORTED : bool  = true;
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for CoTaskMem {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(size)?;
         let alloc = unsafe { CoTaskMemAlloc(size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -36,11 +36,11 @@ unsafe impl thin::Alloc for CoTaskMem {
     // no zeroing CoTaskMemAlloc
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Realloc for CoTaskMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let new_size = super::check_size(new_size)?;
         let alloc = unsafe { CoTaskMemRealloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -50,6 +50,7 @@ unsafe impl thin::Realloc for CoTaskMem {
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for CoTaskMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { CoTaskMemFree(ptr.cast()) }

@@ -63,36 +63,35 @@ impl meta::Meta for Heap {
     const ZST_SUPPORTED : bool  = true;
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for Heap {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(size)?;
         let alloc = unsafe { HeapAlloc(self.0, 0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
-        let size = super::check_size(size)?;
         let alloc = unsafe { HeapAlloc(self.0, HEAP_ZERO_MEMORY, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Realloc for Heap {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, 0, ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let new_size = super::check_size(new_size)?;
         let alloc = unsafe { HeapReAlloc(self.0, HEAP_ZERO_MEMORY, ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for Heap {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         // "This pointer can be NULL."
@@ -101,7 +100,11 @@ unsafe impl thin::Free for Heap {
     }
 }
 
+
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOf for Heap {}
+
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Heap {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         let size = unsafe { HeapSize(self.0, 0, ptr.as_ptr().cast()) };
@@ -146,21 +149,29 @@ impl meta::Meta for ProcessHeap {
     const ZST_SUPPORTED : bool  = true;
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::Alloc for ProcessHeap {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error>  { Heap::process().alloc_uninit(size) }
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> { Heap::process().alloc_zeroed(size) }
 }
 
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::Realloc for ProcessHeap {
     const CAN_REALLOC_ZEROED : bool = Heap::CAN_REALLOC_ZEROED;
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_uninit(ptr, new_size) } }
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> { unsafe { Heap::process().realloc_zeroed(ptr, new_size) } }
 }
+
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::Free          for ProcessHeap {
-    unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { Heap::process().free(ptr) } }
-    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) { unsafe { Heap::process().free_nullable(ptr) } }
+    unsafe fn free         (&self, ptr: NonNull<MaybeUninit<u8>>) { unsafe { Heap::process().free(ptr) } }
+    unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>    ) { unsafe { Heap::process().free_nullable(ptr) } }
 }
+
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::SizeOf        for ProcessHeap {}
+
+#[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { unsafe { Heap::process().size_of(ptr) } } }
 
 

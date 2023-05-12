@@ -26,9 +26,10 @@ impl meta::Meta for CryptMem {
     const ZST_SUPPORTED : bool  = true;
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for CryptMem {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(size)?;
+        let size = size.try_into().map_err(|_| {})?;
         let alloc = unsafe { CryptMemAlloc(size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -36,11 +37,12 @@ unsafe impl thin::Alloc for CryptMem {
     // no zeroing CryptMemAlloc
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Realloc for CryptMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let new_size = super::check_size(new_size)?;
+        let new_size = new_size.try_into().map_err(|_| {})?;
         let alloc = unsafe { CryptMemRealloc(ptr.as_ptr().cast(), new_size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -50,6 +52,7 @@ unsafe impl thin::Realloc for CryptMem {
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for CryptMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         unsafe { CryptMemFree(ptr.cast()) }

@@ -48,43 +48,45 @@ impl meta::Meta for Local {
     const ZST_SUPPORTED : bool  = true;
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for Local {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(size)?;
         let alloc = unsafe { LocalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
-        let size = super::check_size(size)?;
         let alloc = unsafe { LocalAlloc(LMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Realloc for Local {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(new_size)?;
-        let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), size, 0) };
+        let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let size = super::check_size(new_size)?;
-        let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), size, LMEM_ZEROINIT) };
+        let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, LMEM_ZEROINIT) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for Local {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
         if !unsafe { LocalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOf for Local {}
+
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Local {
     unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
         unsafe { SetLastError(0) };

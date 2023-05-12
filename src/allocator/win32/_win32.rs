@@ -31,16 +31,3 @@ mod local;              pub use local::*;
 /// | i686      |  8    |
 /// | x86_64    | 16    |
 const MEMORY_ALLOCATION_ALIGNMENT : crate::Alignment = crate::Alignment::constant(winapi::um::winnt::MEMORY_ALLOCATION_ALIGNMENT);
-
-
-
-#[inline(always)] fn check_size<N: TryFrom<usize>>(size: usize) -> Result<N, ()> {
-    // XXX: not entirely sure if this is excessive or not.
-    // Will *Alloc(2.5 GiB) reasonably succeed?
-    // My understanding is that >isize::MAX allocs/pointer ranges/spatial provenances are super cursed by LLVM / the compiler
-    // https://doc.rust-lang.org/core/alloc/struct.Layout.html#method.from_size_align
-    // https://doc.rust-lang.org/core/primitive.pointer.html#method.add
-    if size > usize::MAX/2 { return Err(()) }
-
-    N::try_from(size).map_err(|_| {})
-}
