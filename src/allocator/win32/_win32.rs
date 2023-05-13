@@ -7,6 +7,7 @@
 //! | [`CryptMem`]                  | [`CryptMemAlloc`]     | [`CryptMemRealloc`]   | [`CryptMemFree`]  | ❌                    |
 //! | [`Global`]                    | [`GlobalAlloc`]       | [`GlobalReAlloc`]     | [`GlobalFree`]    | [`GlobalSize`]        |
 //! | <code>[Heap]\(HANDLE\)</code> | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | [`HeapNoSerialize`]           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`ProcessHeap`]               | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`Local`]                     | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
 //! |
@@ -24,6 +25,7 @@ mod cotaskmem;          pub use cotaskmem::*;
 mod cryptmem;           pub use cryptmem::*;
 mod global;             pub use global::*;
 mod heap;               pub use heap::*;
+mod heap_no_serialize;  pub use heap_no_serialize::*;
 mod local;              pub use local::*;
 
 /// | Arch      | Value |
