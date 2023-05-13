@@ -337,6 +337,7 @@ pub mod test {
         assert!(!any, "A::alloc_uninit appears to allocate zeroed memory");
     }
 
+    /// Assert that `allocator` always provides zeroed memory when requested
     pub fn zeroed_alloc<A: Alloc + Free>(allocator: A) {
         for _ in 0 .. 1000 {
             if let Ok(alloc) = TTB::try_new_zeroed(&allocator, 1) {
