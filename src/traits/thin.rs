@@ -120,33 +120,33 @@ pub unsafe trait Realloc : Alloc + Free {
 
 
 /// Allocation size query (reliable for `self`-owned allocations):<br>
-/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
+/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [usize]</code><br>
 /// <br>
 ///
 /// ## Safety
 /// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
-/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
+/// *   If given a valid `ptr`, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
 pub unsafe trait SizeOf : SizeOfDebug {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
-        // SAFETY: ✔️ SizeOfDebug::size_of has identical prereqs
-        unsafe { SizeOfDebug::size_of(self, ptr) }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> usize {
+        // SAFETY: ✔️ SizeOfDebug::size_of_debug has identical prereqs
+        unsafe { SizeOfDebug::size_of_debug(self, ptr) }.unwrap()
     }
 }
 
 
 
 /// Allocation size query (unreliable / for debug purpouses only):<br>
-/// <code>[size_of](Self::size_of)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
+/// <code>[size_of_debug](Self::size_of_debug)(ptr: [NonNull]<[MaybeUninit]<[u8]>>) -> [Option]<[usize]></code><br>
 /// <br>
 ///
 /// ## Safety
 /// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
-/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
+/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of_debug(ptr)]` is dereferenceable.
 ///
 /// ## Remarks
 /// This trait may fail (returning [`None`]) even if `ptr` is a thin allocation belonging to `self`.
@@ -163,7 +163,7 @@ pub unsafe trait SizeOf : SizeOfDebug {
 /// # use core::mem::*;
 /// # use core::ptr::*;
 /// # fn wrap(alloc: &impl SizeOfDebug, ptr: NonNull<MaybeUninit<u8>>) {
-/// let Some(size) = (unsafe{ alloc.size_of(ptr) }) else { return };
+/// let Some(size) = (unsafe{ alloc.size_of_debug(ptr) }) else { return };
 /// let slice : &[MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) };
 /// # }
 /// ```
@@ -173,7 +173,7 @@ pub unsafe trait SizeOfDebug : meta::Meta {
     /// ### Safety
     /// *   May exhibit UB if `ptr` is not an allocation belonging to `self`.
     /// *   Returns the allocation size, but some or all of the data in said allocation might be uninitialized.
-    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize>;
+    unsafe fn size_of_debug(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize>;
 }
 
 
@@ -199,12 +199,12 @@ unsafe impl<'a, A: Realloc> Realloc for &'a A {
 
 #[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: SizeOf> SizeOf for &'a A {
-    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { <A as SizeOf>::size_of(self, ptr) } }
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> usize { unsafe { A::size_of(self, ptr) } }
 }
 
 #[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ same trait, same prereqs
 unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
-    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { A::size_of(self, ptr) } }
+    unsafe fn size_of_debug(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> { unsafe { A::size_of_debug(self, ptr) } }
 }
 
 

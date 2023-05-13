@@ -181,14 +181,14 @@ pub mod prelude {
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::thin::SizeOf for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::thin::SizeOf for $ty {
-            #[inline(always)] #[track_caller] unsafe fn size_of(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>) -> ::core::option::Option<::core::primitive::usize> { unsafe { $crate::thin::SizeOf::size_of(&**self, ptr) } }
+            #[inline(always)] #[track_caller] unsafe fn size_of(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>) -> ::core::primitive::usize { unsafe { $crate::thin::SizeOf::size_of(&**self, ptr) } }
         }
         $crate::impls!($($tt)*);
     };
 
     ( unsafe impl $([$($gdef:tt)*])? $(::)? ialloc::thin::SizeOfDebug for $ty:ty => $(::)? core::ops::Deref; $($tt:tt)* ) => {
         unsafe impl $(<$($gdef)*>)? $crate::thin::SizeOfDebug for $ty {
-            #[inline(always)] #[track_caller] unsafe fn size_of(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>) -> ::core::option::Option<::core::primitive::usize> { unsafe { $crate::thin::SizeOfDebug::size_of(&**self, ptr) } }
+            #[inline(always)] #[track_caller] unsafe fn size_of_debug(&self, ptr: ::core::ptr::NonNull<::core::mem::MaybeUninit<::core::primitive::u8>>) -> ::core::option::Option<::core::primitive::usize> { unsafe { $crate::thin::SizeOfDebug::size_of_debug(&**self, ptr) } }
         }
         $crate::impls!($($tt)*);
     };

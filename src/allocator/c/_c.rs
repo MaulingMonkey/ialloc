@@ -8,7 +8,7 @@
 //! | [`thin::Realloc::realloc_uninit`]         | [`realloc`]           |               |
 //! | [`thin::Realloc::realloc_zeroed`]         | ❌ N/A               | [`_recalloc`] |
 //! | [`thin::Free::free`]                      | [`free`]              |               |
-//! | [`thin::SizeOfDebug::size_of`]            | `None`                | [`_msize`]    |
+//! | [`thin::SizeOfDebug::size_of_debug`]      | `None`                | [`_msize`]    |
 //!
 //! | [`AlignedMalloc`] <br> Rust Traits    | MSVC Release CRT <br> ~~MSVC Debug CRT~~                                                                                              | !MSVC<br>C11 or C++17     |
 //! | --------------------------------------| --------------------------------------------------------------------------------------------------------------------------------------| --------------------------|

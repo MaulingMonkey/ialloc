@@ -16,7 +16,7 @@ use core::ptr::NonNull;
 /// | [`thin::Realloc::realloc_uninit`]         | [`realloc`]           |               |
 /// | [`thin::Realloc::realloc_zeroed`]         | ❌ N/A               | [`_recalloc`] |
 /// | [`thin::Free::free`]                      | [`free`]              |               |
-/// | [`thin::SizeOfDebug::size_of`]            | `None`                | [`_msize`]    |
+/// | [`thin::SizeOfDebug::size_of_debug`]      | `None`                | [`_msize`]    |
 ///
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Malloc;
@@ -104,7 +104,7 @@ unsafe impl thin::Realloc for Malloc {
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Malloc {
-    unsafe fn size_of(&self, _ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
+    unsafe fn size_of_debug(&self, _ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
         #[cfg(target_env = "msvc")] {
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/msize
             extern "C" { fn _msize(memblock: *mut c_void) -> size_t; }

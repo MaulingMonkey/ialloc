@@ -104,7 +104,7 @@ unsafe impl thin::SizeOf for Local {}
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Local {
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
+    unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
         super::clear_last_error();
         // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalSize`.

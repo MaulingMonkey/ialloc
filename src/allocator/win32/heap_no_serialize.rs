@@ -183,7 +183,7 @@ unsafe impl thin::SizeOf for HeapNoSerialize {}
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for HeapNoSerialize {
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
+    unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
         // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc`
         let size = unsafe { HeapSize(self.0, HEAP_NO_SERIALIZE, ptr.as_ptr().cast()) };

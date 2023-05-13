@@ -195,7 +195,7 @@ unsafe impl thin::SizeOf for Heap {}
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::SizeOfDebug for Heap {
-    unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
+    unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
         // SAFETY: ✔️ thread safe - we don't use HEAP_NO_SERIALIZE and preclude using it in all construction paths for `Heap`.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc`
         let size = unsafe { HeapSize(self.0, 0, ptr.as_ptr().cast()) };
@@ -263,7 +263,7 @@ unsafe impl thin::Free          for ProcessHeap {
 unsafe impl thin::SizeOf        for ProcessHeap {}
 
 #[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
-unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> { Heap::with_process(|heap| unsafe { heap.size_of(ptr) }) } }
+unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> { Heap::with_process(|heap| unsafe { heap.size_of_debug(ptr) }) } }
 
 
 

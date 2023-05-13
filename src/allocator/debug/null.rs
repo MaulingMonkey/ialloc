@@ -44,7 +44,7 @@ unsafe impl thin::SizeOf for Null {}
 
 // SAFETY: ✔️ always failing is a trivally safe implementation of this trait
 unsafe impl thin::SizeOfDebug for Null {
-    #[track_caller] #[inline(never)] unsafe fn size_of(&self, ptr: AllocNN) -> Option<usize> {
+    #[track_caller] #[inline(never)] unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
         // SAFETY: ✔️ violation of thin::SizeOfDebug::size_of's documented safety precondition that `ptr` belong to `self`
         unsafe { ub!("bug: undefined behavior: {ptr:?} does not belong to `self` as the Null allocator can't allocate anything to query in the first place") }
     }
