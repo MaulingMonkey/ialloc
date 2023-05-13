@@ -214,6 +214,7 @@ pub mod test {
     use super::*;
 
     /// "Thin Test Box"
+    #[allow(clippy::upper_case_acronyms)]
     struct TTB<A: Free>(A, NonNull<MaybeUninit<u8>>);
     impl<A: Free> Drop for TTB<A> {
         fn drop(&mut self) {
@@ -294,6 +295,7 @@ pub mod test {
     pub fn size_exact_alloc<A: Alloc + Free + SizeOfDebug>(allocator: A) {
         for size in [0, 1, 3, 7, 15, 31, 63, 127] {
             let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
+            // SAFETY: ✔️ `alloc` belongs to `allocator`
             let query_size = unsafe { allocator.size_of_debug(alloc.as_nonnull()) }.unwrap_or(size);
             assert_eq!(size, query_size, "allocator returns oversized allocs, use thin::test::size_over_alloc instead");
         }
@@ -305,6 +307,7 @@ pub mod test {
         let mut over = false;
         for size in [0, 1, 3, 7, 15, 31, 63, 127] {
             let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
+            // SAFETY: ✔️ `alloc` belongs to `allocator`
             let Some(query_size) = (unsafe { allocator.size_of_debug(alloc.as_nonnull()) }) else { continue };
             any_sized = true;
             over |= size < query_size;
