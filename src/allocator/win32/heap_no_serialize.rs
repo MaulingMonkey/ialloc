@@ -226,6 +226,11 @@ unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     thin::test::nullable(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
 }
 
+#[test] fn thin_size() {
+    thin::test::size_exact_alloc(create_test_heap(None, None));
+    thin::test::size_exact_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
 #[test] fn thin_uninit() {
     unsafe {
         thin::test::uninit_alloc_unsound(create_test_heap(None, None));

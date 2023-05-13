@@ -213,17 +213,31 @@ unsafe impl<'a, A: SizeOfDebug> SizeOfDebug for &'a A {
 pub mod test {
     use super::*;
 
+    /// "Thin Test Box"
+    struct TTB<A: Free>(A, NonNull<MaybeUninit<u8>>);
+    impl<A: Free> Drop for TTB<A> {
+        fn drop(&mut self) {
+            // SAFETY: ✔️ we exclusively own the alloc `self.1`
+            unsafe { self.0.free(self.1) };
+        }
+    }
+    impl<A: Free> TTB<A> {
+        pub fn try_new_uninit(allocator: A, size: usize) -> Result<Self, A::Error> where A : Alloc { let alloc = allocator.alloc_uninit(size)?; Ok(Self(allocator, alloc)) }
+        pub fn try_new_zeroed(allocator: A, size: usize) -> Result<Self, A::Error> where A : Alloc { let alloc = allocator.alloc_zeroed(size)?; Ok(Self(allocator, alloc.cast())) }
+        fn as_ptr(&self) -> *mut MaybeUninit<u8> { self.1.as_ptr() }
+        fn as_nonnull(&self) -> NonNull<MaybeUninit<u8>> { self.1 }
+    }
+
     /// Assert that `allocator` meets all it's alignment requirements
     pub fn alignment<A: Alloc + Free>(allocator: A) {
         // First, a quick test
         let mut align = A::MAX_ALIGN;
         loop {
             let unaligned_mask = align.as_usize() - 1;
-            if let Ok(alloc) = allocator.alloc_uninit(align.as_usize()) {
-                let addr = alloc.as_ptr() as usize;
+            if let Ok(alloc) = TTB::try_new_uninit(&allocator, align.as_usize()) {
+                let alloc = alloc.as_ptr();
+                let addr = alloc as usize;
                 assert_eq!(0, addr & unaligned_mask, "allocation for size {align:?} @ {alloc:?} had less than expected alignment ({align:?} <= MAX_ALIGN)");
-                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-                unsafe { allocator.free(alloc) };
             }
             let Some(next) = Alignment::new(align.as_usize() >> 1) else { break };
             align = next;
@@ -234,10 +248,8 @@ pub mod test {
             std::dbg!(size);
             let mut addr_bits = 0;
             for _ in 0 .. 100 {
-                if let Ok(alloc) = allocator.alloc_uninit(size) {
+                if let Ok(alloc) = TTB::try_new_uninit(&allocator, size) {
                     addr_bits |= alloc.as_ptr() as usize;
-                    // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-                    unsafe { allocator.free(alloc) };
                 }
             }
             if addr_bits == 0 { continue }
@@ -258,7 +270,7 @@ pub mod test {
             for offset in -64_isize .. 64_isize {
                 let Some(size) = boundary.checked_add_signed(offset) else { continue };
                 std::dbg!(size);
-                let Ok(alloc) = allocator.alloc_uninit(size) else { continue };
+                let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
                 if let Some(last_byte_index) = size.checked_sub(1) {
                     let last_byte_index = last_byte_index.min(isize::MAX as usize);
                     // SAFETY: ✔️ in bounds of allocated object
@@ -268,8 +280,6 @@ pub mod test {
                     // SAFETY: ✔️ in bounds of allocated object
                     unsafe { last_byte.write_volatile(MaybeUninit::new(42u8)) };
                 }
-                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-                unsafe { allocator.free(alloc) };
             }
         }
     }
@@ -280,6 +290,29 @@ pub mod test {
         unsafe { allocator.free_nullable(core::ptr::null_mut()) }
     }
 
+    /// Assert that `allocator` always reports an exact allocation size
+    pub fn size_exact_alloc<A: Alloc + Free + SizeOfDebug>(allocator: A) {
+        for size in [0, 1, 3, 7, 15, 31, 63, 127] {
+            let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
+            let query_size = unsafe { allocator.size_of_debug(alloc.as_nonnull()) }.unwrap_or(size);
+            assert_eq!(size, query_size, "allocator returns oversized allocs, use thin::test::size_over_alloc instead");
+        }
+    }
+
+    /// Assert that `allocator` sometimes reports a larger-than-requested allocation size
+    pub fn size_over_alloc<A: Alloc + Free + SizeOfDebug>(allocator: A) {
+        let mut any_sized = false;
+        let mut over = false;
+        for size in [0, 1, 3, 7, 15, 31, 63, 127] {
+            let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
+            let Some(query_size) = (unsafe { allocator.size_of_debug(alloc.as_nonnull()) }) else { continue };
+            any_sized = true;
+            over |= size < query_size;
+            assert!(size <= query_size, "allocator returns undersized allocs");
+        }
+        assert!(over || !any_sized, "no allocations were oversized");
+    }
+
     /// **UNSOUND:** Verify `A` allocates uninitialized memory by reading `MaybeUninit<u8>`s.
     ///
     /// This is technically completely unnecessary - but educational for verifying assumptions.  Use this only in non-production unit tests.
@@ -287,19 +320,16 @@ pub mod test {
     pub unsafe fn uninit_alloc_unsound<A: Alloc + Free>(allocator: A) {
         let mut any = false;
         for _ in 0 .. 1000 {
-            if let Ok(mut alloc) = allocator.alloc_uninit(1) {
+            if let Ok(alloc) = TTB::try_new_uninit(&allocator, 1) {
                 any = true;
 
                 // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc
-                let byte = unsafe { alloc.as_mut() };
+                let byte = unsafe { &mut *alloc.as_ptr() };
 
                 // SAFETY: ❌ this is unsound per the fn preamble!
                 let is_uninit = unsafe { byte.assume_init() } != 0;
 
                 byte.write(0xFF); // ensure we'll detect "uninitialized" memory if this alloc is reused
-
-                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-                unsafe { allocator.free(alloc) };
 
                 if is_uninit { return } // success!
             }
@@ -309,15 +339,12 @@ pub mod test {
 
     pub fn zeroed_alloc<A: Alloc + Free>(allocator: A) {
         for _ in 0 .. 1000 {
-            if let Ok(mut alloc) = allocator.alloc_zeroed(1) {
-                // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc
-                let byte = unsafe { alloc.as_mut() };
+            if let Ok(alloc) = TTB::try_new_zeroed(&allocator, 1) {
+                // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc - and being zeroed, it should be safe to strip MaybeUninit
+                let byte : &mut u8 = unsafe { &mut *alloc.as_ptr().cast::<u8>() };
 
                 let is_zeroed = *byte == 0u8;
                 *byte = 0xFF; // ensure we'll detect "unzeroed" memory if this alloc is reused without zeroing
-
-                // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-                unsafe { allocator.free(alloc.cast()) };
 
                 assert!(is_zeroed, "A::alloc_zeroed returned unzeroed memory!");
             }
@@ -326,18 +353,16 @@ pub mod test {
 
     /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
     pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
-        let alloc = allocator.alloc_uninit(0);
+        let alloc = TTB::try_new_uninit(&allocator, 0);
+        let alloc = alloc.as_ref().map(|a| a.as_ptr());
         assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
-        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
     pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
-        let alloc = allocator.alloc_uninit(0);
+        let alloc = TTB::try_new_uninit(&allocator, 0);
+        let alloc = alloc.as_ref().map(|a| a.as_ptr());
         if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
-        // SAFETY: ✔️ we just allocated `alloc` from a compatible `thin` allocator
-        if let Ok(alloc) = alloc { unsafe { allocator.free(alloc) } }
     }
 
     /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.  Also don't try to [`Free`] the memory involved.

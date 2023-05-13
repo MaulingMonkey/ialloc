@@ -309,6 +309,13 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of_debug(&self,
     Heap::with_process(|heap| thin::test::nullable(heap));
 }
 
+#[test] fn thin_size() {
+    thin::test::size_exact_alloc(ProcessHeap);
+    thin::test::size_exact_alloc(create_test_heap(None, None));
+    thin::test::size_exact_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| thin::test::size_exact_alloc(heap));
+}
+
 #[test] fn thin_uninit() {
     unsafe {
         thin::test::uninit_alloc_unsound(ProcessHeap);
