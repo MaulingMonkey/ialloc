@@ -14,7 +14,7 @@ template < typename T > struct ebco : T { char ch; };
 #if __cpp_static_assert
 static_assert(sizeof(ebco<std::allocator<char>>) == 1, "std::allocator<char> contains members/data, not interchangeable?");
 #endif
-IALLOC_FN(void*, std_allocator_char_allocate        ) (size_t count)                    { try { return std::allocator<char>().allocate(count); } catch (const std::bad_alloc&) { return nullptr; } }
+IALLOC_FN(void*, std_allocator_char_allocate        ) (size_t count)                    { try { return std::allocator<char>().allocate(count); } catch (const std::bad_alloc&) { return 0; } }
 IALLOC_FN(void,  std_allocator_char_deallocate      ) (char* ptr, size_t count)         { return std::allocator<char>().deallocate(ptr, count); }
 
 IALLOC_FN(void*, operator_new_nothrow               ) (size_t count)                    { return ::operator new  (count,        nothrow); }
