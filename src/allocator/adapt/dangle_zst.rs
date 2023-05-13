@@ -12,6 +12,7 @@ use core::ptr::NonNull;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct DangleZst<A>(pub A);
 
 impl<A: meta::Meta> DangleZst<A> {
+    // TODO: replace with NonNull::new when that stabilizes as a const fn
     const DANGLE : NonNull<MaybeUninit<u8>> = unsafe { NonNull::new_unchecked(A::MAX_ALIGN.as_usize() as _) };
 }
 
