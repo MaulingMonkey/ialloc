@@ -96,7 +96,7 @@ unsafe impl<A: fat::Realloc> fat::Realloc for PanicOverAlign<A> {
 
 
 
-#[cfg(allocator_api = "*")] #[test] fn allocator_api() {
+#[cfg(all(c89, allocator_api = "*"))] #[test] fn allocator_api() {
     use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
     use alloc::vec::Vec;
 
@@ -109,7 +109,7 @@ unsafe impl<A: fat::Realloc> fat::Realloc for PanicOverAlign<A> {
     assert_eq!(3, v2.len());
 }
 
-#[cfg(allocator_api = "*")] #[should_panic] #[test] fn allocator_api_overalign() {
+#[cfg(all(c89, allocator_api = "*"))] #[should_panic] #[test] fn allocator_api_overalign() {
     use crate::allocator::{adapt::PanicOverAlign, c::Malloc};
     use alloc::vec::Vec;
 
