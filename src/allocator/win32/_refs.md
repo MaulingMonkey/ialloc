@@ -10,6 +10,9 @@
 [`HeapFree`]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
 [`HeapSize`]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsize
 [`GetProcessHeap`]:                 https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-getprocessheap
+[`HEAP_NO_SERIALIZE`]:              https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
+[`HEAP_ZERO_MEMORY`]:               https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
+[`HEAP_GENERATE_EXCEPTIONS`]:       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
 
 [HeapAlloc]:                        https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
 [HeapCreate]:                       https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate
@@ -18,16 +21,21 @@
 [HeapFree]:                         https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree
 [HeapSize]:                         https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapsize
 [GetProcessHeap]:                   https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-getprocessheap
+[HEAP_NO_SERIALIZE]:                https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
+[HEAP_ZERO_MEMORY]:                 https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
+[HEAP_GENERATE_EXCEPTIONS]:         https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc#parameters
 
 [`LocalAlloc`]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc
 [`LocalReAlloc`]:                   https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localrealloc
 [`LocalFree`]:                      https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
 [`LocalSize`]:                      https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localsize
+[`LMEM_ZEROINIT`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc#parameters
 
 [`GlobalAlloc`]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc
 [`GlobalReAlloc`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalrealloc
 [`GlobalFree`]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalfree
 [`GlobalSize`]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalsize
+[`GMEM_ZEROINIT`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc#parameters
 
 [`CryptMemAlloc`]:                  https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemalloc
 [`CryptMemRealloc`]:                https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemrealloc

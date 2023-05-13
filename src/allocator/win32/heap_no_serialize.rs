@@ -9,16 +9,16 @@ use core::ptr::NonNull;
 
 
 
-/// [`HeapAlloc`] / [`HeapReAlloc`] / [`HeapFree`] / [`HeapSize`]
+/// [`HeapAlloc`] / [`HeapReAlloc`] / [`HeapFree`] / [`HeapSize`] w/ [`HEAP_NO_SERIALIZE`]
 ///
 /// | Rust                                      | C                     |
 /// | ------------------------------------------| ----------------------|
-/// | [`thin::Alloc::alloc_uninit`]             | <code>[HeapAlloc](heap, 0, size)</code>
-/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc](heap, HEAP_ZERO_MEMORY, size)</code>
-/// | [`thin::Realloc::realloc_uninit`]         | <code>[HeapReAlloc](heap, 0, ptr, size)</code>
-/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc](heap, HEAP_ZERO_MEMORY, ptr, size)</code>
-/// | [`thin::Free::free`]                      | <code>[HeapFree]\(heap, 0, ptr\)</code>
-/// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\(heap, 0, ptr\)</code>
+/// | [`thin::Alloc::alloc_uninit`]             | <code>[HeapAlloc](heap, [HEAP_NO_SERIALIZE], size)</code>
+/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc](heap, [HEAP_NO_SERIALIZE]\|[HEAP_ZERO_MEMORY], size)</code>
+/// | [`thin::Realloc::realloc_uninit`]         | <code>[HeapReAlloc](heap, [HEAP_NO_SERIALIZE], ptr, size)</code>
+/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc](heap, [HEAP_NO_SERIALIZE]\|[HEAP_ZERO_MEMORY], ptr, size)</code>
+/// | [`thin::Free::free`]                      | <code>[HeapFree]\(heap, [HEAP_NO_SERIALIZE], ptr\)</code>
+/// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\(heap, [HEAP_NO_SERIALIZE], ptr\)</code>
 ///
 #[doc = include_str!("_refs.md")]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] // SAFETY: this cannot be Clone or Copy as this owns the `HANDLE`
@@ -57,8 +57,8 @@ impl HeapNoSerialize {
     /// ### Safety
     /// *   `*handle` must be a valid [`HeapAlloc`]-compatible `HANDLE`.
     /// *   `*handle` must be a growable heap
-    /// *   `*handle` must only be accessed in a serialized fashion (e.g. not creating using, nor never used with, `HEAP_NO_SERIALIZE`)
-    /// *   `*handle` must remain valid for the lifetime of `'a'`.
+    /// *   `*handle` must only be accessed by the current thread
+    /// *   `*handle` must remain valid for the lifetime of `'a`.
     ///
     #[doc = include_str!("_refs.md")]
     pub unsafe fn borrow(handle: &HANDLE) -> &Self {
@@ -71,10 +71,12 @@ impl HeapNoSerialize {
     /// [`HEAP_NO_SERIALIZE`] is recommended but not required.
     ///
     /// ### Safety
-    /// *   `options & HEAP_GENERATE_EXCEPTIONS` is forbidden: Rust assumes C-ABI / no SEH exceptions
+    /// *   <code>options &amp; [HEAP_GENERATE_EXCEPTIONS]</code> is forbidden: Rust assumes C-ABI / no SEH exceptions
     /// *   New `options` may be added which are similarly undefined behavior.
     /// *   The function may make a best-effort attempt to [`panic!`] instead of invoking UB.
     /// *   No idea what happens if `initial_size` > `maximum_size`.
+    ///
+    #[doc = include_str!("_refs.md")]
     pub unsafe fn try_create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Result<Self, u32> {
         assert!(options & HEAP_GENERATE_EXCEPTIONS == 0, "bug: undefined behavior: HeapNoSerialize::try_create cannot be used with HEAP_GENERATE_EXCEPTIONS");
         let initial_size = initial_size.map_or(0, |nz| nz.get());
@@ -91,10 +93,12 @@ impl HeapNoSerialize {
     /// [`HEAP_NO_SERIALIZE`] is recommended but not required.
     ///
     /// ### Safety
-    /// *   `options & HEAP_GENERATE_EXCEPTIONS` is forbidden: Rust assumes C-ABI / no SEH exceptions
+    /// *   <code>options &amp; [HEAP_GENERATE_EXCEPTIONS]</code> is forbidden: Rust assumes C-ABI / no SEH exceptions
     /// *   New `options` may be added which are similarly undefined behavior.
     /// *   The function may make a best-effort attempt to [`panic!`] instead of invoking UB.
     /// *   No idea what happens if `initial_size` > `maximum_size`.
+    ///
+    #[doc = include_str!("_refs.md")]
     pub unsafe fn create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Self {
         // SAFETY: ✔️ create and try_create have identical preconditions
         unsafe { Self::try_create(options, initial_size, maximum_size) }.unwrap_or_else(|err| panic!("HeapCreate failed with GetLastError() == 0x{err:08x}"))

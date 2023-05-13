@@ -14,9 +14,9 @@ use core::ptr::NonNull;
 /// | Rust                                      | C                     |
 /// | ------------------------------------------| ----------------------|
 /// | [`thin::Alloc::alloc_uninit`]             | <code>[HeapAlloc](heap, 0, size)</code>
-/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc](heap, HEAP_ZERO_MEMORY, size)</code>
+/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc](heap, [HEAP_ZERO_MEMORY], size)</code>
 /// | [`thin::Realloc::realloc_uninit`]         | <code>[HeapReAlloc](heap, 0, ptr, size)</code>
-/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc](heap, HEAP_ZERO_MEMORY, ptr, size)</code>
+/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc](heap, [HEAP_ZERO_MEMORY], ptr, size)</code>
 /// | [`thin::Free::free`]                      | <code>[HeapFree]\(heap, 0, ptr\)</code>
 /// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\(heap, 0, ptr\)</code>
 ///
@@ -56,8 +56,8 @@ impl Heap {
     /// ### Safety
     /// *   `*handle` must be a valid [`HeapAlloc`]-compatible `HANDLE`.
     /// *   `*handle` must be a growable heap
-    /// *   `*handle` must only be accessed in a serialized fashion (e.g. not creating using, nor never used with, `HEAP_NO_SERIALIZE`)
-    /// *   `*handle` must remain valid for the lifetime of `'a'`.
+    /// *   `*handle` must only be accessed in a serialized fashion (e.g. not creating using, nor ever used with, [`HEAP_NO_SERIALIZE`])
+    /// *   `*handle` must remain valid for the lifetime of `'a`.
     ///
     #[doc = include_str!("_refs.md")]
     pub unsafe fn borrow(handle: &HANDLE) -> &Self {
@@ -68,11 +68,13 @@ impl Heap {
     /// [`HeapCreate`]
     ///
     /// ### Safety
-    /// *   `options & HEAP_NO_SERIALIZE` is forbidden: [`Heap`] is [`Send`]+[`Sync`] so that would be undefined behavior.
-    /// *   `options & HEAP_GENERATE_EXCEPTIONS` is forbidden: Rust assumes C-ABI / no SEH exceptions
+    /// *   <code>options &amp; [HEAP_NO_SERIALIZE]</code> is forbidden: [`Heap`] is [`Send`]+[`Sync`] so that would be undefined behavior.
+    /// *   <code>options &amp; [HEAP_GENERATE_EXCEPTIONS]</code> is forbidden: Rust assumes C-ABI / no SEH exceptions
     /// *   New `options` may be added which are similarly undefined behavior.
     /// *   The function may make a best-effort attempt to [`panic!`] instead of invoking UB.
     /// *   No idea what happens if `initial_size` > `maximum_size`.
+    ///
+    #[doc = include_str!("_refs.md")]
     pub unsafe fn try_create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Result<Self, u32> {
         assert!(options & HEAP_NO_SERIALIZE == 0, "bug: undefined behavior: Heap::try_create cannot be used with HEAP_NO_SERIALIZE");
         assert!(options & HEAP_GENERATE_EXCEPTIONS == 0, "bug: undefined behavior: Heap::try_create cannot be used with HEAP_GENERATE_EXCEPTIONS");
@@ -88,11 +90,13 @@ impl Heap {
     /// [`HeapCreate`]
     ///
     /// ### Safety
-    /// *   `options & HEAP_NO_SERIALIZE` is forbidden: [`Heap`] is [`Send`]+[`Sync`] so that would be undefined behavior.
-    /// *   `options & HEAP_GENERATE_EXCEPTIONS` is forbidden: Rust assumes C-ABI / no SEH exceptions
+    /// *   <code>options &amp; [HEAP_NO_SERIALIZE]</code> is forbidden: [`Heap`] is [`Send`]+[`Sync`] so that would be undefined behavior.
+    /// *   <code>options &amp; [HEAP_GENERATE_EXCEPTIONS]</code> is forbidden: Rust assumes C-ABI / no SEH exceptions
     /// *   New `options` may be added which are similarly undefined behavior.
     /// *   The function may make a best-effort attempt to [`panic!`] instead of invoking UB.
     /// *   No idea what happens if `initial_size` > `maximum_size`.
+    ///
+    #[doc = include_str!("_refs.md")]
     pub unsafe fn create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Self {
         // SAFETY: ✔️ create and try_create have identical preconditions
         unsafe { Self::try_create(options, initial_size, maximum_size) }.unwrap_or_else(|err| panic!("HeapCreate failed with GetLastError() == 0x{err:08x}"))
@@ -207,9 +211,9 @@ unsafe impl thin::SizeOfDebug for Heap {
 /// | Rust                                      | C                     |
 /// | ------------------------------------------| ----------------------|
 /// | [`thin::Alloc::alloc_uninit`]             | <code>[HeapAlloc]\([GetProcessHeap]\(\), 0, size\)</code>
-/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc]\([GetProcessHeap]\(\), HEAP_ZERO_MEMORY, size\)</code>
+/// | [`thin::Alloc::alloc_zeroed`]             | <code>[HeapAlloc]\([GetProcessHeap]\(\), [HEAP_ZERO_MEMORY], size\)</code>
 /// | [`thin::Realloc::realloc_uninit`]         | <code>[HeapReAlloc]\([GetProcessHeap]\(\), 0, ptr, size\)</code>
-/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc]\([GetProcessHeap]\(\), HEAP_ZERO_MEMORY, ptr, size\)</code>
+/// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc]\([GetProcessHeap]\(\), [HEAP_ZERO_MEMORY], ptr, size\)</code>
 /// | [`thin::Free::free`]                      | <code>[HeapFree]\([GetProcessHeap]\(\), 0, ptr\)</code>
 /// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\([GetProcessHeap]\(\), 0, ptr\)</code>
 ///
