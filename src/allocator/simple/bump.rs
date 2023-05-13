@@ -131,12 +131,12 @@ unsafe impl<'a> fat::Realloc for Bump<'a> {
 
     let mut buffer : MaybeUninit<[_; 4096]> = MaybeUninit::uninit();
     let alloc = Bump::from_array(&mut buffer);
-    let _u      = ABox::new_in(1u32, &alloc);
-    let _8_1    = ABox::new_in(2u8,  &alloc);
-    let _8_2    = ABox::new_in(3u8,  &alloc);
-    let _8_3    = ABox::new_in(4u8,  &alloc);
-    let _i      = ABox::new_in(5i32, &alloc);
-    let _b      = ABox::new_in(true, &alloc);
+    let _u      = ABox::try_new_in(1u32, &alloc).unwrap();
+    let _8_1    = ABox::try_new_in(2u8,  &alloc).unwrap();
+    let _8_2    = ABox::try_new_in(3u8,  &alloc).unwrap();
+    let _8_3    = ABox::try_new_in(4u8,  &alloc).unwrap();
+    let _i      = ABox::try_new_in(5i32, &alloc).unwrap();
+    let _b      = ABox::try_new_in(true, &alloc).unwrap();
 
     dbg!(&*_u as *const _);
     dbg!(&*_8_1 as *const _);
