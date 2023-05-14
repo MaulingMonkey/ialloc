@@ -10,6 +10,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  build-osx:
+    name: OS X
+    runs-on: macos-11
+    steps:
+    - uses: actions/checkout@v2
+    - name: Info
+      run: |
+        rustc -V
+        cargo -V
+    - name: Test
+      run: cargo test
   build-ubuntu:
     name: Ubuntu Latest
     runs-on: ubuntu-latest
