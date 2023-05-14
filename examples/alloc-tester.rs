@@ -72,14 +72,14 @@ impl<A> Test<A> {
         let name = self.name;
         let thin = self.thin.map_or_else(|| format!(""), |t| if t.min == t.max { format!("{:?}", t.min) } else { format!("{:?} ..= {:?}", t.min, t.max) });
         let fat  = self.fat .map_or_else(|| format!(""), |t| if t.min == t.max { format!("{:?}", t.min) } else { format!("{:?} ..= {:?}", t.min, t.max) });
-        println!("{name: <20}{thin: <20}{fat: <20}");
+        println!("{name: <25}{thin: <20}{fat: <20}");
     }
 }
 
 fn main() {
-    println!("{: <20}{: <20}{: <20}", "",          "thin::Alloc",   "fat::Alloc",   );
-    println!("{: <20}{: <20}{: <20}", "Allocator", "Alignment",     "Alignment",    );
-    println!("{:=<60}", "");
+    println!("{: <25}{: <20}{: <20}", "",          "thin::Alloc",   "fat::Alloc",   );
+    println!("{: <25}{: <20}{: <20}", "Allocator", "Alignment",     "Alignment",    );
+    println!("{:=<65}", "");
     #[cfg(feature = "alloc")]   Test::new("Global",                 || alloc::Global                    )       .fat().print();
     #[cfg(c89)]                 Test::new("Malloc",                 || c::Malloc                        ).thin().fat().print();
     #[cfg(c89)]                 Test::new("AlignedMalloc",          || c::AlignedMalloc                 )       .fat().print();
