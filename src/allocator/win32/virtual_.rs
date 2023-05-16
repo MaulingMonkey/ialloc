@@ -30,20 +30,30 @@ impl meta::Meta for VirtualCommit {
     const ZST_SUPPORTED : bool  = false;
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for VirtualCommit {
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Error> {
+        // SAFETY: ✔️ `lpAddress` is optional and may be null - we have no preference about allocation location
+        // SAFETY: ✔️ `size` is in bytes and unbounded - will round up to the next page boundary.  `0` will fail, as #[test]ed.
+        // SAFETY: ✔️ `MEM_COMMIT` is addressable.  We'd need `MEM_RESERVE` too if `lpAddress` weren't null.
+        // SAFETY: ✔️ `PAGE_READWRITE` is the typical W^X-safe allocation access mode
+        // SAFETY: ✔️ returned allocations, if successful, will have at least page alignment (4 KiB), although even larger is common (64 KiB on my machine)
         NonNull::new(unsafe { VirtualAlloc(null_mut(), size, MEM_COMMIT, PAGE_READWRITE) }.cast()).ok_or_else(Error::get_last)
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Free for VirtualCommit {
     unsafe fn free(&self, ptr: AllocNN) {
+        // SAFETY: ✔️ `ptr` belongs to `self` and is thus `MEM_COMMIT` returned directly from `VirtualAlloc`
+        // SAFETY: ✔️ `size=0` is required for `MEM_RELEASE` and frees the entire `VirtualAlloc`ed region
         let success = unsafe { VirtualFree(ptr.as_ptr().cast(), 0, MEM_RELEASE) };
         let result = if success == 0 { Err(Error::get_last()) } else { Ok(()) };
         result.expect("VirtualFree failed");
     }
 }
 
+// SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl fat::Realloc for VirtualCommit {}
 
 #[no_implicit_prelude] mod cleanroom {
