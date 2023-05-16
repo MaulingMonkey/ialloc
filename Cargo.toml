@@ -37,7 +37,7 @@ panicy-memory               = []
 
 alloc                       = []
 std                         = ["alloc"]
-win32                       = ["winapi"]
+win32                       = ["winapi", "winresult"]
 msvc                        = ["libc"]
 
 # Maximum enabled C standard.  May expose less if the compiler available to the `cc` crate doesn't support the standard.
@@ -74,6 +74,7 @@ bytemuck.features = [           # automatically opt into features that exist onl
 libc.version                = "0.2"
 libc.optional               = true
 
+[target.'cfg(windows)'.dependencies]
 winapi.version              = "0.3"
 winapi.optional             = true
 winapi.features = [
@@ -84,10 +85,13 @@ winapi.features = [
     "errhandlingapi",
     "heapapi",
     "minwinbase",
+    "memoryapi",
     "winbase",
     "wincrypt",
     "winnt",
 ]
+winresult.version           = "0.1"
+winresult.optional          = true
 
 [profile.release]
 debug = true

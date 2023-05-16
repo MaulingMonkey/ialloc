@@ -34,7 +34,9 @@ pub unsafe trait Alloc : Meta {
     /// Allocate at least `size` bytes of uninitialized memory.
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
-    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error>;
+    fn alloc_uninit(&self, size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
+        self.alloc_zeroed(size).map(|p| p.cast())
+    }
 
     /// Allocate at least `size` bytes of zeroed memory.
     ///

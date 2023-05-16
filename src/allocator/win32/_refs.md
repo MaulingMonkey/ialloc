@@ -63,6 +63,78 @@
 [`VirtualQueryEx`]:                 https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualqueryex
 [`VirtualUnlock`]:                  https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualunlock
 
+[VirtualAlloc]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc
+[VirtualAlloc2]:                    https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
+[VirtualAlloc2FromApp]:             https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2fromapp
+[VirtualAllocEx]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocex
+[VirtualAllocExNuma]:               https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocexnuma
+[VirtualAllocFromApp]:              https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualallocfromapp
+[VirtualFree]:                      https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree
+[VirtualFreeEx]:                    https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfreeex
+[VirtualLock]:                      https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock
+[VirtualProtect]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotect
+[VirtualProtectEx]:                 https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectex
+[VirtualProtectFromApp]:            https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotectfromapp
+[VirtualQuery]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualquery
+[VirtualQueryEx]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualqueryex
+[VirtualUnlock]:                    https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualunlock
+
+[`MEM_COMMIT`]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_RESERVE`]:                    https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_RESET`]:                      https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_RESET_UNDO`]:                 https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_LARGE_PAGES`]:                https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_PHYSICAL`]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_TOP_DOWN`]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_WRITE_WATCH`]:                https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[`MEM_DECOMMIT`]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree#parameters
+[`MEM_RELEASE`]:                    https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree#parameters
+
+[MEM_COMMIT]:                       https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_RESERVE]:                      https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_RESET]:                        https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_RESET_UNDO]:                   https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_LARGE_PAGES]:                  https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_PHYSICAL]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_TOP_DOWN]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_WRITE_WATCH]:                  https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc#parameters
+[MEM_DECOMMIT]:                     https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree#parameters
+[MEM_RELEASE]:                      https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree#parameters
+
+[`PAGE_EXECUTE`]:                   https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_EXECUTE_READ`]:              https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_EXECUTE_READWRITE`]:         https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_EXECUTE_WRITECOPY`]:         https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_NOACCESS`]:                  https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_READONLY`]:                  https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_READWRITE`]:                 https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_WRITECOPY`]:                 https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_TARGETS_INVALID`]:           https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_TARGETS_NO_UPDATE`]:         https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_GUARD`]:                     https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_NOCACHE`]:                   https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_WRITECOMBINE`]:              https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_ENCLAVE_DECOMMIT`]:          https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_ENCLAVE_THREAD_CONTROL`]:    https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[`PAGE_ENCLAVE_UNVALIDATED`]:       https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+
+[PAGE_EXECUTE]:                     https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_EXECUTE_READ]:                https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_EXECUTE_READWRITE]:           https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_EXECUTE_WRITECOPY]:           https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_NOACCESS]:                    https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_READONLY]:                    https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_READWRITE]:                   https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_WRITECOPY]:                   https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_TARGETS_INVALID]:             https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_TARGETS_NO_UPDATE]:           https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_GUARD]:                       https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_NOCACHE]:                     https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_WRITECOMBINE]:                https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_ENCLAVE_DECOMMIT]:            https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_ENCLAVE_THREAD_CONTROL]:      https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+[PAGE_ENCLAVE_UNVALIDATED]:         https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
+
 
 
 <!-- MSVC -->

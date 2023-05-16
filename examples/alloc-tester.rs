@@ -96,5 +96,6 @@ fn main() {
         Test::new("Local",              || win32::Local                     ).thin().fat().print();
         Test::new("CryptMem",           || win32::CryptMem                  ).thin().fat().print();
         Test::new("CoTaskMem",          || win32::CoTaskMem                 ).thin().fat().print();
+        Test::new("VirtualCommit",      || win32::VirtualCommit             ).thin().fat().print();
     }
 }

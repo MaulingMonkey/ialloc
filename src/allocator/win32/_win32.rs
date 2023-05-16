@@ -1,5 +1,5 @@
 #![cfg(all(target_os = "windows", feature = "win32"))]
-//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`Local`]
+//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`Local`], [`VirtualCommit`]
 //!
 //! | Allocator                     | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |
 //! | ------------------------------| ----------------------| ----------------------| ------------------| ----------------------|
@@ -10,12 +10,10 @@
 //! | [`HeapNoSerialize`]           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`ProcessHeap`]               | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`Local`]†                    | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
+//! | [`VirtualCommit`]             | [`VirtualAlloc`]      | ❌                    | [`Virtualfree`]   | ❌                    |
 //! |
 //! | (TODO)                        |
 //! | `IMalloc`†                    | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
-//! |
-//! | (TODO)                        | [`fat::Alloc`]        | [`fat::Realloc`]      | [`fat::Free`]     | [`thin::SizeOf`]      |
-//! | `Virtual(Commit?)`            | [`VirtualAlloc`]      | ❌                    | [`VirtualFree`]   | ❌                    |
 //!
 //! ## † Legacy Allocator Notes
 //!
@@ -59,6 +57,15 @@ mod global;             pub use global::*;
 mod heap;               pub use heap::*;
 mod heap_no_serialize;  pub use heap_no_serialize::*;
 mod local;              pub use local::*;
+mod virtual_;           pub use virtual_::*;
+
+/// ≈ [`winresult::ErrorHResultOrCode`]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Error(winresult::ErrorHResultOrCode);
+impl core::fmt::Debug   for Error { fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Debug::fmt(&self.0, f) } }
+//impl core::fmt::Display for Error { fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Display::fmt(&self.0, f) } }
+impl Error { pub(crate) fn get_last() -> Self { Self(winresult::ErrorHResultOrCode::from(unsafe { winapi::um::errhandlingapi::GetLastError() })) } }
+impl From<crate::error::ExcessiveAlignmentRequestedError> for Error { fn from(_: crate::error::ExcessiveAlignmentRequestedError ) -> Self { Self(winresult::ERROR::MAPPED_ALIGNMENT.into()) } } // XXX
+impl From<crate::error::ExcessiveSliceRequestedError    > for Error { fn from(_: crate::error::ExcessiveSliceRequestedError     ) -> Self { Self(winresult::ERROR::BUFFER_OVERFLOW.into()) } } // XXX
 
 /// | Arch      | Value |
 /// | ----------| -----:|
