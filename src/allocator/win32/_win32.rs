@@ -15,6 +15,10 @@
 //! | (TODO)                        |
 //! | `IMalloc`†                    | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
 //!
+//! ## Recommended Reading
+//! *   [Comparing Memory Allocation Methods](https://learn.microsoft.com/en-us/windows/win32/memory/comparing-memory-allocation-methods) (learn.microsoft.com)
+//! *   [Memory Performance Information](https://learn.microsoft.com/en-us/windows/win32/memory/memory-performance-information)
+//!
 //! ## † Legacy Allocator Notes
 //!
 //! Many of these allocators are, these days, simply wrappers around [`Heap`] allocations - possibly with extra overhead.

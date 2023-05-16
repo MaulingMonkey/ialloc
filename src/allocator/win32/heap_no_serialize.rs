@@ -20,6 +20,10 @@ use core::ptr::NonNull;
 /// | [`thin::Free::free`]                      | <code>[HeapFree]\(heap, [HEAP_NO_SERIALIZE], ptr\)</code>
 /// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\(heap, [HEAP_NO_SERIALIZE], ptr\)</code>
 ///
+/// ## Recommended Reading
+/// *   [Heap Functions](https://learn.microsoft.com/en-us/windows/win32/memory/heap-functions)
+/// *   [Low-fragmentation Heap](https://learn.microsoft.com/en-us/windows/win32/memory/low-fragmentation-heap)
+///
 #[doc = include_str!("_refs.md")]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] // SAFETY: this cannot be Clone or Copy as this owns the `HANDLE`
 #[repr(transparent)] // SAFETY: HeapNoSerialize::borrow makes use of this

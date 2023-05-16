@@ -20,6 +20,10 @@ use core::ptr::NonNull;
 /// | [`thin::Free::free`]                      | <code>[HeapFree]\(heap, 0, ptr\)</code>
 /// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\(heap, 0, ptr\)</code>
 ///
+/// ## Recommended Reading
+/// *   [Heap Functions](https://learn.microsoft.com/en-us/windows/win32/memory/heap-functions)
+/// *   [Low-fragmentation Heap](https://learn.microsoft.com/en-us/windows/win32/memory/low-fragmentation-heap)
+///
 #[doc = include_str!("_refs.md")]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] // SAFETY: this cannot be Clone or Copy as this owns the `HANDLE`
 #[repr(transparent)] // SAFETY: Heap::borrow makes use of this
@@ -216,6 +220,10 @@ unsafe impl thin::SizeOfDebug for Heap {
 /// | [`thin::Realloc::realloc_zeroed`]         | <code>[HeapReAlloc]\([GetProcessHeap]\(\), [HEAP_ZERO_MEMORY], ptr, size\)</code>
 /// | [`thin::Free::free`]                      | <code>[HeapFree]\([GetProcessHeap]\(\), 0, ptr\)</code>
 /// | [`thin::SizeOf::size_of`]                 | <code>[HeapSize]\([GetProcessHeap]\(\), 0, ptr\)</code>
+///
+/// ## Recommended Reading
+/// *   [Heap Functions](https://learn.microsoft.com/en-us/windows/win32/memory/heap-functions)
+/// *   [Low-fragmentation Heap](https://learn.microsoft.com/en-us/windows/win32/memory/low-fragmentation-heap)
 ///
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct ProcessHeap;

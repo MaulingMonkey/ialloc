@@ -16,6 +16,12 @@ use core::ptr::{null_mut, NonNull};
 /// | [`thin::Alloc::alloc_zeroed`]             | <code>[VirtualAlloc](nullptr, size, [MEM_COMMIT], [PAGE_READWRITE])</code>
 /// | [`thin::Free::free`]                      | <code>[VirtualFree](ptr, 0, [MEM_RELEASE])</code>
 ///
+/// ## Recommended Reading
+/// *   [Virtual Memory Functions](https://learn.microsoft.com/en-us/windows/win32/memory/virtual-memory-functions)
+/// *   [Working with Pages](https://learn.microsoft.com/en-us/windows/win32/memory/working-with-pages)
+/// *   [Page State](https://learn.microsoft.com/en-us/windows/win32/memory/page-state)
+/// *   [Creating Guard Pages](https://learn.microsoft.com/en-us/windows/win32/memory/creating-guard-pages)
+///
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct VirtualCommit;
 
