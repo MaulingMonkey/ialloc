@@ -22,7 +22,7 @@ impl meta::Meta for CryptMem {
     type Error                  = ();
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
-    const MAX_SIZE  : usize     = usize::MAX/2;
+    const MAX_SIZE  : usize     = u32::MAX as usize;
     const ZST_SUPPORTED : bool  = true;
 }
 
