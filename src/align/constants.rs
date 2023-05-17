@@ -36,6 +36,11 @@ constants! { // 16+-bit
 
 
 
+#[cfg(not(any(target_pointer_width = "16", target_pointer_width = "32")))] pub(crate) const ALIGN_MIN_4_GiB_MAX : Alignment = ALIGN_4_GiB;
+#[cfg(    any(target_pointer_width = "16", target_pointer_width = "32") )] pub(crate) const ALIGN_MIN_4_GiB_MAX : Alignment = Alignment::MAX;
+
+
+
 #[test] fn alignment_debug() {
     use crate::*;
     macro_rules! pp { ($expr:expr) => { alloc::format!("{}", crate::util::bytes::Pretty($expr.as_usize())) }; }

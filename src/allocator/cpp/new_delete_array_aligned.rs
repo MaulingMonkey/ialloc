@@ -17,7 +17,7 @@ impl Meta for NewDeleteArrayAligned {
     const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") {
         // macOS 11.7.6 20G1231 seems to provide at most 4 GiB alignment, returning e.g. 0x7fbf00000000 when 8 GiB alignment is requested
         // https://github.com/MaulingMonkey/ialloc/actions/runs/4998062851/jobs/8953095728
-        ALIGN_4_GiB
+        ALIGN_MIN_4_GiB_MAX
     } else {
         Alignment::MAX
     };
