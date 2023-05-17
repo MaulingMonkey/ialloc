@@ -157,22 +157,26 @@ pub mod test {
 
     /// Assert that `allocator` meets all it's alignment requirements
     pub fn alignment<A: Alloc + Free>(allocator: A) {
+        let mut ok = true;
         for size in [1, 0] {
             let mut align = ALIGN_1;
             loop {
                 let unaligned_mask = align.as_usize() - 1;
-                if let Some(alloc) = Layout::from_size_align(size, align.as_usize()).ok().and_then(|layout| FTB::try_new_uninit(&allocator, layout).ok()) {
+                let alloc = Layout::from_size_align(size, align.as_usize()).ok().and_then(|layout| FTB::try_new_uninit(&allocator, layout).ok());
+                std::println!("attempted to allocate size={size} align={align:?} ... {}", if alloc.is_some() { "ok" } else { "FAILED" });
+                if let Some(alloc) = alloc {
                     let alloc = alloc.as_ptr();
                     let addr = alloc as usize;
                     assert_eq!(0, addr & unaligned_mask, "allocation for size {align:?} @ {alloc:?} had less than expected alignment ({align:?} <= MAX_ALIGN)");
-                } else if size > 0 && align <= A::MAX_ALIGN && align <= ALIGN_4_KiB {
-                    panic!("failed to allocate for alignment {align:?} <= MAX_ALIGN");
+                } else if align <= A::MAX_ALIGN && align <= ALIGN_4_KiB && (A::ZST_SUPPORTED || size > 0) {
+                    ok = false;
                 }
                 let Some(next) = align.as_usize().checked_shl(1) else { break };
                 let Some(next) = Alignment::new(next) else { break };
                 align = next;
             }
         }
+        assert!(ok, "not all expected alignment allocations succeeded");
     }
 
     /// Check edge cases near 2 GiB, 4 GiB, usize::MAX/2, and usize::MAX watermarks.
