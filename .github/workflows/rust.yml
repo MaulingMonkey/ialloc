@@ -20,10 +20,7 @@ jobs:
         rustc -V
         cargo -V
     - name: Test
-      continue-on-error: true # this is bad, but I don't have OS X hardware to test on
       run: cargo test
-    - name: Test allocator::c::aligned_malloc::fat_alignment in isolation
-      run: cargo test allocator::c::aligned_malloc::fat_alignment
   build-ubuntu:
     name: Ubuntu Latest
     runs-on: ubuntu-latest

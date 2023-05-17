@@ -38,6 +38,19 @@ const _HEAP_MAXREQ : usize = usize::MAX & !0x1F;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct AlignedMalloc;
 
+impl AlignedMalloc {
+    fn check_layout(layout: Layout) -> Result<Layout, ()> {
+        if cfg!(target_os = "macos") {                                          // `aligned_alloc` is what I would consider to be a miserable pile of bugs, at least on macOS 11.7.6 20G1231.
+            if layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }   // 1. it will "succeed" when requesting 4 GiB+ alignment - but only provide 2 GiB alignment.  Manually reject these bogus fulfillments of our requests.
+            let layout = layout.align_to(8).map_err(|_| {})?;                   // 2. it will fail if the requested alignment is less than 8.  Even for something like size=align=1.  For no good reason whatsoever.  So... increase alignment:
+            let layout = layout.pad_to_align();                                 // 3. it might succeed if size=0, align=8, but will fail with size=1, align=8.  I'll interpret this as requiring size to be a multiple of alignment... make it so.
+            Ok(layout)
+        } else {
+            Ok(layout)
+        }
+    }
+}
+
 impl Meta for AlignedMalloc {
     type Error                  = ();
 
@@ -57,7 +70,7 @@ impl Meta for AlignedMalloc {
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Alloc for AlignedMalloc {
     #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        if Self::MAX_ALIGN != Alignment::MAX && layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
+        let layout = Self::check_layout(layout)?;
         #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size(), layout.align()) };
         #[cfg(not(target_env = "msvc"))] let alloc = unsafe { ffi::aligned_alloc(layout.align(), layout.size()) };
         NonNull::new(alloc.cast()).ok_or(())
@@ -65,7 +78,7 @@ unsafe impl fat::Alloc for AlignedMalloc {
 
     #[cfg(target_env = "msvc")]
     #[track_caller] fn alloc_zeroed(&self, layout: Layout) -> Result<NonNull<u8>, Self::Error> {
-        if Self::MAX_ALIGN != Alignment::MAX && layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
+        let layout = Self::check_layout(layout)?;
         let alloc = unsafe { ffi::_aligned_recalloc(core::ptr::null_mut(), 1, layout.size(), layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -86,14 +99,14 @@ unsafe impl fat::Free for AlignedMalloc {
 unsafe impl fat::Realloc for AlignedMalloc {
     #[cfg(target_env = "msvc")]
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
-        if Self::MAX_ALIGN != Alignment::MAX && new_layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
+        let new_layout = Self::check_layout(new_layout)?;
         let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     #[cfg(target_env = "msvc")]
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
-        if Self::MAX_ALIGN != Alignment::MAX && new_layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
+        let new_layout = Self::check_layout(new_layout)?;
         let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
