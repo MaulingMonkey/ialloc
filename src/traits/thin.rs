@@ -349,10 +349,8 @@ pub mod test {
                 // SAFETY: ✔️ should be safe to access the first byte of a 1 byte alloc - and being zeroed, it should be safe to strip MaybeUninit
                 let byte : &mut u8 = unsafe { &mut *alloc.as_ptr().cast::<u8>() };
 
-                let is_zeroed = *byte == 0u8;
+                assert!(*byte == 0u8, "A::alloc_zeroed returned unzeroed memory!");
                 *byte = 0xFF; // ensure we'll detect "unzeroed" memory if this alloc is reused without zeroing
-
-                assert!(is_zeroed, "A::alloc_zeroed returned unzeroed memory!");
             }
         }
     }
