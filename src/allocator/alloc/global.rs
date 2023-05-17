@@ -162,3 +162,11 @@ unsafe impl core::alloc::GlobalAlloc for Global {
         Ok(util::nn::slice_from_raw_parts(data.cast(), new_layout.size()))
     }
 }
+
+
+
+#[test] fn fat_alignment()          { fat::test::alignment(Global) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Global) }
+#[test] fn fat_uninit()             { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(Global) } } }
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Global) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Global) }

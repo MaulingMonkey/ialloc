@@ -1,10 +1,12 @@
 //! Rusty [ZST](https://doc.rust-lang.org/nomicon/exotic-sizes.html#zero-sized-types-zsts)-friendly allocator traits operating on [`Layout`]s
 
 use crate::*;
+use crate::boxed::ABox;
+use crate::meta::Meta;
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
-#[cfg(doc)] use core::ptr::NonNull;
+use core::ptr::NonNull;
 
 
 
@@ -16,7 +18,7 @@ use core::mem::MaybeUninit;
 /// ## Safety
 /// *   Allocations created by this trait must be compatible with any other [`fat`] traits implemented on this allocator type.
 /// *   Returned allocations must obey `layout` alignment and size.
-pub unsafe trait Alloc : meta::Meta {
+pub unsafe trait Alloc : Meta {
     /// Allocate at least `layout.size()` bytes of uninitialized memory aligned to `layout.align()`.
     ///
     /// The resulting allocation can typically be freed with <code>[Free]::[free](Free::free)</code>
@@ -40,7 +42,7 @@ pub unsafe trait Alloc : meta::Meta {
 ///
 /// ## Safety
 /// *   This trait must be able to free allocations made by any other [`fat`] traits implemented on this allocator type.
-pub unsafe trait Free : meta::Meta {
+pub unsafe trait Free : Meta {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
     /// ### Safety
@@ -126,4 +128,125 @@ unsafe impl<'a, A: Free> Free for &'a A {
 unsafe impl<'a, A: Realloc> Realloc for &'a A {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_uninit(self, ptr, old_layout, new_layout) } }
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> { unsafe { A::realloc_zeroed(self, ptr, old_layout, new_layout) } }
+}
+
+
+
+/// Testing functions to verify implementations of [`fat`] traits.
+pub mod test {
+    use super::*;
+
+    /// "Fat Test Box"
+    #[allow(clippy::upper_case_acronyms)]
+    struct FTB<A: Free> {
+        allocator:  A,
+        layout:     Layout,
+        data:       NonNull<MaybeUninit<u8>>
+    }
+    impl<A: Free> Drop for FTB<A> {
+        fn drop(&mut self) {
+            // SAFETY: ✔️ we exclusively own `self.data`
+            // SAFETY: ✔️ `self.data` was allocated by `self.allocator` with layout `self.layout`
+            unsafe { self.allocator.free(self.data, self.layout) }
+        }
+    }
+    impl<A: Free> FTB<A> {
+        pub fn try_new_uninit(allocator: A, layout: Layout) -> Result<Self, A::Error> where A : Alloc { let data = allocator.alloc_uninit(layout)?; Ok(Self{allocator, layout, data }) }
+        fn as_ptr(&self) -> *mut MaybeUninit<u8> { self.data.as_ptr() }
+    }
+
+    /// Assert that `allocator` meets all it's alignment requirements
+    pub fn alignment<A: Alloc + Free>(allocator: A) {
+        for size in [0, 1] {
+            let mut align = ALIGN_1;
+            loop {
+                let unaligned_mask = align.as_usize() - 1;
+                if let Some(alloc) = Layout::from_size_align(size, align.as_usize()).ok().and_then(|layout| FTB::try_new_uninit(&allocator, layout).ok()) {
+                    let alloc = alloc.as_ptr();
+                    let addr = alloc as usize;
+                    assert_eq!(0, addr & unaligned_mask, "allocation for size {align:?} @ {alloc:?} had less than expected alignment ({align:?} <= MAX_ALIGN)");
+                } else if size > 0 && align <= A::MAX_ALIGN && align <= ALIGN_4_KiB {
+                    panic!("failed to allocate for alignment {align:?} <= MAX_ALIGN");
+                }
+                let Some(next) = align.as_usize().checked_shl(1) else { break };
+                let Some(next) = Alignment::new(next) else { break };
+                align = next;
+            }
+        }
+    }
+
+    /// Check edge cases near 2 GiB, 4 GiB, usize::MAX/2, and usize::MAX watermarks.
+    pub fn edge_case_sizes<A: Alloc + Free>(allocator: A) {
+        let boundaries = if cfg!(target_pointer_width = "64") {
+            &[0, (u32::MAX/2) as usize, (u32::MAX  ) as usize, usize::MAX/2, usize::MAX][..]
+        } else {
+            &[0, usize::MAX/2, usize::MAX][..]
+        };
+        for boundary in boundaries.iter().copied() {
+            for offset in -64_isize .. 64_isize {
+                let Some(size) = boundary.checked_add_signed(offset) else { continue };
+                let Ok(layout) = Layout::from_size_align(size, 1) else { continue };
+                std::dbg!(size);
+                let Ok(alloc) = FTB::try_new_uninit(&allocator, layout) else { continue };
+                if let Some(last_byte_index) = size.checked_sub(1) {
+                    let last_byte_index = last_byte_index.min(isize::MAX as usize);
+                    // SAFETY: ✔️ in bounds of allocated object
+                    // SAFETY: ✔️ cannot overflow an isize (capped immediately above)
+                    // SAFETY: ✔️ does not wrap around address space
+                    let last_byte = unsafe { alloc.as_ptr().add(last_byte_index) };
+                    // SAFETY: ✔️ in bounds of allocated object
+                    unsafe { last_byte.write_volatile(MaybeUninit::new(42u8)) };
+                }
+            }
+        }
+    }
+
+    // nullable - fat::Free has no nullable free fns
+
+    // size_* - fat::* has no Size traits
+
+    /// **UNSOUND:** Verify `A` allocates uninitialized memory by reading `MaybeUninit<u8>`s.
+    ///
+    /// This is technically completely unnecessary - but educational for verifying assumptions.  Use this only in non-production unit tests.
+    #[allow(clippy::missing_safety_doc)] // It's in the first line instead
+    pub unsafe fn uninit_alloc_unsound<A: Alloc + Free>(allocator: A) {
+        let mut any = false;
+        for _ in 0 .. 1000 {
+            if let Ok(mut byte) = ABox::<u8, _>::try_new_uninit_in(&allocator) {
+                any = true;
+
+                // SAFETY: ❌ this is unsound per the fn preamble!
+                let is_uninit = unsafe { (*byte).assume_init() } != 0;
+
+                (*byte).write(0xFF); // ensure we'll detect "uninitialized" memory if this alloc is reused
+
+                if is_uninit { return } // success!
+            }
+        }
+        assert!(!any, "A::alloc_uninit appears to allocate zeroed memory");
+    }
+
+    /// Assert that `allocator` always provides zeroed memory when requested
+    pub fn zeroed_alloc<A: Alloc + Free>(allocator: A) {
+        for _ in 0 .. 1000 {
+            if let Ok(mut byte) = ABox::<u8, _>::try_new_bytemuck_zeroed_in(&allocator) {
+                assert!(*byte == 0u8, "A::alloc_zeroed returned unzeroed memory!");
+                *byte = 0xFF; // ensure we'll detect "unzeroed" memory if this alloc is reused without zeroing
+            }
+        }
+    }
+
+    /// Assert that [`Meta::ZST_SUPPORTED`] accurately reports if `A` supports ZSTs
+    pub fn zst_supported_accurate<A: Alloc + Free>(allocator: A) {
+        let alloc = FTB::try_new_uninit(&allocator, Layout::new::<()>());
+        let alloc = alloc.as_ref().map(|a| a.as_ptr());
+        assert_eq!(alloc.is_ok(), A::ZST_SUPPORTED, "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED);
+    }
+
+    /// Assert that `A` supports ZSTs if [`Meta::ZST_SUPPORTED`] is set.
+    pub fn zst_supported_conservative<A: Alloc + Free>(allocator: A) {
+        let alloc = FTB::try_new_uninit(&allocator, Layout::new::<()>());
+        let alloc = alloc.as_ref().map(|a| a.as_ptr());
+        if A::ZST_SUPPORTED { assert!(alloc.is_ok(), "alloc = {alloc:?}, ZST_SUPPORTED = {}", A::ZST_SUPPORTED) }
+    }
 }

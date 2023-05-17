@@ -33,3 +33,11 @@ unsafe impl fat::Free for NewDeleteArrayAligned {
 
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Realloc for NewDeleteArrayAligned {}
+
+
+
+#[test] fn fat_alignment()          { fat::test::alignment(NewDeleteArrayAligned) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(NewDeleteArrayAligned) }
+#[test] fn fat_uninit()             { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(NewDeleteArrayAligned) } } }
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(NewDeleteArrayAligned) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(NewDeleteArrayAligned) }

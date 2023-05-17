@@ -346,3 +346,41 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of_debug(&self,
     thin::test::zst_supported_accurate(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
     Heap::with_process(|heap| thin::test::zst_supported_accurate(heap));
 }
+
+
+
+#[test] fn fat_alignment() {
+    fat::test::alignment(ProcessHeap);
+    fat::test::alignment(create_test_heap(None, None));
+    fat::test::alignment(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::alignment(heap));
+}
+
+#[test] fn fat_edge_case_sizes() {
+    fat::test::edge_case_sizes(ProcessHeap);
+    fat::test::edge_case_sizes(create_test_heap(None, None));
+    fat::test::edge_case_sizes(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::edge_case_sizes(heap));
+}
+
+#[test] fn fat_uninit() {
+    unsafe { fat::test::uninit_alloc_unsound(ProcessHeap) };
+    unsafe { fat::test::uninit_alloc_unsound(create_test_heap(None, None)) };
+    unsafe { fat::test::uninit_alloc_unsound(create_test_heap(None, NonZeroUsize::new(1024 * 1024))) };
+    Heap::with_process(|heap| unsafe { fat::test::uninit_alloc_unsound(heap) });
+}
+
+#[test] fn fat_zeroed() {
+    fat::test::zeroed_alloc(ProcessHeap);
+    fat::test::zeroed_alloc(create_test_heap(None, None));
+    fat::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::zeroed_alloc(heap));
+}
+
+#[test] fn fat_zst_support() {
+    fat::test::zst_supported_accurate(ProcessHeap);
+    fat::test::zst_supported_accurate(create_test_heap(None, None));
+    fat::test::zst_supported_accurate(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::zst_supported_accurate(heap));
+}
+

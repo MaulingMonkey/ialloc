@@ -136,3 +136,11 @@ mod ffi {
         pub fn _aligned_recalloc_dbg(block: *mut c_void, count: size_t, size: size_t, alignment: size_t, file_name: abistr::CStrPtr<u8>, line_number: c_int) -> *mut c_void;
     }
 }
+
+
+
+#[test] fn fat_alignment()              { fat::test::alignment(AlignedMalloc) }
+#[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(AlignedMalloc) }
+#[test] fn fat_uninit()                 { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(AlignedMalloc) } } } // malloc returns zeroed memory on some platforms
+#[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(AlignedMalloc) }
+#[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(AlignedMalloc) }

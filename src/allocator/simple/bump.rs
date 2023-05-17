@@ -154,3 +154,11 @@ unsafe impl<'a> fat::Realloc for Bump<'a> {
 
     while let Ok(_) = ABox::try_new_in(1u8, &alloc) {}
 }
+
+
+
+#[test] fn fat_alignment()          { fat::test::alignment(&Bump::from_array(&mut MaybeUninit::new([(); 131072].map(|_| MaybeUninit::<u8>::new(0xFF))))) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(&Bump::from_array(&mut MaybeUninit::new([(); 131072].map(|_| MaybeUninit::<u8>::new(0xFF))))) }
+#[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(&Bump::from_array(&mut MaybeUninit::new([(); 131072].map(|_| MaybeUninit::<u8>::new(0xFF))))) } }
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(&Bump::from_array(&mut MaybeUninit::new([(); 131072].map(|_| MaybeUninit::<u8>::new(0xFF))))) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(&Bump::from_array(&mut MaybeUninit::new([(); 131072].map(|_| MaybeUninit::<u8>::new(0xFF))))) }

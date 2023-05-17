@@ -134,3 +134,9 @@ unsafe impl thin::SizeOfDebug for Global {
 #[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(Global) } }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(Global) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(Global) }
+
+#[test] fn fat_alignment()          { fat::test::alignment(Global) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Global) }
+#[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(Global) } }
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Global) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Global) }

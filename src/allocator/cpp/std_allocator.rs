@@ -56,4 +56,10 @@ unsafe impl fat::Realloc for StdAllocator<c_char> {}
 
 
 
-#[test] fn thin_zst_support() { thin::test::zst_supported_conservative_leak(StdAllocator::<c_char>::new()) }
+#[test] fn thin_zst_support()       { thin::test::zst_supported_conservative_leak(StdAllocator::<c_char>::new()) }
+
+#[test] fn fat_alignment()          { fat::test::alignment(StdAllocator::<c_char>::new()) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(StdAllocator::<c_char>::new()) }
+#[test] fn fat_uninit()             { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(StdAllocator::<c_char>::new()) } } }
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(StdAllocator::<c_char>::new()) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(StdAllocator::<c_char>::new()) }

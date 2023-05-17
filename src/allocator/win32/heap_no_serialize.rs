@@ -251,3 +251,30 @@ unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     thin::test::zst_supported_accurate(create_test_heap(None, None));
     thin::test::zst_supported_accurate(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
 }
+
+
+
+#[test] fn fat_alignment() {
+    fat::test::alignment(create_test_heap(None, None));
+    fat::test::alignment(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
+#[test] fn fat_edge_case_sizes() {
+    fat::test::edge_case_sizes(create_test_heap(None, None));
+    fat::test::edge_case_sizes(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
+#[test] fn fat_uninit() {
+    unsafe { fat::test::uninit_alloc_unsound(create_test_heap(None, None)) };
+    unsafe { fat::test::uninit_alloc_unsound(create_test_heap(None, NonZeroUsize::new(1024 * 1024))) };
+}
+
+#[test] fn fat_zeroed() {
+    fat::test::zeroed_alloc(create_test_heap(None, None));
+    fat::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
+#[test] fn fat_zst_support() {
+    fat::test::zst_supported_accurate(create_test_heap(None, None));
+    fat::test::zst_supported_accurate(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}

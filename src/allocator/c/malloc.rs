@@ -140,3 +140,11 @@ unsafe impl thin::SizeOfDebug for Malloc {
 #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(Malloc) }
 #[test] fn thin_zst_support_dangle()    { thin::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
 #[test] fn thin_zst_support_alloc()     { thin::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }
+
+#[test] fn fat_alignment()              { fat::test::alignment(Malloc) }
+#[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(Malloc) }
+#[test] fn fat_uninit()                 { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(Malloc) } } } // malloc returns zeroed memory on some platforms
+#[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(Malloc) }
+#[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(Malloc) }
+#[test] fn fat_zst_support_dangle()     { fat::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
+#[test] fn fat_zst_support_alloc()      { fat::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }

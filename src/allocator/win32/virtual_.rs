@@ -79,3 +79,9 @@ unsafe impl fat::Realloc for VirtualCommit {}
 //#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(VirtualCommit) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(VirtualCommit) }
+
+#[test] fn fat_alignment()          { fat::test::alignment(VirtualCommit) }
+#[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(VirtualCommit) }
+//#[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
+#[test] fn fat_zeroed()             { fat::test::zeroed_alloc(VirtualCommit) }
+#[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(VirtualCommit) }
