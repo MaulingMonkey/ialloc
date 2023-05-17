@@ -20,8 +20,18 @@ use core::ptr::NonNull;
 /// </code><br>
 ///
 /// ## Safety
-/// *   Allocations created by this trait must be compatible with any other [`thin`] traits implemented on this allocator type.
-/// *   Returned allocations must be valid for at least `size` bytes.
+/// Invariants that [`Alloc`] must uphold for the soundness of various `unsafe` code include:
+///
+/// | Item          | Description   |
+/// | --------------| --------------|
+/// | `align`       | Returned allocations must have correct alignment based on `size` per the alignment guarantees section bellow.
+/// | `size`        | Returned allocations must be valid to read and/or write for at least `size` bytes.
+/// | `pin`         | Returned allocations must remain valid at their initial address for the lifetime of `Self` (typically `'static`!), or until freed by [`Free`] or successful [`Realloc`] - whichever comes first.  In some cases (e.g. structs allocating from arrays on `self` without heap indirection), this might mean that the traits can only be implemented on shared references, rather than on the structs themselves.
+/// | `compatible`  | Returned allocations must be compatible with all other [`thin`] traits implemented on the same allocator (at minimum in the sense that they must not cause undefined behavior when passed pointers to said allocations)
+/// | `exclusive`   | Returned allocations belong exclusively to the caller.  Double allocating the same pool slot without a free would be undefined behavior.
+/// | `exceptions`  | System allocators typically use `extern "C"` FFI, which is *not* safe to unwind exceptions through.  Ensure you catch any expected exceptions such as C++'s [`std::bad_alloc`] and SEH exceptions like `STATUS_HEAP_CORRUPTION` (e.g. don't use `HEAP_GENERATE_EXCEPTIONS`) on the C/C++ side before returning into Rust code.
+/// | `threads`     | Allocators are typically implicitly [`Send`]+[`Sync`], which means the underlying FFI calls must be thread safe too.
+/// | `zeroed`      | Allocations returned by [`Alloc::alloc_zeroed`] must be zeroed for their entire size.  This might be for more than `size` if [`SizeOfDebug`] is implemented.
 ///
 /// ## Alignment Guarantees
 ///
@@ -30,6 +40,9 @@ use core::ptr::NonNull;
 /// | <code>0 .. [Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>                                | <code>[Meta]::[MIN_ALIGN](Meta::MIN_ALIGN)</code>
 /// | <code>[Meta]::[MIN_ALIGN](Meta::MIN_ALIGN) .. [MAX_ALIGN](Meta::MAX_ALIGN)</code>     | The largest power of two that fits within `size`
 /// | <code>[Meta]::[MAX_ALIGN](Meta::MAX_ALIGN) ..</code>                                  | <code>[Meta]::[MAX_ALIGN](Meta::MAX_ALIGN)</code>
+///
+/// [`std::bad_alloc`]: https://en.cppreference.com/w/cpp/memory/new/bad_alloc
+///
 pub unsafe trait Alloc : Meta {
     /// Allocate at least `size` bytes of uninitialized memory.
     ///
@@ -57,7 +70,14 @@ pub unsafe trait Alloc : Meta {
 /// <br>
 ///
 /// ## Safety
-/// *   This trait must be able to free allocations made by any other [`thin`] traits implemented on this allocator type.
+/// Invariants that [`Free`] must uphold for the soundness of various `unsafe` code include:
+///
+/// | Item          | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | It must be safe to pass the result of any [`thin::Alloc`] or [`thin::Realloc`] function, implemented on the same type, to any [`thin::Free`] function (once - twice would be an unsound double free.)
+/// | `exceptions`  | System allocators typically use `extern "C"` FFI, which is *not* safe to unwind exceptions through.  Avoid C++ or SEH exceptions in favor of error codes or fatal exceptions.
+/// | `threads`     | Allocators are typically implicitly [`Send`]+[`Sync`], which means the underlying FFI calls must be thread safe too.
+///
 pub unsafe trait Free : meta::Meta {
     /// Deallocate an allocation, `ptr`, belonging to `self`.
     ///
@@ -89,8 +109,22 @@ pub unsafe trait Free : meta::Meta {
 /// <br>
 ///
 /// ## Safety
-/// *   This trait must be able to reallocate allocations made by any other [`thin`] traits implemented on this allocator type.
-/// *   Returned allocations must be valid for at least `new_size` bytes.
+/// Invariants that [`Realloc`] must uphold for the soundness of various `unsafe` code include:
+///
+/// | Item          | Description   |
+/// | --------------| --------------|
+/// | `align`       | Returned allocations must have correct alignment based on `size` per the alignment guarantees section bellow.
+/// | `size`        | Returned allocations must be valid to read and/or write for at least `new_size` bytes.
+/// | `pin`         | Returned allocations must remain valid at their initial address for the lifetime of `Self` (typically `'static`!), or until freed by [`Free`] or successful [`Realloc`] - whichever comes first.  In some cases (e.g. structs allocating from arrays on `self` without heap indirection), this might mean that the traits can only be implemented on shared references, rather than on the structs themselves.
+/// | `compatible`  | Returned allocations must be compatible with all other [`thin`] traits implemented on the same allocator (at minimum in the sense that they must not cause undefined behavior when passed pointers to said allocations)
+/// | `exclusive`   | Returned allocations belong exclusively to the caller.  Double allocating the same pool slot without a free would be undefined behavior.
+/// | `exceptions`  | System allocators typically use `extern "C"` FFI, which is *not* safe to unwind exceptions through.  Ensure you catch any expected exceptions such as C++'s [`std::bad_alloc`] and SEH exceptions like `STATUS_HEAP_CORRUPTION` (e.g. don't use `HEAP_GENERATE_EXCEPTIONS`) on the C/C++ side before returning into Rust code.
+/// | `threads`     | Allocators are typically implicitly [`Send`]+[`Sync`], which means the underlying FFI calls must be thread safe too.
+/// | `zeroed`      | Allocations returned by [`Realloc::realloc_zeroed`] must be zeroed between their old and new actualized size - which might be for more than `new_size` (especially if [`SizeOfDebug`] is implemented.)
+/// | `preserved`   | Allocations returned by [`Realloc`] must preserve their previous contents (although truncation if `new_size` is smaller than the old size is OK)
+///
+/// [`std::bad_alloc`]: https://en.cppreference.com/w/cpp/memory/new/bad_alloc
+///
 pub unsafe trait Realloc : Alloc + Free {
     /// Indicate if [`realloc_zeroed`](Self::realloc_zeroed) is supported / likely to work.
     const CAN_REALLOC_ZEROED : bool;
@@ -126,8 +160,15 @@ pub unsafe trait Realloc : Alloc + Free {
 /// <br>
 ///
 /// ## Safety
-/// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
-/// *   If given a valid `ptr`, you promise that `ptr[..a.size_of(ptr)]` is dereferenceable.
+/// Invariants that [`SizeOf`] must uphold for the soundness of various `unsafe` code include:
+///
+/// | Item          | Description   |
+/// | --------------| --------------|
+/// | `size`        | [`size_of`](Self::size_of) must return be at least the size allocated through e.g. [`thin::Alloc`] or [`thin::Realloc`].  Bytes up to that size must be readable, writeable, and if zeroing (re)allocation was used, initialized to zero.
+/// | `compatible`  | It must be safe to call [`size_of`](Self::size_of) on any valid [`thin`] allocation.
+/// | `exceptions`  | System allocators typically use `extern "C"` FFI, which is *not* safe to unwind exceptions through.  Avoid C++ or SEH exceptions in favor of error codes or fatal exceptions.
+/// | `threads`     | Allocators are typically implicitly [`Send`]+[`Sync`], which means the underlying FFI calls must be thread safe too.
+///
 pub unsafe trait SizeOf : SizeOfDebug {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
@@ -147,8 +188,14 @@ pub unsafe trait SizeOf : SizeOfDebug {
 /// <br>
 ///
 /// ## Safety
-/// *   This trait must be able to safely query the size of allocations made by any [`thin`] traits implemented on this allocator type.
-/// *   If given a valid `ptr`, by returning <code>[Some]\(...\)</code>, you promise that `ptr[..a.size_of_debug(ptr)]` is dereferenceable.
+/// Invariants that [`SizeOfDebug`] must uphold for the soundness of various `unsafe` code include:
+///
+/// | Item          | Description   |
+/// | --------------| --------------|
+/// | `size`        | While it is always valid to return [`None`], if [`size_of_debug`](Self::size_of_debug) returns [`Some`], it must be at least the size allocated through e.g. [`thin::Alloc`] or [`thin::Realloc`].  Bytes up to that size must be readable, writeable, and if zeroing (re)allocation was used, initialized to zero.
+/// | `compatible`  | It must be safe to call [`size_of_debug`](Self::size_of_debug) on any valid [`thin`] allocation.
+/// | `exceptions`  | System allocators typically use `extern "C"` FFI, which is *not* safe to unwind exceptions through.  Avoid C++ or SEH exceptions in favor of error codes or fatal exceptions.
+/// | `threads`     | Allocators are typically implicitly [`Send`]+[`Sync`], which means the underlying FFI calls must be thread safe too.
 ///
 /// ## Remarks
 /// This trait may fail (returning [`None`]) even if `ptr` is a thin allocation belonging to `self`.
@@ -169,6 +216,7 @@ pub unsafe trait SizeOf : SizeOfDebug {
 /// let slice : &[MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) };
 /// # }
 /// ```
+///
 pub unsafe trait SizeOfDebug : meta::Meta {
     /// Attempt to retrieve the size of the allocation `ptr`, owned by `self`.
     ///
