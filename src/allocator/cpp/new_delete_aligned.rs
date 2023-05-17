@@ -7,7 +7,7 @@ use core::ptr::NonNull;
 
 
 
-/// [`::operator new(size_t, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) <br>
+/// [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) <br>
 /// [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteAligned;
 
@@ -29,7 +29,13 @@ impl Meta for NewDeleteAligned {
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Alloc for NewDeleteAligned {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ OS X can underalign if we don't perform this explicit check.
         if Self::MAX_ALIGN != Alignment::MAX && layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
+
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ this "should" allocate correctly for all `size`.  #[test]ed for via fat::test::edge_case_sizes at the end of this file.
+        // SAFETY: ✔️ this "should" align correctly for all `align <= MAX_ALIGN`.  #[test]ed for via fat::test::alignment at the end of this file.
+        // SAFETY: ✔️ should not throw
         NonNull::new(unsafe { ffi::operator_new_align_nothrow(layout.size(), layout.align()) }.cast()).ok_or(())
     }
 }
@@ -37,6 +43,8 @@ unsafe impl fat::Alloc for NewDeleteAligned {
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Free for NewDeleteAligned {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Free::free's documented safety preconditions - and thus was allocated with `::operator new(size_t, align_val_t, nothrow_t)`
         unsafe { ffi::operator_delete_align(ptr.as_ptr().cast(), layout.align()) };
     }
 }

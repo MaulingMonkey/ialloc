@@ -6,7 +6,7 @@ use core::ptr::NonNull;
 
 
 /// [`::operator new[](size_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) <br>
-/// [`::operator delete[](void*, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
+/// [`::operator delete[](void*)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteArray;
 
 impl meta::Meta for NewDeleteArray {
@@ -38,7 +38,7 @@ unsafe impl thin::Alloc for NewDeleteArray {
 unsafe impl thin::Free for NewDeleteArray {
     unsafe fn free_nullable(&self, ptr: *mut core::mem::MaybeUninit<u8>) {
         // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `::operator new(size)`.
+        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `::operator new[](size, nothrow)`.
         unsafe { ffi::operator_delete_array(ptr.cast()) };
     }
 }
