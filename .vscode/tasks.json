@@ -55,6 +55,10 @@
             "label":            "clippy",
             "command":          "cargo +nightly clippy",
         },
+        {
+            "label":            "git push github master",
+            "command":          "git push github master",
+        },
 
 
 
