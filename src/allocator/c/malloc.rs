@@ -7,11 +7,11 @@ use core::ptr::NonNull;
 
 
 
-/// [`malloc`] / [`realloc`] / [`free`] / ...
+/// [`malloc`](https://en.cppreference.com/w/c/memory/malloc) / [`realloc`] / [`free`] / ...
 ///
 /// | Rust                                      | C                     | MSVC<br>Only  |
 /// | ------------------------------------------| ----------------------| --------------|
-/// | [`thin::Alloc::alloc_uninit`]             | [`malloc`]            |               |
+/// | [`thin::Alloc::alloc_uninit`]             | [`malloc`](https://en.cppreference.com/w/c/memory/malloc) |               |
 /// | [`thin::Alloc::alloc_zeroed`]             | [`calloc`]            |               |
 /// | [`thin::Realloc::realloc_uninit`]         | [`realloc`]           |               |
 /// | [`thin::Realloc::realloc_zeroed`]         | ❌ N/A               | [`_recalloc`] |

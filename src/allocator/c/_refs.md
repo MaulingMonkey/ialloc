@@ -1,5 +1,4 @@
 <!-- C -->
-[`malloc`]:                         https://en.cppreference.com/w/c/memory/malloc
 [`calloc`]:                         https://en.cppreference.com/w/c/memory/calloc
 [`realloc`]:                        https://en.cppreference.com/w/c/memory/realloc
 [`free`]:                           https://en.cppreference.com/w/c/memory/free
