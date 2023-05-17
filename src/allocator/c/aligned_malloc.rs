@@ -44,6 +44,7 @@ impl AlignedMalloc {
             if layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }   // 1. it will "succeed" when requesting 4 GiB+ alignment - but only provide 2 GiB alignment.  Manually reject these bogus fulfillments of our requests.
             let layout = layout.align_to(8).map_err(|_| {})?;                   // 2. it will fail if the requested alignment is less than 8.  Even for something like size=align=1.  For no good reason whatsoever.  So... increase alignment:
             let layout = layout.pad_to_align();                                 // 3. it might succeed if size=0, align=8, but will fail with size=1, align=8.  I'll interpret this as requiring size to be a multiple of alignment... make it so.
+            // some of these spicy preconditions may stem from forwarding blindly to POSIX - see e.g. <https://man7.org/linux/man-pages/man3/posix_memalign.3.html> which requires, among other things, that `alignment` be a multiple of `sizeof(void *)`.
             Ok(layout)
         } else {
             Ok(layout)
