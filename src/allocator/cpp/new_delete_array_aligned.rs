@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::Meta;
 use super::ffi;
 
 use core::alloc::Layout;
@@ -10,9 +11,17 @@ use core::ptr::NonNull;
 /// [`::operator delete[](void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteArrayAligned;
 
-impl meta::Meta for NewDeleteArrayAligned {
+impl Meta for NewDeleteArrayAligned {
     type Error                  = ();
-    const MAX_ALIGN : Alignment = Alignment::MAX;   // XXX: less in practice
+
+    const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") {
+        // macOS 11.7.6 20G1231 seems to provide at most 4 GiB alignment, returning e.g. 0x7fbf00000000 when 8 GiB alignment is requested
+        // https://github.com/MaulingMonkey/ialloc/actions/runs/4998062851/jobs/8953095728
+        ALIGN_4_GiB
+    } else {
+        Alignment::MAX
+    };
+
     const MAX_SIZE  : usize     = usize::MAX;       // XXX: less in practice
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
@@ -20,6 +29,7 @@ impl meta::Meta for NewDeleteArrayAligned {
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Alloc for NewDeleteArrayAligned {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
+        if Self::MAX_ALIGN != Alignment::MAX && layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
         NonNull::new(unsafe { ffi::operator_new_array_align_nothrow(layout.size(), layout.align()) }.cast()).ok_or(())
     }
 }
