@@ -28,6 +28,10 @@ impl<T> meta::Meta for StdAllocator<T> {
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 unsafe impl thin::Alloc for StdAllocator<c_char> {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ this "should" allocate correctly for all `size`.  #[test]ed for indirectly through fat::test::edge_case_sizes at the end of this file.
+        // SAFETY: ✔️ this "should" align correctly for all `size`.     #[test]ed for indirectly through fat::test::alignment at the end of this file.
+        // SAFETY: ✔️ FFI wrapper catches std::bad_alloc.
         NonNull::new(unsafe { ffi::std_allocator_char_allocate(size) }.cast()).ok_or(())
     }
 }
@@ -38,6 +42,8 @@ unsafe impl thin::Alloc for StdAllocator<c_char> {
 // SAFETY: ✔️ all fat::* impls intercompatible with each other
 unsafe impl fat::Free for StdAllocator<c_char> {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
+        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Free::free's documented safety preconditions - and thus was allocated with `std::allocator<char>{}.allocate(layout.size())`
         unsafe { ffi::std_allocator_char_deallocate(ptr.as_ptr().cast(), layout.size()) }
     }
 }
