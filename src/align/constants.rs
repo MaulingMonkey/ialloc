@@ -36,8 +36,8 @@ constants! { // 16+-bit
 
 
 
-#[cfg(not(any(target_pointer_width = "16", target_pointer_width = "32")))] pub(crate) const ALIGN_MIN_4_GiB_MAX : Alignment = ALIGN_4_GiB;
-#[cfg(    any(target_pointer_width = "16", target_pointer_width = "32") )] pub(crate) const ALIGN_MIN_4_GiB_MAX : Alignment = Alignment::MAX;
+#[cfg(not(target_pointer_width = "16"))] pub(crate) const ALIGN_MIN_2_GiB_MAX : Alignment = ALIGN_2_GiB;
+#[cfg(    target_pointer_width = "16" )] pub(crate) const ALIGN_MIN_2_GiB_MAX : Alignment = Alignment::MAX;
 
 
 

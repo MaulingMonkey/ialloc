@@ -16,11 +16,11 @@ impl Meta for NewDeleteAligned {
 
     /// | Platform          | Value     |
     /// | ------------------| ----------|
-    /// | OS X 64-bit       | 4 GiB (macOS 11.7.6 20G1231 [seems to](https://github.com/MaulingMonkey/ialloc/actions/runs/4998062851/jobs/8953095728) return only 4 GiB alignment when 8+ GiB is requested)
+    /// | OS X 64-bit       | 2 GiB (macOS 11.7.6 20G1231 [seems to](https://github.com/MaulingMonkey/ialloc/actions/runs/4999128292/jobs/8955213565) return only 2 GiB alignment when 4+ GiB is requested)
     /// | Linux 64-bit      | [`Alignment::MAX`] (2<sup>63</sup> B)
     /// | Windows 64-bit    | [`Alignment::MAX`] (2<sup>63</sup> B)
     /// | \* 32-bit         | [`Alignment::MAX`] (2 GiB)
-    const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") { ALIGN_MIN_4_GiB_MAX } else { Alignment::MAX };
+    const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") { ALIGN_MIN_2_GiB_MAX } else { Alignment::MAX };
 
     const MAX_SIZE  : usize     = usize::MAX;       // XXX: less in practice
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
