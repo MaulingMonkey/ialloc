@@ -157,7 +157,7 @@ pub mod test {
 
     /// Assert that `allocator` meets all it's alignment requirements
     pub fn alignment<A: Alloc + Free>(allocator: A) {
-        for size in [0, 1] {
+        for size in [1, 0] {
             let mut align = ALIGN_1;
             loop {
                 let unaligned_mask = align.as_usize() - 1;
