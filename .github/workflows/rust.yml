@@ -43,5 +43,8 @@ jobs:
         rustc -V
         cargo -V
         cmd /C ver
+    - name: Install
+      run: |
+        rustup target add i686-pc-windows-msvc
     - name: Test
       run: scripts\build

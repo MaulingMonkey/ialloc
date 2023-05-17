@@ -12,6 +12,10 @@
 @call :run-windows cargo test                                                   || goto :die
 @call :run-windows cargo build --all-targets --release                          || goto :die
 
+:: Stable (i686)
+@call :run-windows cargo test  --target=i686-pc-windows-msvc                            || goto :die
+@call :run-windows cargo build --target=i686-pc-windows-msvc --all-targets --release    || goto :die
+
 :: Stable (Linux)
 @"%WINDIR%\System32\bash" --version >NUL 2>NUL || ver>NUL && goto :skip-stable-linux
 @call :run-linux cargo test                                                     || goto :die
