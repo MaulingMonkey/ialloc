@@ -5,6 +5,7 @@ use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
 use core::fmt::{self, Debug, Display, Formatter, Pointer};
 use core::hash::{Hash, Hasher};
+use core::iter::FusedIterator;
 use core::ops::{Deref, DerefMut};
 
 
@@ -90,14 +91,28 @@ impl<T: std::error::Error, A: Free> std::error::Error for ABox<T, A> where Self 
     fn source(&self)        -> Option<&(dyn std::error::Error + 'static)>   { (**self).source() }
 }
 
+impl<T: ?Sized + Iterator, A: Free> Iterator for ABox<T, A> {
+    type Item = T::Item;
+    fn next(&mut self) -> Option<Self::Item> { (**self).next() }
+    fn size_hint(&self) -> (usize, Option<usize>) { (**self).size_hint() }
+    fn nth(&mut self, n: usize) -> Option<Self::Item> { (**self).nth(n) }
+    // XXX: last()
+}
+
+impl<T: ?Sized + ExactSizeIterator, A: Free> ExactSizeIterator for ABox<T, A> {
+    fn len(&self) -> usize { (**self).len() }
+}
+
+impl<T: ?Sized + DoubleEndedIterator, A: Free> DoubleEndedIterator for ABox<T, A> {
+    fn next_back(&mut self) -> Option<Self::Item> { (**self).next_back() }
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> { (**self).nth_back(n) }
+}
+
+impl<T: ?Sized + FusedIterator, A: Free> FusedIterator for ABox<T, A> {}
 
 
 // TODO:
-//  • [ ] impl DoubleEndedIterator?
-//  • [ ] impl ExactSizeIterator?
 //  • [ ] impl FromIterator
-//  • [ ] impl FusedIterator
-//  • [ ] impl Iterator
 //  • [ ] impl Extend
 //  • [ ] impl Generator<...>
 //
