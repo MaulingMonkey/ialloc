@@ -2,6 +2,12 @@
 [`CoTaskMemAlloc`]:                 https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemalloc
 [`CoTaskMemRealloc`]:               https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemrealloc
 [`CoTaskMemFree`]:                  https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
+[`CoGetMalloc`]:                    https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cogetmalloc
+
+[CoTaskMemAlloc]:                   https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemalloc
+[CoTaskMemRealloc]:                 https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemrealloc
+[CoTaskMemFree]:                    https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
+[CoGetMalloc]:                      https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cogetmalloc
 
 [`HeapAlloc`]:                      https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc
 [`HeapCreate`]:                     https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate
