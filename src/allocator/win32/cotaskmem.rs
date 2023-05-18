@@ -16,7 +16,7 @@ use core::ptr::NonNull;
 /// | [`thin::Free::free`]              | [`CoTaskMemFree`]
 ///
 /// Uses the default COM / "OLE task memory" allocator provided by [`CoGetMalloc`], which in turn simply uses [`Heap*`](super::Heap) functions under the hood.
-/// Consider using [`Heap`] directly instead, unless you're specifically doing COM / have documentation mandating a specific (de)allocator for interop purpouses.
+/// Consider using [`Heap`](super::Heap) directly instead, unless you're specifically doing COM / have documentation mandating a specific (de)allocator for interop purpouses.
 ///
 /// ## References
 /// *   [Memory Allocation in COM](https://learn.microsoft.com/en-us/windows/win32/learnwin32/memory-allocation-in-com) (learn.microsoft.com)
