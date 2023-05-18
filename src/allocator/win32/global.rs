@@ -86,6 +86,7 @@ unsafe impl thin::Alloc for Global {
 /// | `preserved`   | ⚠️ untested, but *should* be the case...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Realloc for Global {
     const CAN_REALLOC_ZEROED : bool = true;
@@ -111,6 +112,7 @@ unsafe impl thin::Realloc for Global {
 /// | `threads`     | ⚠️ [`GlobalFree`] *eventually* calls [`HeapFree`] without [`HEAP_NO_SERIALIZE`], which *should* be thread safe...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Free for Global {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
@@ -132,6 +134,7 @@ unsafe impl thin::SizeOf for Global {}
 /// | `threads`     | ⚠️ [`GlobalSize`] *eventually* calls [`HeapSize`] without [`HEAP_NO_SERIALIZE`], which *should* be thread safe...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::SizeOfDebug for Global {
     unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {

@@ -63,6 +63,7 @@ unsafe impl thin::Alloc for CryptMem {
 /// | `preserved`   | ⚠️ untested, but *should* be the case...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Realloc for CryptMem {
     const CAN_REALLOC_ZEROED : bool = false;
@@ -87,6 +88,7 @@ unsafe impl thin::Realloc for CryptMem {
 /// | `threads`     | ✔️ [`CryptMemFree`] uses <code>[LocalFree]\(...\)</code>, and [`Local`](super::Local) claims to be thread safe
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Free for CryptMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {

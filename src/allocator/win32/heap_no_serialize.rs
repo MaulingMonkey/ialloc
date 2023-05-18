@@ -170,6 +170,7 @@ unsafe impl thin::Alloc for HeapNoSerialize {
 /// | `preserved`   | ⚠️ untested, but *should* be the case...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Realloc for HeapNoSerialize {
     const CAN_REALLOC_ZEROED : bool = true;
@@ -196,6 +197,7 @@ unsafe impl thin::Realloc for HeapNoSerialize {
 /// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Free for HeapNoSerialize {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
@@ -216,6 +218,7 @@ unsafe impl thin::SizeOf for HeapNoSerialize {}
 /// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {

@@ -68,6 +68,7 @@ unsafe impl thin::Alloc for CoTaskMem {
 /// | `preserved`   | ⚠️ untested, but *should* be the case...
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Realloc for CoTaskMem {
     const CAN_REALLOC_ZEROED : bool = false;
@@ -90,6 +91,7 @@ unsafe impl thin::Realloc for CoTaskMem {
 /// | `threads`     | ✔️ [`CoTaskMemFree`] uses a no-init `gCMalloc::Free` → [`HeapFree`] with `dwFlags=0` (e.g. not using [`HEAP_NO_SERIALIZE`]) under the hood
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Free for CoTaskMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {

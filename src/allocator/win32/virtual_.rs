@@ -67,6 +67,7 @@ unsafe impl thin::Alloc for VirtualCommit {
 /// | `threads`     | ⚠️ As everything builds upon `Virtual*`, and Microsoft isn't a bunch of dummies, [`VirtualFree`] *should* should be thread safe, although it's poorly documented
 ///
 #[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
 // SAFETY: per above
 unsafe impl thin::Free for VirtualCommit {
     unsafe fn free(&self, ptr: AllocNN) {
