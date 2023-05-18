@@ -1,4 +1,5 @@
 use crate::*;
+use super::Error;
 
 use winapi::um::heapapi::{HeapAlloc, HeapReAlloc, HeapFree, HeapSize, HeapDestroy, HeapCreate};
 use winapi::um::winnt::{HANDLE, HEAP_ZERO_MEMORY, HEAP_NO_SERIALIZE, HEAP_GENERATE_EXCEPTIONS};
@@ -27,7 +28,7 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] // SAFETY: this cannot be Clone or Copy as this owns the `HANDLE`
 #[repr(transparent)] // SAFETY: HeapNoSerialize::borrow makes use of this
-pub struct HeapNoSerialize(HANDLE);
+pub struct HeapNoSerialize(HANDLE); // SAFETY: This should always be a valid `Heap*` compatible handle, to a heap used exclusively by this thread
 
 impl Drop for HeapNoSerialize {
     fn drop(&mut self) {
@@ -62,7 +63,7 @@ impl HeapNoSerialize {
     /// *   `*handle` must be a valid [`HeapAlloc`]-compatible `HANDLE`.
     /// *   `*handle` must be a growable heap
     /// *   `*handle` must only be accessed by the current thread
-    /// *   `*handle` must remain valid for the lifetime of `'a`.
+    /// *   `*handle` must remain valid while borrowed
     ///
     #[doc = include_str!("_refs.md")]
     pub unsafe fn borrow(handle: &HANDLE) -> &Self {
@@ -81,14 +82,14 @@ impl HeapNoSerialize {
     /// *   No idea what happens if `initial_size` > `maximum_size`.
     ///
     #[doc = include_str!("_refs.md")]
-    pub unsafe fn try_create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Result<Self, u32> {
+    pub unsafe fn try_create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Result<Self, Error> {
         assert!(options & HEAP_GENERATE_EXCEPTIONS == 0, "bug: undefined behavior: HeapNoSerialize::try_create cannot be used with HEAP_GENERATE_EXCEPTIONS");
         let initial_size = initial_size.map_or(0, |nz| nz.get());
         let maximum_size = maximum_size.map_or(0, |nz| nz.get());
 
         // SAFETY: ✔️ preconditions documented in Safety docs
         let handle = unsafe { HeapCreate(options, initial_size, maximum_size) };
-        if handle.is_null() { return Err(super::get_last_error()) }
+        if handle.is_null() { return Err(Error::get_last()) }
         Ok(Self(handle))
     }
 
@@ -105,12 +106,12 @@ impl HeapNoSerialize {
     #[doc = include_str!("_refs.md")]
     pub unsafe fn create(options: u32, initial_size: Option<NonZeroUsize>, maximum_size: Option<NonZeroUsize>) -> Self {
         // SAFETY: ✔️ create and try_create have identical preconditions
-        unsafe { Self::try_create(options, initial_size, maximum_size) }.unwrap_or_else(|err| panic!("HeapCreate failed with GetLastError() == 0x{err:08x}"))
+        unsafe { Self::try_create(options, initial_size, maximum_size) }.unwrap_or_else(|err| panic!("HeapCreate failed with GetLastError() == {err:?}"))
     }
 }
 
 impl meta::Meta for HeapNoSerialize {
-    type Error = ();
+    type Error = Error;
 
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
 
@@ -129,67 +130,96 @@ impl meta::Meta for HeapNoSerialize {
     const ZST_SUPPORTED : bool  = true;
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`thin::test::alignment`]
+/// | `size`        | ✔️ Validated via [`thin::test::edge_case_sizes`]
+/// | `pin`         | ✔️ [`HeapNoSerialize`] is `'static` - allocations by [`HeapAlloc`] live until [`HeapReAlloc`]ed, [`HeapFree`]d, or the [`HeapNoSerialize`] is [`Drop`]ed outright (not merely moved.)
+/// | `compatible`  | ✔️ [`HeapNoSerialize`] uses exclusively intercompatible `Heap*` fns
+/// | `exclusive`   | ✔️ Allocations by [`HeapAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`HeapAlloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
+/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], correct use of [`HEAP_ZERO_MEMORY`]
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Alloc for HeapNoSerialize {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ✔️ this "should" be safe for all `size`.  Unsoundness is #[test]ed for at the end of this file.
+        // SAFETY: ✔️ `self.0` is a valid heap, accessed exclusively by this thread, per `Self`'s construction
         let alloc = unsafe { HeapAlloc(self.0, HEAP_NO_SERIALIZE, size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ✔️ this "should" be safe for all `size`.  Unsoundness is #[test]ed for at the end of this file.
-        // SAFETY: ✔️ HeapAlloc zeros memory when we use HEAP_ZERO_MEMORY
+        // SAFETY: ✔️ `self.0` is a valid heap, accessed exclusively by this thread, per `Self`'s construction
         let alloc = unsafe { HeapAlloc(self.0, HEAP_NO_SERIALIZE | HEAP_ZERO_MEMORY, size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `size`        | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `pin`         | ✔️ [`HeapNoSerialize`] is `'static` - reallocations by [`HeapReAlloc`] live until [`HeapReAlloc`]ed again or [`HeapFree`]d
+/// | `compatible`  | ✔️ [`HeapNoSerialize`] uses exclusively intercompatible `Heap*` fns
+/// | `exclusive`   | ✔️ Allocations by [`HeapReAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`HeapReAlloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
+/// | `zeroed`      | ⚠️ untested, but we use [`HEAP_ZERO_MEMORY`] appropriately...
+/// | `preserved`   | ⚠️ untested, but *should* be the case...
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Realloc for HeapNoSerialize {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ⚠️ this "should" be safe for all `size`.  Unsoundness is not yet #[test]ed for.
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc`
+        // SAFETY: ✔️ `self.0` is a valid heap, accessed exclusively by this thread, per `Self`'s construction
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc` on `self.0`
         let alloc = unsafe { HeapReAlloc(self.0, HEAP_NO_SERIALIZE, ptr.as_ptr().cast(), new_size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ⚠️ this "should" be safe for all `size`.  Unsoundness is not yet #[test]ed for.
-        // SAFETY: ✔️ HeapReAlloc zeros memory when we use HEAP_ZERO_MEMORY
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc`
+        // SAFETY: ✔️ `self.0` is a valid heap, accessed exclusively by this thread, per `Self`'s construction
+        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc` on `self.0`
         let alloc = unsafe { HeapReAlloc(self.0, HEAP_NO_SERIALIZE | HEAP_ZERO_MEMORY, ptr.as_ptr().cast(), new_size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ✔️ [`HeapNoSerialize`] uses exclusively intercompatible `Heap*` fns
+/// | `exceptions`  | ✔️ [`HeapFree`] returns `FALSE`/`0` on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Free for HeapNoSerialize {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        // "This pointer can be NULL."
-        // https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree#parameters
-        //
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe, tested), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `Heap{,Re}Alloc`
+        // SAFETY: ✔️ `ptr` can be nullptr (validated via [`thin::test::nullable`] and documented: "[This pointer can be NULL](https://learn.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapfree#parameters).")
+        // SAFETY: ✔️ `ptr` otherwise belongs to `self` per [`thin::Free::free_nullable`]'s documented safety preconditions - and thus was allocated with `Heap{,Re}Alloc` on `self.0`
         if unsafe { HeapFree(self.0, HEAP_NO_SERIALIZE, ptr.cast()) } == 0 && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 
-
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+// SAFETY: ✔️ SizeOfDebug has same preconditions
 unsafe impl thin::SizeOf for HeapNoSerialize {}
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `size`        | ✔️ Validated via [`thin::test::size_exact_alloc`]
+/// | `compatible`  | ✔️ [`HeapNoSerialize`] uses exclusively intercompatible `Heap*` fns
+/// | `exceptions`  | ✔️ [`HeapSize`] returns `-1` on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`HEAP_NO_SERIALIZE`] is used, making this not thread safe.  However, we enforce `HeapNoSerialize : !Send + !Sync` as validated by `AssertNotSendSync`.
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
-        // SAFETY: ✔️ `HEAP_NO_SERIALIZE` is not thread safe, but `HeapNoSerialize` is `!Send + !Sync` per `AssertNotSendSync`
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions, and thus was allocated with `Heap{,Re}Alloc`
+        // SAFETY: ✔️ `ptr` belongs to `self` per [`thin::SizeOfDebug::size_of_debug`]'s documented safety preconditions - and thus was allocated with `Heap{,Re}Alloc` on `self.0`
         let size = unsafe { HeapSize(self.0, HEAP_NO_SERIALIZE, ptr.as_ptr().cast()) };
         if size == !0 { return None }
         Some(size)
