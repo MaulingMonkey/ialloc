@@ -63,6 +63,10 @@
 [`CryptMemRealloc`]:                https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemrealloc
 [`CryptMemFree`]:                   https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemfree
 
+[CryptMemAlloc]:                    https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemalloc
+[CryptMemRealloc]:                  https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemrealloc
+[CryptMemFree]:                     https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemfree
+
 [`IMalloc`]:                        https://learn.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-imalloc
 [`IMalloc::Alloc`]:                 https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-imalloc-alloc
 [`IMalloc::Realloc`]:               https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-imalloc-realloc

@@ -26,30 +26,49 @@ impl meta::Meta for CryptMem {
     const ZST_SUPPORTED : bool  = true;
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`thin::test::alignment`]
+/// | `size`        | ✔️ Validated via [`thin::test::edge_case_sizes`]
+/// | `pin`         | ✔️ [`CryptMem`] is `'static` - allocations by [`CryptMemAlloc`] live until [`CryptMemRealloc`]ed or [`CryptMemFree`]d
+/// | `compatible`  | ✔️ [`CryptMem`] uses exclusively intercompatible fns
+/// | `exclusive`   | ✔️ Allocations by [`CryptMemAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`CryptMemAlloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`CryptMemAlloc`] uses <code>[LocalAlloc]\([LMEM_ZEROINIT], size\)</code>, and [`Local`](super::Local) claims to be thread safe
+/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], trivial default impl
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Alloc for CryptMem {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
         let size = size.try_into().map_err(|_| {})?;
-
-        // SAFETY: ⚠️ presumably thread safe per LocalAlloc/HeapAlloc
-        // SAFETY: ✔️ this "should" be safe for all `size`.  Unsoundness is #[test]ed for at the end of this file.
+        // SAFETY: per above
         let alloc = unsafe { CryptMemAlloc(size) };
-        // In practice, this just calls `LocalAlloc(LMEM_ZEROINIT, size)`, which in turn invokes `HeapAlloc`
-
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     // no zeroing CryptMemAlloc
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `size`        | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `pin`         | ✔️ [`CryptMem`] is `'static` - reallocations by [`CryptMemRealloc`] live until [`CryptMemRealloc`]ed again or [`CryptMemFree`]d
+/// | `compatible`  | ✔️ [`CryptMem`] uses exclusively intercompatible fns
+/// | `exclusive`   | ✔️ Allocations by [`CryptMemRealloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`CryptMemRealloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`CryptMemRealloc`] uses <code>[LocalReAlloc]\(ptr, size, [LMEM_ZEROINIT]\)</code>, and [`Local`](super::Local) claims to be thread safe
+/// | `zeroed`      | ✔️ Trivial [`Err`] / not supported
+/// | `preserved`   | ⚠️ untested, but *should* be the case...
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Realloc for CryptMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
         let new_size = new_size.try_into().map_err(|_| {})?;
-
-        // SAFETY: ⚠️ presumably thread safe per LocalReAlloc/HeapReAlloc
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with CryptMem{Alloc,Realloc}
         let alloc = unsafe { CryptMemRealloc(ptr.as_ptr().cast(), new_size) };
 
@@ -61,11 +80,18 @@ unsafe impl thin::Realloc for CryptMem {
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ✔️ [`CryptMem`] uses exclusively intercompatible fns
+/// | `exceptions`  | ✔️ [`CryptMemFree`] is "infalliable".  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`CryptMemFree`] uses <code>[LocalFree]\(...\)</code>, and [`Local`](super::Local) claims to be thread safe
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Free for CryptMem {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        // SAFETY: ⚠️ presumably thread safe per LocalFree/HeapFree
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe, tested), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with CryptMem{Alloc,Realloc}
+        // SAFETY: ✔️ `ptr` can be nullptr (validated via [`thin::test::nullable`])
+        // SAFETY: ✔️ `ptr` otherwise belongs to `self` per [`thin::Free::free_nullable`]'s documented safety preconditions - and thus was allocated with `CryptMem{Alloc,Realloc}`
         unsafe { CryptMemFree(ptr.cast()) }
     }
 }
