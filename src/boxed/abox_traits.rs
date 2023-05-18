@@ -82,11 +82,16 @@ impl<T: ?Sized + Hasher, A: Free> Hasher for ABox<T, A> {
     fn write_isize  (&mut self, i: isize)       { T::write_isize(self, i) }
 }
 
+#[cfg(feature = "std")]
+#[allow(deprecated)]
+impl<T: std::error::Error, A: Free> std::error::Error for ABox<T, A> where Self : Debug + Display {
+    fn description(&self)   -> &str                                         { (**self).description() }
+    fn cause(&self)         -> Option<&dyn std::error::Error>               { (**self).cause() }
+    fn source(&self)        -> Option<&(dyn std::error::Error + 'static)>   { (**self).source() }
+}
 
 
-// TODO:
-//  • [ ] impl Error
-//
+
 // TODO:
 //  • [ ] impl DoubleEndedIterator?
 //  • [ ] impl ExactSizeIterator?
