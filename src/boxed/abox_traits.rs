@@ -110,10 +110,16 @@ impl<T: ?Sized + DoubleEndedIterator, A: Free> DoubleEndedIterator for ABox<T, A
 
 impl<T: ?Sized + FusedIterator, A: Free> FusedIterator for ABox<T, A> {}
 
+#[cfg(feature = "alloc")]
+#[cfg(feature = "panicy-memory")]
+impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
+    fn extend<I: IntoIterator<Item = ABox<str, A>>>(&mut self, iter: I) {
+        iter.into_iter().for_each(move |s| self.push_str(&s));
+    }
+}
 
 // TODO:
 //  • [ ] impl FromIterator
-//  • [ ] impl Extend
 //  • [ ] impl Generator<...>
 //
 // TODO:
