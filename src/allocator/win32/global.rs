@@ -1,6 +1,8 @@
 use crate::*;
+use super::Error;
 
 use winapi::um::winbase::{GlobalAlloc, GlobalReAlloc, GlobalFree, GlobalSize, GMEM_ZEROINIT};
+
 
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;
@@ -37,74 +39,103 @@ use core::ptr::NonNull;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
 
 impl meta::Meta for Global {
-    type Error                  = ();
+    type Error                  = Error;
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`thin::test::alignment`]
+/// | `size`        | ✔️ Validated via [`thin::test::edge_case_sizes`], no oddball flags like [`GMEM_MOVEABLE`] that would ruin dereferencability of the returned allocation
+/// | `pin`         | ✔️ [`Global`] is `'static` - allocations by [`GlobalAlloc`] live until [`GlobalReAlloc`]ed or [`GlobalFree`]d (as we don't use [`GMEM_MOVEABLE`])
+/// | `compatible`  | ✔️ [`Global`] uses exclusively intercompatible `Global*` fns
+/// | `exclusive`   | ✔️ Allocations by [`GlobalAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`GlobalAlloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ⚠️ [`GlobalAlloc`] *eventually* calls [`HeapAlloc`], without [`HEAP_NO_SERIALIZE`], which *should* be thread safe - as claimed by random Stack Overflow threads.
+/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], [`GMEM_ZEROINIT`] used appropriately
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Alloc for Global {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
-        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
-        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
+        // SAFETY: per above
         let alloc = unsafe { GlobalAlloc(0, size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
-        // SAFETY: ✔️ this "should" be safe for all `size`.  This is #[test]ed for at the end of this file.
-        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
         // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
         let alloc = unsafe { GlobalAlloc(GMEM_ZEROINIT, size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `size`        | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `pin`         | ✔️ [`Global`] is `'static` - reallocations by [`GlobalReAlloc`] live until [`GlobalReAlloc`]ed again or [`GlobalFree`]d
+/// | `compatible`  | ✔️ [`Global`] uses exclusively intercompatible `Global*` fns
+/// | `exclusive`   | ✔️ Allocations by [`GlobalReAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`GlobalReAlloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ⚠️ [`GlobalReAlloc`] *eventually* calls [`HeapReAlloc`] without [`HEAP_NO_SERIALIZE`], which *should* be thread safe...
+/// | `zeroed`      | ⚠️ untested, but we use [`GMEM_ZEROINIT`] appropriately...
+/// | `preserved`   | ⚠️ untested, but *should* be the case...
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Realloc for Global {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
-        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
-        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
-        // SAFETY: ⚠️ this "should" be safe for all `size`.  This is not yet #[test]ed.
-        // SAFETY: ✔️ no oddball flags like `GMEM_MOVEABLE` that would ruin dereferencability of the returned `alloc`
-        // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
+        // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly reallocated memory is zeroed.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, GMEM_ZEROINIT) };
-        NonNull::new(alloc.cast()).ok_or(())
+        NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ✔️ [`Global`] uses exclusively intercompatible `Global*` fns
+/// | `exceptions`  | ✔️ [`GlobalFree`] is "infalliable".  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ⚠️ [`GlobalFree`] *eventually* calls [`HeapFree`] without [`HEAP_NO_SERIALIZE`], which *should* be thread safe...
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Free for Global {
     unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
-        // SAFETY: ✔️ `ptr` is either `nullptr` (safe), or belongs to `self` per thin::Free::free_nullable's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalFree`.
-        if !unsafe { GlobalFree(ptr.cast()) }.is_null() && cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
+        // SAFETY: ✔️ `ptr` can be nullptr (validated via [`thin::test::nullable`])
+        // SAFETY: ✔️ `ptr` otherwise belongs to `self` per [`thin::Free::free_nullable`]'s documented safety preconditions - and thus was allocated with `Global{,Re}Alloc`
+        if unsafe { GlobalFree(ptr.cast()) }.is_null() { return }
+        if cfg!(debug_assertions) { bug::ub::free_failed(ptr) }
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+// SAFETY: ✔️ same preconditions as thin::SizeOfDebug
 unsafe impl thin::SizeOf for Global {}
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `size`        | ✔️ Validated via [`thin::test::size_exact_alloc`]
+/// | `compatible`  | ✔️ [`Global`] uses exclusively intercompatible `Global*` fns
+/// | `exceptions`  | ✔️ [`GlobalSize`] returns `0` for errors.  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ⚠️ [`GlobalSize`] *eventually* calls [`HeapSize`] without [`HEAP_NO_SERIALIZE`], which *should* be thread safe...
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::SizeOfDebug for Global {
     unsafe fn size_of_debug(&self, ptr: AllocNN) -> Option<usize> {
         super::clear_last_error();
-        // SAFETY: ⚠️ this "should" be thread safe according to random SO threads, and the underlying Heap* allocs are, but it'd be worth #[test]ing.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::SizeOfDebug's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalSize`.
         let size = unsafe { GlobalSize(ptr.as_ptr().cast()) };
         if size == 0 {

@@ -29,13 +29,29 @@
 [`LocalReAlloc`]:                   https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localrealloc
 [`LocalFree`]:                      https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
 [`LocalSize`]:                      https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localsize
+[`LMEM_MOVEABLE`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc#parameters
 [`LMEM_ZEROINIT`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc#parameters
+
+[LocalAlloc]:                       https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc
+[LocalReAlloc]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localrealloc
+[LocalFree]:                        https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree
+[LocalSize]:                        https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localsize
+[LMEM_MOVEABLE]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc#parameters
+[LMEM_ZEROINIT]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localalloc#parameters
 
 [`GlobalAlloc`]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc
 [`GlobalReAlloc`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalrealloc
 [`GlobalFree`]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalfree
 [`GlobalSize`]:                     https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalsize
+[`GMEM_MOVEABLE`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc#parameters
 [`GMEM_ZEROINIT`]:                  https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc#parameters
+
+[GlobalAlloc]:                      https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc
+[GlobalReAlloc]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalrealloc
+[GlobalFree]:                       https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalfree
+[GlobalSize]:                       https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalsize
+[GMEM_MOVEABLE]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc#parameters
+[GMEM_ZEROINIT]:                    https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-globalalloc#parameters
 
 [`CryptMemAlloc`]:                  https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemalloc
 [`CryptMemRealloc`]:                https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptmemrealloc
