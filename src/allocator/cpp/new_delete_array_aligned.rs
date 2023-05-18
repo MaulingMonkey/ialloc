@@ -22,7 +22,7 @@ impl Meta for NewDeleteArrayAligned {
     /// | \* 32-bit         | [`Alignment::MAX`] (2 GiB)
     const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") { ALIGN_MIN_2_GiB_MAX } else { Alignment::MAX };
 
-    const MAX_SIZE  : usize     = usize::MAX;       // XXX: less in practice
+    const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
 

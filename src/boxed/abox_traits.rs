@@ -38,14 +38,13 @@ impl<T: ?Sized, A: Free> BorrowMut<T>   for ABox<T, A> { fn borrow_mut(&mut self
 impl<T: Debug,   A: Free + Debug> Debug   for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { f.debug_struct("ABox").field("data", &**self).field("allocator", Self::allocator(self)).finish() } }
 impl<T: Display, A: Free        > Display for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { T::fmt(self, f) } }
 impl<T: ?Sized,  A: Free        > Pointer for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { Pointer::fmt(&self.data(), f) } }
-// TODO: various numeric traits as well? Or is that overkill?
 
 
 
 // Misc. Operators
 
 impl<T: ?Sized + Eq,        A: Free> Eq     for ABox<T, A> {}
-impl<T: ?Sized + Ord,       A: Free> Ord    for ABox<T, A> { fn cmp(&self, other: &Self) -> Ordering { T::cmp(self, other) } } // TODO: clamp, min, max? Nah, awkward to impl, and alloc::alloc::Box doesn't bother either.
+impl<T: ?Sized + Ord,       A: Free> Ord    for ABox<T, A> { fn cmp(&self, other: &Self) -> Ordering { T::cmp(self, other) } }
 impl<T: ?Sized + Hash,      A: Free> Hash   for ABox<T, A> { fn hash<H: Hasher>(&self, state: &mut H) { T::hash::<H>(self, state) } }
 
 #[allow(clippy::partialeq_ne_impl)] // unnecessary but why not

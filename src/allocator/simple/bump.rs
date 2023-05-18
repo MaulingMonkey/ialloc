@@ -119,7 +119,6 @@ unsafe impl<'a> fat::Realloc for Bump<'a> {
 
     #[cfg(allocator_api = "1.50")] impls! {
         unsafe impl['a] core::alloc::Allocator(unstable 1.50) for Bump<'a> => ialloc::fat::Realloc;
-        //unsafe impl['o, 'i: 'o] core::alloc::Allocator(unstable 1.50) for &'o Bump<'i>  => core::ops::Deref; // XXX: already auto-implemented
     }
 }
 

@@ -160,11 +160,3 @@
 [PAGE_ENCLAVE_DECOMMIT]:            https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
 [PAGE_ENCLAVE_THREAD_CONTROL]:      https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
 [PAGE_ENCLAVE_UNVALIDATED]:         https://learn.microsoft.com/en-us/windows/win32/Memory/memory-protection-constants#constants
-
-
-
-<!-- MSVC -->
-
-[`_aligned_malloc`]:                https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc
-[`_aligned_free`]:                  https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free
-<!-- TODO: many, many more -->

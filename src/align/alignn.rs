@@ -106,7 +106,6 @@ use _align_impl::*;
     impl ByAlign<268435456> for () { type Align = Align268435456; }
     impl ByAlign<536870912> for () { type Align = Align536870912; }
 
-    // TODO: custom Debug impls
     #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(C, align(        1))] pub struct Align1; // 1 B
     #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(C, align(        2))] pub struct Align2;
     #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(C, align(        4))] pub struct Align4;

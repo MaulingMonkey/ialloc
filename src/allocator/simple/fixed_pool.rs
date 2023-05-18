@@ -181,7 +181,7 @@ unsafe impl<const A: usize, const B: usize, const N: usize> thin::Realloc for &'
 
 type Element<const A : usize, const B : usize> = UnsafeCell<MaybeUninit<AlignN<A, [u8; B]>>>; // [2]
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u8)] enum State { #[default] Free = 0, Allocated } // TODO: more states?
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(u8)] enum State { #[default] Free = 0, Allocated }
 //unsafe impl bytemuck::Zeroable for State {}
 
 
