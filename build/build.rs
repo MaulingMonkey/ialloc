@@ -32,6 +32,11 @@ fn main() {
     if var_os("CARGO_CFG_TARGET_ENV").as_deref() == Some(OsStr::new("msvc")) && var_os("CARGO_FEATURE_MSVC").is_some() {
         println!("cargo:rustc-cfg=msvc");
     }
+    if var_os("CARGO_FEATURE_PANICY_MEMORY").is_none() || var_os("CARGO_CFG_NO_GLOBAL_OOM_HANDLING").is_some() {
+        println!("cargo:rustc-cfg=no_global_oom_handling");
+    } else {
+        println!("cargo:rustc-cfg=global_oom_handling");
+    }
     use_cc();
 }
 

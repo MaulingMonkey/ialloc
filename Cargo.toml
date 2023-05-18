@@ -33,7 +33,7 @@ default = [
 
 panicy                      = ["panicy-bounds", "panicy-memory"]
 panicy-bounds               = [] # XXX: not yet used for anything, undocumented as such
-panicy-memory               = []
+panicy-memory               = [] # ≈ not(no_global_oom_handling)
 
 alloc                       = []
 std                         = ["alloc"]

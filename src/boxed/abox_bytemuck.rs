@@ -150,7 +150,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::new_bytemuck_zeroed_in(Malloc);
     /// ```
-    #[cfg(feature = "panicy-memory")] #[track_caller] pub fn new_bytemuck_zeroed_in(allocator: A) -> Self {
+    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_in(allocator: A) -> Self {
         let _ = Self::ASSERT_A_CAN_ALLOC_T;
         Self::try_new_bytemuck_zeroed_in(allocator).expect("unable to allocate")
     }
@@ -207,7 +207,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::new_bytemuck_zeroed_slice_in(1, alloc);
     /// ```
-    #[cfg(feature = "panicy-memory")] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_bytemuck_zeroed_slice_in(len, allocator).expect("unable to allocate")
     }
@@ -344,7 +344,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, Malloc>::new_bytemuck_zeroed();
     /// ```
-    #[cfg(feature = "panicy-memory")] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed() -> Self {
+    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed() -> Self {
         let _ = Self::ASSERT_A_CAN_ALLOC_T;
         Self::new_bytemuck_zeroed_in(A::default())
     }
@@ -401,7 +401,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, A>::new_bytemuck_zeroed_slice(1);
     /// ```
-    #[cfg(feature = "panicy-memory")] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::new_bytemuck_zeroed_slice_in(len, A::default())
     }

@@ -297,7 +297,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     }
 }
 
-#[cfg(feature = "panicy-memory")] impl<T, A: Alloc + Free> ABox<T, A> {
+#[cfg(global_oom_handling)] impl<T, A: Alloc + Free> ABox<T, A> {
     // Sized, Alloc
 
     /// Allocate a new box initialized to `value` using `allocator`.
@@ -431,7 +431,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     }
 }
 
-#[cfg(feature = "panicy-memory")] impl<T, A: Alloc + Free + Default> ABox<T, A> {
+#[cfg(global_oom_handling)] impl<T, A: Alloc + Free + Default> ABox<T, A> {
     // Sized, Alloc, Default
 
     /// Allocate a new box initialized to `value`.

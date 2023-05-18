@@ -5,7 +5,7 @@ use crate::fat::*;
 
 // Allocating traits, falliable counterparts
 
-#[cfg(feature = "panicy-memory")] impl<T: Clone, A: Alloc + Free + Clone> Clone for ABox<T, A> {
+#[cfg(global_oom_handling)] impl<T: Clone, A: Alloc + Free + Clone> Clone for ABox<T, A> {
     /// Allocate a new box that clones the contents of `self` using `self.allocator().clone()`
     ///
     /// ## Failure Modes
@@ -22,7 +22,7 @@ use crate::fat::*;
     }
 }
 
-#[cfg(feature = "panicy-memory")] impl<T: Default, A: Alloc + Free + Default> Default for ABox<T, A> {
+#[cfg(global_oom_handling)] impl<T: Default, A: Alloc + Free + Default> Default for ABox<T, A> {
     /// Allocate a new box containing `T::default()` using `A::default()`.
     ///
     /// ## Failure Modes
@@ -132,7 +132,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// // won't compile - requires too much alignment for Malloc
     /// let b = a.clone_in(Malloc);
     /// ```
-    #[cfg(feature = "panicy-memory")] pub fn clone_in<A2>(&self, allocator: A2) -> ABox<T, A2> where A2 : Alloc + Free {
+    #[cfg(global_oom_handling)] pub fn clone_in<A2>(&self, allocator: A2) -> ABox<T, A2> where A2 : Alloc + Free {
         let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_T;
         ABox::new_in(T::clone(self), allocator)
     }
@@ -218,7 +218,7 @@ impl<T: Default, A: Free> ABox<T, A> {
     /// impl Default for Page { fn default() -> Self { Self([0u8; 4096]) } }
     /// let b = ABox::<Page, _>::default_in(Malloc);
     /// ```
-    #[cfg(feature = "panicy-memory")] pub fn default_in(allocator: A) -> ABox<T, A> where T : Default, A : Alloc {
+    #[cfg(global_oom_handling)] pub fn default_in(allocator: A) -> ABox<T, A> where T : Default, A : Alloc {
         let _ = Self::ASSERT_A_CAN_ALLOC_T;
         ABox::new_in(T::default(), allocator)
     }
