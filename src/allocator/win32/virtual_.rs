@@ -36,7 +36,19 @@ impl meta::Meta for VirtualCommit {
     const ZST_SUPPORTED : bool  = false;
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`thin::test::alignment`].  Minimum 4 KiB pages in practice (Windows doesn't generally support smaller pages even when processors do), often more (e.g. 64 KiB)
+/// | `size`        | ✔️ Validated via [`thin::test::edge_case_sizes`]
+/// | `pin`         | ✔️ [`VirtualCommit`] is `'static` - allocations by [`VirtualAlloc`] live until [`VirtualFree`]ed or similar.
+/// | `compatible`  | ✔️ [`VirtualCommit`] uses exclusively intercompatible `Virtual*` fns
+/// | `exclusive`   | ✔️ Allocations by [`VirtualAlloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`VirtualAlloc`] returns null on error per docs, page structures live outside of process memory where they're "incorruptable"
+/// | `threads`     | ⚠️ As everything builds upon `Virtual*`, and Microsoft isn't a bunch of dummies, [`VirtualAlloc`] *should* should be thread safe, although it's poorly documented
+/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], correct use of [`HEAP_ZERO_MEMORY`]
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Alloc for VirtualCommit {
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Error> {
         // SAFETY: ✔️ `lpAddress` is optional and may be null - we have no preference about allocation location
@@ -48,7 +60,14 @@ unsafe impl thin::Alloc for VirtualCommit {
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ✔️ [`VirtualCommit`] uses exclusively intercompatible `Virtual*` fns
+/// | `exceptions`  | ✔️ [`VirtualFree`] returns `FALSE`/`0` on error per docs, page structures live outside of process memory where they're "incorruptable"
+/// | `threads`     | ⚠️ As everything builds upon `Virtual*`, and Microsoft isn't a bunch of dummies, [`VirtualFree`] *should* should be thread safe, although it's poorly documented
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl thin::Free for VirtualCommit {
     unsafe fn free(&self, ptr: AllocNN) {
         // SAFETY: ✔️ `ptr` belongs to `self` and is thus `MEM_COMMIT` returned directly from `VirtualAlloc`
@@ -59,8 +78,10 @@ unsafe impl thin::Free for VirtualCommit {
     }
 }
 
-// SAFETY: ✔️ all thin::* impls intercompatible with each other
+// SAFETY: ✔️ default Realloc impl is soundly implemented in terms of Alloc+Free
 unsafe impl fat::Realloc for VirtualCommit {}
+
+// fat::SizeOf{,Debug} could perhaps be implemented in terms of `VirtualQuery` / `MEMORY_BASIC_INFORMATION::RegionSize`, however I'm not sure if that might collase with adjacent page allocs
 
 #[no_implicit_prelude] mod cleanroom {
     use super::{impls, VirtualCommit};
