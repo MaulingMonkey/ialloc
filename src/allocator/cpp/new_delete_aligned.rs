@@ -26,30 +26,44 @@ impl Meta for NewDeleteAligned {
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`fat::test::alignment`]
+/// | `size`        | ✔️ Validated via [`fat::test::edge_case_sizes`]
+/// | `pin`         | ✔️ [`NewDeleteAligned`] is `'static` - allocations by [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) live until [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)ed.
+/// | `compatible`  | ✔️ [`NewDeleteAligned`] uses exclusively intercompatible un-arrayed, explicit-alignment operators from the same stdlib.
+/// | `compatible`  | ✔️ [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete) is compatible with [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) (C++17)
+/// | `exclusive`   | ✔️ [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) allocations are exclusive/unique
+/// | `exceptions`  | ✔️ [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) is `noexcept` and will return null on error (C++17)
+/// | `threads`     | ✔️ these operators postdate `std::thread` (C++11) and should be thread safe on platforms supporting threads.
+/// | `zeroed`      | ✔️ Validated via [`fat::test::zeroed_alloc`]
+///
+// SAFETY: per above
 unsafe impl fat::Alloc for NewDeleteAligned {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ⚠️ OS X can underalign if we don't perform this explicit check.
+        // SAFETY: ⚠️ OS X can underalign if we don't perform this explicit check (see `MAX_ALIGN`'s notes).
         if Self::MAX_ALIGN != Alignment::MAX && layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }
-
-        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
-        // SAFETY: ✔️ this "should" allocate correctly for all `size`.  #[test]ed for via fat::test::edge_case_sizes at the end of this file.
-        // SAFETY: ✔️ this "should" align correctly for all `align <= MAX_ALIGN`.  #[test]ed for via fat::test::alignment at the end of this file.
-        // SAFETY: ✔️ should not throw
+        // SAFETY: per trait safety above
         NonNull::new(unsafe { ffi::operator_new_align_nothrow(layout.size(), layout.align()) }.cast()).ok_or(())
     }
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ✔️ [`NewDeleteAligned`] uses exclusively intercompatible un-arrayed, explicit-alignment operators from the same stdlib.
+/// | `compatible`  | ✔️ [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete) is compatible with [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) (C++17)
+/// | `exceptions`  | ✔️ [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete) is `noexcept` and returns no errors (C++17)
+/// | `threads`     | ✔️ these operators postdate `std::thread` (C++11) and should be thread safe on platforms supporting threads.
+///
+// SAFETY: per above
 unsafe impl fat::Free for NewDeleteAligned {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
-        // SAFETY: ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Free::free's documented safety preconditions - and thus was allocated with `::operator new(size_t, align_val_t, nothrow_t)`
+        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Free::free`]'s documented safety preconditions
         unsafe { ffi::operator_delete_align(ptr.as_ptr().cast(), layout.align()) };
     }
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+// SAFETY: ✔️ default Realloc impl is soundly implemented in terms of Alloc+Free
 unsafe impl fat::Realloc for NewDeleteAligned {}
 
 
