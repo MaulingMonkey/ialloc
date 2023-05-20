@@ -48,7 +48,8 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     /// Retrieve the [`fat::Free`] (+ [`fat::Alloc`] + [`fat::Realloc`] + ...) associated with this [`ABox`].
     #[inline(always)] pub fn allocator(this: &Self) -> &A { &this.allocator }
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
-    #[inline(always)] fn layout(&self) -> Layout { Layout::for_value(&**self) }
+    #[inline(always)] pub(super) unsafe fn set_data(&mut self, data: NonNull<T>) { self.data = data; }
+    #[inline(always)] pub(super) fn layout(&self) -> Layout { Layout::for_value(&**self) }
 
     /// Construct an [`ABox`] from a pointer to raw data and an allocator that can free it.
     ///

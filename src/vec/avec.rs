@@ -1,5 +1,6 @@
 #[cfg(doc)] use crate::fat;
 use crate::boxed::ABox;
+use crate::error::ExcessiveSliceRequestedError;
 use crate::fat::*;
 
 use core::mem::MaybeUninit;
@@ -26,7 +27,15 @@ impl<T, A: Free> AVec<T, A> {
     #[inline(always)] pub unsafe fn set_len(&mut self, new_len: usize) { self.len = new_len; }
     #[inline(always)] pub fn spare_capacity_mut(&mut self) -> &mut [MaybeUninit<T>] { self.data.get_mut(self.len..).unwrap_or(&mut []) }
 
-    // TODO: append
+    fn try_append(&mut self, other: &mut AVec<T, impl Free>) -> Result<(), A::Error> where A : Realloc {
+        self.try_reserve(other.len())?;
+        debug_assert!(self.len() + other.len() <= self.capacity());
+        unsafe { core::ptr::copy_nonoverlapping(other.as_mut_ptr(), self.as_mut_ptr().add(self.len()), other.len()) };
+        other.len = 0;
+        Ok(())
+    }
+
+    #[cfg(global_oom_handling)] pub fn append(&mut self, other: &mut AVec<T, impl Free>) where A : Realloc { self.try_append(other).expect("out of memory") }
 
     pub fn clear(&mut self) {
         let to_drop = core::ptr::slice_from_raw_parts_mut(self.as_mut_ptr(), self.len);
@@ -42,7 +51,9 @@ impl<T, A: Free> AVec<T, A> {
     // TODO: into_boxed_slice, into_flattened
     // TODO: into_raw_parts, into_raw_parts_with_allocator
     // TODO: leak
-    // TODO: new, new_in
+
+    #[cfg(global_oom_handling)] pub fn new() -> Self where A : Alloc + Default { Self::with_capacity(0) }
+    #[cfg(global_oom_handling)] pub fn new_in(allocator: A) -> Self where A : Alloc { Self::with_capacity_in(0, allocator) }
 
     pub fn pop(&mut self) -> Option<T> {
         let idx_to_pop = self.len.checked_sub(1)?;
@@ -50,7 +61,16 @@ impl<T, A: Free> AVec<T, A> {
         unsafe { Some(self.as_mut_ptr().add(idx_to_pop).read()) }
     }
 
-    // TODO: push
+    // TODO: pub?
+    fn try_push(&mut self, value: T) -> Result<(), (T, A::Error)> where A : Realloc {
+        if let Err(e) = self.try_reserve(1) { return Err((value, e)) }
+        debug_assert!(self.len < self.capacity());
+        unsafe { self.as_mut_ptr().add(self.len).write(value) };
+        self.len += 1;
+        Ok(())
+    }
+
+    #[cfg(global_oom_handling)] pub fn push(&mut self, value: T) where A : Realloc { self.try_push(value).map_err(|(_, e)| e).expect("out of memory") }
 
     pub fn push_within_capacity(&mut self, value: T) -> Result<(), T> {
         if self.len < self.capacity() {
@@ -79,8 +99,27 @@ impl<T, A: Free> AVec<T, A> {
 
     #[cfg(feature = "panicy-bounds")] pub fn remove(&mut self, index: usize) -> T { self.try_remove(index).expect("index out of bounds") }
 
-    // TODO: reserve, reserve_exact
-    // TODO: resize, resize_with
+    #[cfg(global_oom_handling)] pub fn reserve(&mut self, additional: usize) where A : Realloc { self.try_reserve(additional).expect("unable to reserve more memory") }
+    #[cfg(global_oom_handling)] pub fn reserve_exact(&mut self, additional: usize) where A : Realloc { self.try_reserve_exact(additional).expect("unable to reserve more memory") }
+
+    // TODO: pub?
+    fn try_resize_with<F: FnMut() -> T>(&mut self, new_len: usize, mut f: F) -> Result<(), A::Error> where A : Realloc {
+        if let Some(additional) = new_len.checked_sub(self.len) {
+            self.try_reserve(additional)?;
+            while self.len() < new_len { self.push(f()); }
+        } else {
+            self.truncate(new_len);
+        }
+        Ok(())
+    }
+
+    fn try_resize(&mut self, new_len: usize, value: T) -> Result<(), A::Error> where T : Clone, A : Realloc {
+        self.try_resize_with(new_len, || value.clone())
+    }
+
+    #[cfg(global_oom_handling)] pub fn resize(&mut self, new_len: usize, value: T) where T : Clone, A : Realloc { self.try_resize(new_len, value).expect("unable to reserve more memory") }
+    #[cfg(global_oom_handling)] pub fn resize_with<F: FnMut() -> T>(&mut self, new_len: usize, f: F) where A : Realloc { self.try_resize_with(new_len, f).expect("unable to reserve more memory") }
+
     // TODO: retain, retain_mut
     // TODO: shrink_to, shrink_to_fit
     // TODO: splice
@@ -100,12 +139,29 @@ impl<T, A: Free> AVec<T, A> {
     #[cfg(feature = "panicy-bounds")] pub fn swap_remove(&mut self, index: usize) -> T { self.try_swap_remove(index).expect("index out of bounds") }
 
     pub fn truncate(&mut self, len: usize) {
-        if len > self.len { return }
-        let to_drop = core::ptr::slice_from_raw_parts_mut(unsafe { self.as_mut_ptr().add(len) }, self.len - len);
-        self.len = len;
-        unsafe { to_drop.drop_in_place() };
+        if let Some(to_drop) = self.len.checked_sub(len) {
+            let to_drop = core::ptr::slice_from_raw_parts_mut(unsafe { self.as_mut_ptr().add(len) }, to_drop);
+            self.len = len;
+            unsafe { to_drop.drop_in_place() };
+        }
     }
 
-    // TODO: try_reserve, try_reserve_exact
-    // TODO: with_capacity, with_capacity_in
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), A::Error> where A : Realloc {
+        let new_capacity = self.len().checked_add(additional).ok_or_else(|| ExcessiveSliceRequestedError { requested: !0 })?;
+        if new_capacity <= self.capacity() { return Ok(()) }
+        let new_capacity = new_capacity.max(self.capacity().saturating_mul(2));
+        ABox::try_realloc_uninit_slice(&mut self.data, new_capacity)
+    }
+
+    pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), A::Error> where A : Realloc {
+        let new_capacity = self.len().checked_add(additional).ok_or_else(|| ExcessiveSliceRequestedError { requested: !0 })?;
+        if new_capacity <= self.capacity() { return Ok(()) }
+        ABox::try_realloc_uninit_slice(&mut self.data, new_capacity)
+    }
+
+    // TODO: pub?
+    fn try_with_capacity_in(capacity: usize, allocator: A) -> Result<Self, A::Error> where A : Alloc            { Ok(Self { data: ABox::try_new_uninit_slice_in(capacity, allocator)?, len: 0 }) }
+    fn try_with_capacity(   capacity: usize) -> Result<Self, A::Error> where A : Alloc + Default                { Self::try_with_capacity_in(capacity, A::default()) }
+    #[cfg(global_oom_handling)] pub fn with_capacity_in(capacity: usize, allocator: A) -> Self where A : Alloc  { Self::try_with_capacity_in(capacity, allocator).expect("out of memory") }
+    #[cfg(global_oom_handling)] pub fn with_capacity(   capacity: usize) -> Self where A : Alloc + Default      { Self::try_with_capacity(capacity ).expect("out of memory") }
 }
