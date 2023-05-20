@@ -3,6 +3,7 @@
 | ----------------------| ----------------------------------------------| ------------------------|
 |                       | **API Design**
 | `"panicy`"            | Implicitly panicy APIs                        |
+| `"panicy-bounds"`     | APIs that panic on out of bounds indicies     |
 | `"panicy-memory"`     | APIs that panic when out of memory            |
 | (always)              | APIs that try to panic on undefined behavior  |
 |

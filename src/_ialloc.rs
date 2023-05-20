@@ -28,6 +28,7 @@ mod align {
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
 #[path = "util/_util.rs"                ] mod util;
+#[path = "vec/_vec.rs"                  ] pub mod vec;
 
 #[doc(hidden)] pub mod bug;
 pub mod error;
