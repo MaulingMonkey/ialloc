@@ -4,6 +4,7 @@ use crate::error::ExcessiveSliceRequestedError;
 use crate::fat::*;
 
 use core::mem::MaybeUninit;
+use core::ops::{RangeBounds, Bound};
 
 
 
@@ -37,15 +38,43 @@ impl<T, A: Free> AVec<T, A> {
 
     #[cfg(global_oom_handling)] pub fn append(&mut self, other: &mut AVec<T, impl Free>) where A : Realloc { self.try_append(other).expect("out of memory") }
 
-    pub fn clear(&mut self) {
-        let to_drop = core::ptr::slice_from_raw_parts_mut(self.as_mut_ptr(), self.len);
-        self.len = 0;
-        unsafe { to_drop.drop_in_place() };
-    }
+    pub fn clear(&mut self) { self.truncate(0) }
 
     // TODO: dedup, dedup_by, dedup_by_key
     // TODO: drain, drain_filter
-    // TODO: extend_from_slice, extend_from_within
+
+    // TODO: pub?
+    fn try_extend_from_slice(&mut self, slice: &[T]) -> Result<(), A::Error> where T : Clone, A : Realloc {
+        self.try_reserve(slice.len())?;
+        for value in slice.iter().cloned() { unsafe { self.push_within_capacity_unchecked(value) } }
+        Ok(())
+    }
+
+    #[cfg(global_oom_handling)] pub fn extend_from_slice(&mut self, slice: &[T]) where T : Clone, A : Realloc { self.try_extend_from_slice(slice).expect("out of memory") }
+
+    #[cfg(global_oom_handling)]
+    #[cfg(feature = "panicy-bounds")]
+    pub fn extend_from_within<R: RangeBounds<usize>>(&mut self, src: R) where T : Clone, A : Realloc {
+        let start = match src.start_bound() {
+            Bound::Unbounded    => 0,
+            Bound::Included(i)  => *i,
+            Bound::Excluded(i)  => i.checked_add(1).expect("start out of bounds"),
+        };
+        let end = match src.end_bound() {
+            Bound::Unbounded    => self.len,
+            Bound::Included(i)  => i.checked_add(1).expect("end out of bounds"),
+            Bound::Excluded(i)  => *i,
+        };
+        assert!(start <= end);
+        assert!(end <= self.len);
+        self.reserve(end-start);
+
+        for i in start .. end {
+            let value = unsafe { self.get_unchecked(i) }.clone();
+            unsafe { self.push_within_capacity_unchecked(value) }
+        }
+    }
+
     // TODO: from_raw_parts, from_raw_parts_in
     // TODO: insert
     // TODO: into_boxed_slice, into_flattened
@@ -65,18 +94,19 @@ impl<T, A: Free> AVec<T, A> {
     fn try_push(&mut self, value: T) -> Result<(), (T, A::Error)> where A : Realloc {
         if let Err(e) = self.try_reserve(1) { return Err((value, e)) }
         debug_assert!(self.len < self.capacity());
-        unsafe { self.as_mut_ptr().add(self.len).write(value) };
-        self.len += 1;
-        Ok(())
+        Ok(unsafe { self.push_within_capacity_unchecked(value) })
     }
 
     #[cfg(global_oom_handling)] pub fn push(&mut self, value: T) where A : Realloc { self.try_push(value).map_err(|(_, e)| e).expect("out of memory") }
 
+    unsafe fn push_within_capacity_unchecked(&mut self, value: T) {
+        unsafe { self.as_mut_ptr().add(self.len).write(value) };
+        self.len += 1;
+    }
+
     pub fn push_within_capacity(&mut self, value: T) -> Result<(), T> {
         if self.len < self.capacity() {
-            unsafe { self.as_mut_ptr().add(self.len).write(value) };
-            self.len += 1;
-            Ok(())
+            Ok(unsafe { self.push_within_capacity_unchecked(value) })
         } else {
             Err(value)
         }
@@ -106,7 +136,7 @@ impl<T, A: Free> AVec<T, A> {
     fn try_resize_with<F: FnMut() -> T>(&mut self, new_len: usize, mut f: F) -> Result<(), A::Error> where A : Realloc {
         if let Some(additional) = new_len.checked_sub(self.len) {
             self.try_reserve(additional)?;
-            while self.len() < new_len { self.push(f()); }
+            while self.len() < new_len { unsafe { self.push_within_capacity_unchecked(f()) } }
         } else {
             self.truncate(new_len);
         }
