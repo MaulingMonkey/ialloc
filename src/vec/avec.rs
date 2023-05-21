@@ -147,7 +147,12 @@ impl<T, A: Free> AVec<T, A> {
     #[cfg(global_oom_handling)] pub fn resize_with<F: FnMut() -> T>(&mut self, new_len: usize, f: F) where A : Realloc { self.try_resize_with(new_len, f).expect("unable to reserve more memory") }
 
     // TODO: retain, retain_mut
-    // TODO: shrink_to, shrink_to_fit
+
+    /* pub? */ fn try_shrink_to(&mut self, min_capacity: usize) -> Result<(), A::Error> where A : Realloc { let c = min_capacity.max(self.len()); ABox::try_realloc_uninit_slice(&mut self.data, c) }
+    /* pub? */ fn try_shrink_to_fit(&mut self) -> Result<(), A::Error> where A : Realloc { self.try_shrink_to(self.len()) }
+    #[cfg(global_oom_handling)] pub fn shrink_to(&mut self, min_capacity: usize) where A : Realloc { self.try_shrink_to(min_capacity).expect("unable to reallocate") }
+    #[cfg(global_oom_handling)] pub fn shrink_to_fit(&mut self) where A : Realloc { self.try_shrink_to_fit().expect("unable to reallocate") }
+
     // TODO: splice
     // TODO: split_at_sparse_mut
     // TODO: split_off
