@@ -1,10 +1,11 @@
 use crate::{*, Alignment};
+use crate::meta::*;
 
 use core::alloc::Layout;
 
 
 
-/// Adapt a [`thin`] allocator to a wider interface, [`panic!`]ing if more than [`meta::Meta::MAX_ALIGN`] is requested.
+/// Adapt a [`thin`] allocator to a wider interface, [`panic!`]ing if more than [`Meta::MAX_ALIGN`] is requested.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct PanicOverAlign<A>(pub A);
 
 #[inline(never)] #[track_caller] fn invalid_requested_alignment(requested: usize, supported: usize) -> ! {
@@ -32,13 +33,16 @@ impl<A> core::ops::Deref for PanicOverAlign<A> {
 
 // meta::*
 
-impl<A: meta::Meta> meta::Meta for PanicOverAlign<A> {
+impl<A: Meta> Meta for PanicOverAlign<A> {
     type Error                  = A::Error;
     const MAX_ALIGN : Alignment = A::MAX_ALIGN;
     const MAX_SIZE  : usize     = A::MAX_SIZE;
     const ZST_SUPPORTED : bool  = A::ZST_SUPPORTED;
 }
 
+impl<A: ZstSupported> ZstSupported for PanicOverAlign<A> {}
+
+unsafe impl<A: ZstInfalliable> ZstInfalliable for PanicOverAlign<A> {}
 
 
 // fat::*

@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 
 use winapi::um::combaseapi::{CoTaskMemAlloc, CoTaskMemRealloc, CoTaskMemFree};
 
@@ -24,13 +25,23 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct CoTaskMem;
 
-impl meta::Meta for CoTaskMem {
+
+
+// meta::*
+
+impl Meta for CoTaskMem {
     type Error                  = ();
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for CoTaskMem {}
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

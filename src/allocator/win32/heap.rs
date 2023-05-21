@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 use super::Error;
 
 use winapi::um::heapapi::{HeapAlloc, HeapReAlloc, HeapFree, HeapSize, GetProcessHeap, HeapDestroy, HeapCreate};
@@ -123,7 +124,11 @@ impl Heap {
     }
 }
 
-impl meta::Meta for Heap {
+
+
+// meta::*
+
+impl Meta for Heap {
     type Error = Error;
 
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
@@ -142,6 +147,10 @@ impl meta::Meta for Heap {
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for Heap {}
+
+
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
@@ -262,7 +271,11 @@ unsafe impl thin::SizeOfDebug for Heap {
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct ProcessHeap;
 
-impl meta::Meta for ProcessHeap {
+
+
+// meta::*
+
+impl Meta for ProcessHeap {
     type Error = Error;
 
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
@@ -281,6 +294,12 @@ impl meta::Meta for ProcessHeap {
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for ProcessHeap {}
+
+
+
+// thin::*
 
 #[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ implemented against same traits with same prereqs
 unsafe impl thin::Alloc for ProcessHeap {

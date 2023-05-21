@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 use super::Error;
 
 use winapi::um::memoryapi::{VirtualAlloc, VirtualFree};
@@ -25,7 +26,7 @@ use core::ptr::{null_mut, NonNull};
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct VirtualCommit;
 
-impl meta::Meta for VirtualCommit {
+impl Meta for VirtualCommit {
     type Error = Error;
 
     /// ### References
@@ -35,6 +36,10 @@ impl meta::Meta for VirtualCommit {
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = false;
 }
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
@@ -78,6 +83,10 @@ unsafe impl thin::Free for VirtualCommit {
         result.expect("VirtualFree failed");
     }
 }
+
+
+
+// fat::*
 
 // SAFETY: ✔️ default Realloc impl is soundly implemented in terms of Alloc+Free
 unsafe impl fat::Realloc for VirtualCommit {}

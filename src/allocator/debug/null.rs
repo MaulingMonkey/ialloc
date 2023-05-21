@@ -1,6 +1,8 @@
 #![allow(unused_variables)]
 
 use crate::*;
+use crate::meta::*;
+
 use core::alloc::Layout;
 
 
@@ -8,12 +10,18 @@ use core::alloc::Layout;
 /// Never allocates anything, not even ZSTs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] pub struct Null;
 
-impl meta::Meta for Null {
+
+
+// meta::*
+
+impl Meta for Null {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::MAX;
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for Null {}
 
 
 

@@ -1,6 +1,6 @@
 use crate::*;
 use crate::error::ExcessiveAlignmentRequestedError;
-use crate::meta::Meta;
+use crate::meta::*;
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
@@ -39,6 +39,8 @@ impl<A: Meta> Meta for AllocZst<A> {
     const MAX_SIZE  : usize     = A::MAX_SIZE;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl<A: Meta> ZstSupported for AllocZst<A> {}
 
 
 

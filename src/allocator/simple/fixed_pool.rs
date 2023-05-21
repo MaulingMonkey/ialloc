@@ -1,5 +1,6 @@
 use crate::*;
 use crate::align::alignn::_align_impl::ValidAlignLessThan1GiB;
+use crate::meta::*;
 
 use core::cell::*;
 use core::fmt::{self, Debug, Formatter};
@@ -85,12 +86,21 @@ impl<const A: usize, const B: usize, const N: usize> Debug for FixedPoolLinearPr
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "FixedBool<{A}, {B}, {N}> {{ ... }}") }
 }
 
-impl<const A: usize, const B: usize, const N: usize> meta::Meta for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
+
+
+// meta::*
+
+impl<const A: usize, const B: usize, const N: usize> Meta for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::constant(A);
     const MAX_SIZE  : usize     = B;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl<const A: usize, const B: usize, const N: usize> ZstSupported for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {}
+
+
+// thin::*
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
 // SAFETY: ✔️ if `alloc_uninit` succeeds:

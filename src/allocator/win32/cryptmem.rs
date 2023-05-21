@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 
 use winapi::um::wincrypt::{CryptMemAlloc, CryptMemRealloc, CryptMemFree};
 
@@ -18,13 +19,23 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct CryptMem;
 
-impl meta::Meta for CryptMem {
+
+
+// meta::*
+
+impl Meta for CryptMem {
     type Error                  = ();
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = u32::MAX as usize;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for CryptMem {}
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

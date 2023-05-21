@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 use super::Error;
 
 use winapi::um::winbase::{GlobalAlloc, GlobalReAlloc, GlobalFree, GlobalSize, GMEM_ZEROINIT};
@@ -38,13 +39,23 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
 
-impl meta::Meta for Global {
+
+
+// meta::*
+
+impl Meta for Global {
     type Error                  = Error;
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for Global {}
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

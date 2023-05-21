@@ -60,3 +60,34 @@ impl<'a, A: Meta> Meta for &'a A {
     const MAX_SIZE      : usize     = A::MAX_SIZE;
     const ZST_SUPPORTED : bool      = A::ZST_SUPPORTED;
 }
+
+
+
+/// Allocator supports zero-sized allocations.  Implies Meta::ZST_SUPPORTED = true
+pub trait ZstSupported : Meta {}
+
+impl<'a, A: ZstSupported> ZstSupported for &'a A {}
+
+
+
+/// Zero-sized allocations "should" always succeed.
+///
+/// ### Safety
+/// Some code might rely on the presence of this trait to safely [`Result::unwrap_unchecked`] the result of:
+/// *   <code>[thin::Alloc::alloc_uninit]\(0\)</code>
+/// *   <code>[thin::Alloc::alloc_zeroed]\(0\)</code>
+/// *   <code>[thin::Realloc::realloc_uninit]\(ptr, 0\)</code>
+/// *   ~~<code>[thin::Realloc::realloc_zeroed]\(ptr, 0\)</code>~~ May fail anyways if <code>\![thin::Realloc::CAN_REALLOC_ZEROED]</code>
+/// *   <code>[fat::Alloc::alloc_uninit]\(layout\)</code> where `layout.size() == 0`
+/// *   <code>[fat::Alloc::alloc_zeroed]\(layout\)</code> where `layout.size() == 0`
+/// *   <code>[fat::Realloc::realloc_uninit]\(ptr, old_layout, new_layout\)</code> where `new_layout.size() == 0`
+/// *   <code>[fat::Realloc::realloc_zeroed]\(ptr, old_layout, new_layout\)</code> where `new_layout.size() == 0`
+///
+/// Note that these functions can still *panic* if:
+/// *   Passed bad pointers (e.g. to `Realloc::realloc_*`)
+/// *   Passed bad alignments (e.g. [`PanicOverAlign`](crate::allocator::adapt::PanicOverAlign))
+/// *   Interior heap corruption was detected
+/// *   ...
+///
+/// Although unless it's to report potential undefined behavior, this is at least discouraged.
+pub unsafe trait ZstInfalliable : ZstSupported {}

@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 
 use core::alloc::Layout;
 use core::cell::Cell;
@@ -51,12 +52,24 @@ impl<'a> Drop for Bump<'a> {
     }
 }
 
-impl<'a> meta::Meta for Bump<'a> {
+
+
+// meta::*
+
+impl<'a> Meta for Bump<'a> {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::MAX;
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for Bump<'_> {}
+
+unsafe impl ZstInfalliable for Bump<'_> {}
+
+
+
+// fat::*
 
 unsafe impl<'a> fat::Alloc for Bump<'a> {
     fn alloc_uninit(&self, layout: Layout) -> Result<crate::AllocNN, Self::Error> {

@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 use super::Error;
 
 use winapi::um::heapapi::{HeapAlloc, HeapReAlloc, HeapFree, HeapSize, HeapDestroy, HeapCreate};
@@ -110,7 +111,12 @@ impl HeapNoSerialize {
     }
 }
 
-impl meta::Meta for HeapNoSerialize {
+
+
+
+// meta::*
+
+impl Meta for HeapNoSerialize {
     type Error = Error;
 
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
@@ -129,6 +135,12 @@ impl meta::Meta for HeapNoSerialize {
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for HeapNoSerialize {}
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
