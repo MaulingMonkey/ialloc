@@ -3,6 +3,7 @@
 use crate::boxed::ABox;
 use crate::error::ExcessiveSliceRequestedError;
 use crate::fat::*;
+use crate::meta::*;
 use crate::util;
 
 use bytemuck::*;
@@ -94,7 +95,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// let err = ABox::<u32, _>::try_new_bytemuck_zeroed_slice_in(usize::MAX/8+1, alloc).err().unwrap();
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, _>::try_new_bytemuck_zeroed_slice_in(0, Malloc).unwrap();
@@ -108,7 +109,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::try_new_bytemuck_zeroed_slice_in(1, alloc).unwrap();
     /// ```
-    #[track_caller] pub fn try_new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> Result<ABox<[T], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] pub fn try_new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         let layout = Layout::array::<T>(len).map_err(|_| ExcessiveSliceRequestedError{ requested: len }.into())?;
         let data = util::nn::slice_from_raw_parts(allocator.alloc_zeroed(layout)?.cast(), len);
@@ -193,7 +194,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// let a = ABox::<u32, _>::new_bytemuck_zeroed_slice_in(usize::MAX/8+1, alloc);
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, _>::new_bytemuck_zeroed_slice_in(0, Malloc);
@@ -207,7 +208,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::new_bytemuck_zeroed_slice_in(1, alloc);
     /// ```
-    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_bytemuck_zeroed_slice_in(len, allocator).expect("unable to allocate")
     }
@@ -292,7 +293,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// let err = ABox::<u32, A>::try_new_bytemuck_zeroed_slice(usize::MAX/8+1).err().unwrap();
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::try_new_bytemuck_zeroed_slice(0).unwrap();
@@ -306,7 +307,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, A>::try_new_bytemuck_zeroed_slice(1).unwrap();
     /// ```
-    #[track_caller] #[inline(always)] pub fn try_new_bytemuck_zeroed_slice(len: usize) -> Result<ABox<[T], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] #[inline(always)] pub fn try_new_bytemuck_zeroed_slice(len: usize) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_bytemuck_zeroed_slice_in(len, A::default())
     }
@@ -387,7 +388,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// let a = ABox::<u32, A>::new_bytemuck_zeroed_slice(usize::MAX/8+1);
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::new_bytemuck_zeroed_slice(0);
@@ -401,7 +402,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, A>::new_bytemuck_zeroed_slice(1);
     /// ```
-    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::new_bytemuck_zeroed_slice_in(len, A::default())
     }

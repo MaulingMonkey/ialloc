@@ -1,6 +1,7 @@
 #[cfg(doc)] use crate::fat;
 use crate::boxed::ABox;
 use crate::error::ExcessiveSliceRequestedError;
+use crate::meta::*;
 use crate::fat::*;
 
 use core::mem::MaybeUninit;
@@ -80,8 +81,10 @@ impl<T, A: Free> AVec<T, A> {
     // TODO: into_raw_parts, into_raw_parts_with_allocator
     // TODO: leak
 
-    #[cfg(global_oom_handling)] pub fn new() -> Self where A : Alloc + Default { Self::with_capacity(0) }
-    #[cfg(global_oom_handling)] pub fn new_in(allocator: A) -> Self where A : Alloc { Self::with_capacity_in(0, allocator) }
+    #[cfg(    global_oom_handling )] pub fn new() -> Self where A : Alloc + Default + ZstSupported { Self::with_capacity(0) }
+    #[cfg(not(global_oom_handling))] pub fn new() -> Self where A : Alloc + Default + ZstInfalliable { Self::try_with_capacity(0).expect("zero-sized allocation failed despite ZstInfalliable") }
+    #[cfg(    global_oom_handling )] pub fn new_in(allocator: A) -> Self where A : Alloc + ZstSupported { Self::with_capacity_in(0, allocator) }
+    #[cfg(not(global_oom_handling))] pub fn new_in(allocator: A) -> Self where A : Alloc + ZstInfalliable { Self::try_with_capacity_in(0, allocator).expect("zero-sized allocation failed despite ZstInfalliable") }
 
     pub fn pop(&mut self) -> Option<T> {
         let idx_to_pop = self.len.checked_sub(1)?;
@@ -189,8 +192,8 @@ impl<T, A: Free> AVec<T, A> {
         ABox::try_realloc_uninit_slice(&mut self.data, new_capacity)
     }
 
-    /* pub? */ fn try_with_capacity_in(capacity: usize, allocator: A) -> Result<Self, A::Error> where A : Alloc { Ok(Self { data: ABox::try_new_uninit_slice_in(capacity, allocator)?, len: 0 }) }
-    /* pub? */ fn try_with_capacity(   capacity: usize) -> Result<Self, A::Error> where A : Alloc + Default     { Self::try_with_capacity_in(capacity, A::default()) }
-    #[cfg(global_oom_handling)] pub fn with_capacity_in(capacity: usize, allocator: A) -> Self where A : Alloc  { Self::try_with_capacity_in(capacity, allocator).expect("out of memory") }
-    #[cfg(global_oom_handling)] pub fn with_capacity(   capacity: usize) -> Self where A : Alloc + Default      { Self::try_with_capacity(capacity ).expect("out of memory") }
+    /* pub? */ fn try_with_capacity_in(capacity: usize, allocator: A) -> Result<Self, A::Error> where A : Alloc + ZstSupported { Ok(Self { data: ABox::try_new_uninit_slice_in(capacity, allocator)?, len: 0 }) }
+    /* pub? */ fn try_with_capacity(   capacity: usize) -> Result<Self, A::Error> where A : Alloc + Default + ZstSupported     { Self::try_with_capacity_in(capacity, A::default()) }
+    #[cfg(global_oom_handling)] pub fn with_capacity_in(capacity: usize, allocator: A) -> Self where A : Alloc + ZstSupported  { Self::try_with_capacity_in(capacity, allocator).expect("out of memory") }
+    #[cfg(global_oom_handling)] pub fn with_capacity(   capacity: usize) -> Self where A : Alloc + Default + ZstSupported      { Self::try_with_capacity(capacity ).expect("out of memory") }
 }

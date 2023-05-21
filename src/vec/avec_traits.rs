@@ -1,4 +1,5 @@
 use crate::fat::*;
+use crate::meta::*;
 use crate::vec::AVec;
 
 use core::borrow::{Borrow, BorrowMut};
@@ -50,9 +51,11 @@ impl<T: PartialOrd, A: Free> PartialOrd for AVec<T, A> {
 
 
 
+#[cfg(    global_oom_handling )] impl<T: Clone, A: Realloc + Clone + ZstSupported> Clone for AVec<T, A> { fn clone(&self) -> Self { let mut v = Self::new_in(self.allocator().clone()); v.extend_from_slice(self); v } }
+#[cfg(    global_oom_handling )] impl<T, A: Free + Alloc + Default + ZstSupported  > Default for AVec<T, A> { fn default() -> Self { Self::new() } }
+#[cfg(not(global_oom_handling))] impl<T, A: Free + Alloc + Default + ZstInfalliable> Default for AVec<T, A> { fn default() -> Self { Self::new() } }
+
 // TODO:
-//  • [ ] Clone
-//  • [ ] Default
 //  • [ ] Extend
 //  • [ ] From
 //  • [ ] FromIterator

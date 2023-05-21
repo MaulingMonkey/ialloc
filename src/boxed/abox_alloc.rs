@@ -1,6 +1,7 @@
 use crate::boxed::ABox;
 use crate::error::ExcessiveSliceRequestedError;
 use crate::fat::*;
+use crate::meta::*;
 use crate::util;
 
 use core::alloc::Layout;
@@ -141,7 +142,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     /// let err = ABox::<u32, _>::try_new_uninit_slice_in(usize::MAX/8+1, alloc).err().unwrap();
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, _>::try_new_uninit_slice_in(0, Malloc).unwrap();
@@ -154,7 +155,7 @@ impl<T, A: Alloc + Free> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::try_new_uninit_slice_in(1, alloc).unwrap();
     /// ```
-    pub fn try_new_uninit_slice_in(len: usize, allocator: A) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> {
+    pub fn try_new_uninit_slice_in(len: usize, allocator: A) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         let layout = Layout::array::<T>(len).map_err(|_| ExcessiveSliceRequestedError{ requested: len }.into())?;
         let data = util::nn::slice_from_raw_parts(allocator.alloc_uninit(layout)?.cast(), len);
@@ -278,7 +279,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// let err = ABox::<u32, A>::try_new_uninit_slice(usize::MAX/8+1).err().unwrap();
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::try_new_uninit_slice(0).unwrap();
@@ -291,7 +292,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, A>::try_new_uninit_slice(1).unwrap();
     /// ```
-    pub fn try_new_uninit_slice(len: usize) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where ExcessiveSliceRequestedError : Into<A::Error> {
+    pub fn try_new_uninit_slice(len: usize) -> Result<ABox<[MaybeUninit<T>], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_uninit_slice_in(len, A::default())
     }
@@ -412,7 +413,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// let a = ABox::<u32, _>::new_uninit_slice_in(usize::MAX/8+1, alloc);
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, _>::new_uninit_slice_in(0, Malloc);
@@ -425,7 +426,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, _>::new_uninit_slice_in(1, alloc);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit_slice_in(len: usize, allocator: A) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] #[inline(always)] pub fn new_uninit_slice_in(len: usize, allocator: A) -> ABox<[MaybeUninit<T>], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_uninit_slice_in(len, allocator).expect("unable to allocate")
     }
@@ -546,7 +547,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// let a = ABox::<u32, A>::new_uninit_slice(usize::MAX/8+1);
     /// ```
     ///
-    /// ```compile_fail,E0080
+    /// ```compile_fail,E0277
     /// // won't compile - Malloc doesn't support ZSTs like empty slices
     /// # use ialloc::{allocator::{adapt::DangleZst, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::<u32, Malloc>::new_uninit_slice(0);
@@ -559,7 +560,7 @@ impl<T, A: Alloc + Free + Default> ABox<T, A> {
     /// #[repr(C, align(4096))] pub struct Page([u8; 4096]);
     /// let a = ABox::<Page, A>::new_uninit_slice(1);
     /// ```
-    #[track_caller] #[inline(always)] pub fn new_uninit_slice(len: usize) -> ABox<[MaybeUninit<T>], A> where ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] #[inline(always)] pub fn new_uninit_slice(len: usize) -> ABox<[MaybeUninit<T>], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::new_uninit_slice_in(len, A::default())
     }
