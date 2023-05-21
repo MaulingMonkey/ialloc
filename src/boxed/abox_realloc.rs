@@ -14,7 +14,10 @@ impl<T, A: Realloc> ABox<[MaybeUninit<T>], A> {
         let old_layout  = Self::layout(this);
         let allocator   = Self::allocator(this);
         let data        = Self::data(this).cast::<MaybeUninit<u8>>();
+        // SAFETY: ✔️ `data` belongs to `allocator` and had `old_layout`
+        // SAFETY: ⚠️ leaves `this.data` dangling / referencing a slice of incorrect layout until replaced, not execption safe!
         let data        = unsafe { allocator.realloc_uninit(data, old_layout, new_layout)? };
+        // SAFETY: ✔️ fixes dangling / bogus-layout `this.data`
         unsafe { Self::set_data(this, util::nn::slice_from_raw_parts(data.cast(), new_len)) };
         Ok(())
     }
