@@ -10,10 +10,16 @@ using std::nothrow;
 
 
 
-template < typename T > struct ebco : T { char ch; };
 #if __cpp_static_assert
-static_assert(sizeof(ebco<std::allocator<char>>) == 1, "std::allocator<char> contains members/data, not interchangeable?");
+    // validate std::allocator<char> is stateless
+    #if __cpp_lib_allocator_traits_is_always_equal
+        static_assert(std::allocator_traits<std::allocator<char> >::is_always_equal::value, "std::allocator<char> isn't stateless");
+    #else
+        template < typename T > struct ebco : T { char ch; };
+        static_assert(sizeof(ebco<std::allocator<char>>) == 1, "std::allocator<char> contains members/data, not interchangeable?");
+    #endif
 #endif
+
 IALLOC_FN(void*, std_allocator_char_allocate        ) (size_t count)                    { try { return std::allocator<char>().allocate(count); } catch (const std::bad_alloc&) { return 0; } }
 IALLOC_FN(void,  std_allocator_char_deallocate      ) (char* ptr, size_t count)         { return std::allocator<char>().deallocate(ptr, count); }
 
