@@ -1,5 +1,7 @@
 use crate::boxed::ABox;
 use crate::fat::*;
+use crate::meta::ZstSupported;
+use crate::vec::AVec;
 
 use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
@@ -118,8 +120,16 @@ impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
     }
 }
 
+#[cfg(global_oom_handling)]
+impl<T, A: Realloc + Default + ZstSupported> FromIterator<T> for ABox<[T], A> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        AVec::<T, A>::from_iter(iter).into_boxed_slice()
+    }
+}
+
+// TODO: FromIterator<ABox<str, A>> for String
+
 // TODO:
-//  • [ ] impl FromIterator
 //  • [ ] impl Generator<...>
 //
 // TODO:

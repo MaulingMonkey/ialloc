@@ -225,7 +225,7 @@ impl<T, A: Free> ABox<[MaybeUninit<T>], A> {
     // [MaybeUninit<T>]
 
     // XXX: make pub?
-    #[allow(dead_code)] pub(super) unsafe fn assume_init(self) -> ABox<[T], A> {
+    pub(crate) unsafe fn assume_init(self) -> ABox<[T], A> {
         let (data, allocator) = ABox::into_raw_with_allocator(self);
         let data = util::nn::slice_from_raw_parts(data.cast(), data.len());
         // SAFETY: ✔️ we just decomposed (data, allocator) from a compatible-layout box

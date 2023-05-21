@@ -4,6 +4,7 @@ use crate::error::ExcessiveSliceRequestedError;
 use crate::meta::*;
 use crate::fat::*;
 
+use core::mem::ManuallyDrop;
 use core::mem::MaybeUninit;
 use core::ops::{RangeBounds, Bound};
 
@@ -44,7 +45,7 @@ impl<T, A: Free> AVec<T, A> {
     // TODO: dedup, dedup_by, dedup_by_key
     // TODO: drain, drain_filter
 
-    /* pub? */ fn try_extend_from_slice(&mut self, slice: &[T]) -> Result<(), A::Error> where T : Clone, A : Realloc {
+    pub(crate) fn try_extend_from_slice(&mut self, slice: &[T]) -> Result<(), A::Error> where T : Clone, A : Realloc {
         self.try_reserve(slice.len())?;
         for value in slice.iter().cloned() { unsafe { self.push_within_capacity_unchecked(value) } }
         Ok(())
@@ -77,7 +78,24 @@ impl<T, A: Free> AVec<T, A> {
 
     // TODO: from_raw_parts, from_raw_parts_in
     // TODO: insert
-    // TODO: into_boxed_slice, into_flattened
+
+    fn try_into_boxed_slice(self) -> Result<ABox<[T], A>, (Self, A::Error)> where A : Realloc {
+        let mut v = self;
+        if let Err(err) = v.try_shrink_to_fit() { return Err((v, err)) }
+
+        // decompose without Drop
+        let v = ManuallyDrop::new(v);
+        let data = unsafe { std::ptr::read(&v.data) };
+        core::mem::forget(v);
+
+        //let (raw, allocator) = data.into_raw_with_allocator();
+        //Ok(ABox::from_raw_in(raw, allocator))
+        Ok(unsafe { data.assume_init() })
+    }
+
+    #[cfg(global_oom_handling)] pub fn into_boxed_slice(self) -> ABox<[T], A> where A : Realloc { self.try_into_boxed_slice().map_err(|(_, err)| err).expect("unable to shrink alloc") }
+
+    // TODO: into_flattened
     // TODO: into_raw_parts, into_raw_parts_with_allocator
     // TODO: leak
 
