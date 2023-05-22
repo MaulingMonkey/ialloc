@@ -33,12 +33,12 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// use ialloc::{allocator::{c::Malloc, debug::Null}, boxed::ABox};
     /// let mut a = ABox::new_in('a', Malloc);
     /// let     b = ABox::new_in('b', Malloc);
-    /// a.clone_from(&b);
+    /// ABox::clone_from(&mut a, &b);
     /// assert_eq!(*a, 'b');
     /// ```
-    pub fn clone_from(&mut self, source: &ABox<T, impl Free>) {
+    pub fn clone_from(this: &mut Self, source: &ABox<T, impl Free>) {
         //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
-        T::clone_from(self, source)
+        T::clone_from(this, source)
     }
 
     /// Allocate a new box that clones the contents of `self` using `A::default()`.
@@ -50,13 +50,13 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ```
     /// use ialloc::{allocator::c::Malloc, boxed::ABox};
     /// let a = ABox::new_in('a', Malloc);
-    /// let b = a.try_clone().unwrap();
+    /// let b = ABox::try_clone(&a).unwrap();
     /// assert_eq!(*b, 'a');
     /// ```
     // TODO: show failure example via allocator with strict memory limits
-    pub fn try_clone(&self) -> Result<ABox<T, A>, A ::Error> where A : Alloc + Clone {
-        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `self`
-        ABox::try_new_in(T::clone(self), Self::allocator(self).clone())
+    pub fn try_clone(this: &Self) -> Result<ABox<T, A>, A::Error> where A : Alloc + Clone {
+        //let _ = Self::ASSERT_A_CAN_ALLOC_T; // implied by `this`
+        ABox::try_new_in(T::clone(this), Self::allocator(this).clone())
     }
 
     /// Allocate a new box that clones the contents of `self` using `allocator`.
@@ -69,7 +69,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ```
     /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::new_in('a', Malloc);
-    /// let b = a.try_clone_in(Malloc).unwrap();
+    /// let b = ABox::try_clone_in(&a, Malloc).unwrap();
     /// assert_eq!(*b, 'a');
     /// ```
     ///
@@ -77,7 +77,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// // will return Err(...) - Null can't allocate anything
     /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// # let a = ABox::new_in('a', Malloc);
-    /// let err = a.try_clone_in(Null).unwrap_err();
+    /// let err = ABox::try_clone_in(&a, Null).unwrap_err();
     /// ```
     ///
     /// ```compile_fail,E0080
@@ -86,11 +86,11 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// let a = ABox::new_in(Page([0u8; 4096]), Global);
     ///
     /// // won't compile - requires too much alignment for Malloc
-    /// let b = a.try_clone_in(Malloc);
+    /// let b = ABox::try_clone_in(&a, Malloc);
     /// ```
-    pub fn try_clone_in<A2>(&self, allocator: A2) -> Result<ABox<T, A2>, A2::Error> where A2 : Alloc + Free {
+    pub fn try_clone_in<A2>(this: &Self, allocator: A2) -> Result<ABox<T, A2>, A2::Error> where A2 : Alloc + Free {
         let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_T;
-        ABox::try_new_in(T::clone(self), allocator)
+        ABox::try_new_in(T::clone(this), allocator)
     }
 
     /// Allocate a new box that clones the contents of `self` using `allocator`.
@@ -103,7 +103,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// ```
     /// use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// let a = ABox::new_in('a', Malloc);
-    /// let b = a.clone_in(Malloc);
+    /// let b = ABox::clone_in(&a, Malloc);
     /// assert_eq!(*b, 'a');
     /// ```
     ///
@@ -111,7 +111,7 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// // will panic - Null can't allocate anything
     /// # use ialloc::{allocator::{alloc::Global, c::Malloc, debug::Null}, boxed::ABox};
     /// # let a = ABox::new_in('a', Malloc);
-    /// let b = a.clone_in(Null);
+    /// let b = ABox::clone_in(&a, Null);
     /// ```
     ///
     /// ```compile_fail,E0080
@@ -120,10 +120,10 @@ impl<T: Clone, A: Free> ABox<T, A> {
     /// let a = ABox::new_in(Page([0u8; 4096]), Global);
     ///
     /// // won't compile - requires too much alignment for Malloc
-    /// let b = a.clone_in(Malloc);
+    /// let b = ABox::clone_in(&a, Malloc);
     /// ```
-    #[cfg(global_oom_handling)] pub fn clone_in<A2>(&self, allocator: A2) -> ABox<T, A2> where A2 : Alloc + Free {
+    #[cfg(global_oom_handling)] pub fn clone_in<A2>(this: &Self, allocator: A2) -> ABox<T, A2> where A2 : Alloc + Free {
         let _ = ABox::<T, A2>::ASSERT_A_CAN_ALLOC_T;
-        ABox::new_in(T::clone(self), allocator)
+        ABox::new_in(T::clone(this), allocator)
     }
 }
