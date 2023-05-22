@@ -8,5 +8,6 @@ mod avec_deref;
 mod avec_extend;
 mod avec_fmt;
 mod avec_index;
+mod avec_io;
 mod avec_iter;
 mod avec_traits;
