@@ -5,7 +5,6 @@ use crate::vec::AVec;
 
 use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
-use core::fmt::{self, Debug, Display, Formatter, Pointer};
 use core::hash::{Hash, Hasher};
 use core::iter::FusedIterator;
 use core::ops::{Deref, DerefMut};
@@ -33,14 +32,6 @@ impl<T: ?Sized, A: Free> AsMut<T>       for ABox<T, A> { fn as_mut(&mut self)   
 impl<T: ?Sized, A: Free> AsRef<T>       for ABox<T, A> { fn as_ref(&self)            -> &T       { self } }
 impl<T: ?Sized, A: Free> Borrow<T>      for ABox<T, A> { fn borrow(&self)            -> &T       { self } }
 impl<T: ?Sized, A: Free> BorrowMut<T>   for ABox<T, A> { fn borrow_mut(&mut self)    -> &mut T   { self } }
-
-
-
-// core::fmt::*
-
-impl<T: Debug,   A: Free + Debug> Debug   for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { f.debug_struct("ABox").field("data", &**self).field("allocator", Self::allocator(self)).finish() } }
-impl<T: Display, A: Free        > Display for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { T::fmt(self, f) } }
-impl<T: ?Sized,  A: Free        > Pointer for ABox<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { Pointer::fmt(&self.data(), f) } }
 
 
 
@@ -83,14 +74,6 @@ impl<T: ?Sized + Hasher, A: Free> Hasher for ABox<T, A> {
     fn write_i64    (&mut self, i: i64)         { T::write_i64(self, i) }
     fn write_i128   (&mut self, i: i128)        { T::write_i128(self, i) }
     fn write_isize  (&mut self, i: isize)       { T::write_isize(self, i) }
-}
-
-#[cfg(feature = "std")]
-#[allow(deprecated)]
-impl<T: std::error::Error, A: Free> std::error::Error for ABox<T, A> where Self : Debug + Display {
-    fn description(&self)   -> &str                                         { (**self).description() }
-    fn cause(&self)         -> Option<&dyn std::error::Error>               { (**self).cause() }
-    fn source(&self)        -> Option<&(dyn std::error::Error + 'static)>   { (**self).source() }
 }
 
 impl<T: ?Sized + Iterator, A: Free> Iterator for ABox<T, A> {
