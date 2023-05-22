@@ -3,6 +3,7 @@
 mod abox;                   pub use abox::*;
 mod abox_alloc;
 mod abox_bytemuck;
+mod abox_cmp;
 mod abox_fmt;
 mod abox_io;
 mod abox_iter;
