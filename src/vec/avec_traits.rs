@@ -1,5 +1,4 @@
 use crate::fat::*;
-use crate::meta::*;
 use crate::vec::AVec;
 
 use core::fmt::{self, Debug, Formatter};
@@ -13,25 +12,6 @@ use core::slice::SliceIndex;
 impl<T: Debug, A: Free + Debug> Debug for AVec<T, A> { fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { f.debug_struct("AVec").field("allocator", self.allocator()).field("capacity", &self.capacity()).field("data", &self.as_slice()).finish() } }
 
 
-
-#[cfg(global_oom_handling)] impl<T, A: Realloc + ZstSupported> Extend<T> for AVec<T, A> {
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        let iter = iter.into_iter();
-        self.reserve(iter.size_hint().0);
-        for item in iter { self.push(item) }
-    }
-}
-
-#[cfg(global_oom_handling)] impl<'a, T: Copy + 'a, A: Realloc + ZstSupported> Extend<&'a T> for AVec<T, A> {
-    fn extend<I: IntoIterator<Item = &'a T>>(&mut self, iter: I) {
-        let iter = iter.into_iter();
-        self.reserve(iter.size_hint().0);
-        for item in iter { self.push(*item) }
-    }
-    // unstable:
-    // fn extend_one(&mut self, item: &'a T) { self.push(*item) }
-    // fn extend_reserve(&mut self, additional: usize) { self.reserve(additional) }
-}
 
 // TODO:
 //  • [ ] From
