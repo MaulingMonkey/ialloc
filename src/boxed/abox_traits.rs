@@ -143,37 +143,3 @@ impl<T, A: Realloc + Default + ZstSupported> FromIterator<T> for ABox<[T], A> {
 //  • [ ] impl From<...>
 //  • [ ] impl From<...>
 //  • [ ] impl TryFrom<...>
-
-// XXX: honestly not 100% sure these are worth keeping, even for parity with Box
-
-#[cfg(unix)] #[cfg(feature = "std")] impl<T: std::os::fd::AsFd    + ?Sized, A: Free> std::os::fd::AsFd    for ABox<T, A> { fn as_fd(&self) -> std::os::fd::BorrowedFd<'_> { (**self).as_fd() } }
-#[cfg(unix)] #[cfg(feature = "std")] impl<T: std::os::fd::AsRawFd + ?Sized, A: Free> std::os::fd::AsRawFd for ABox<T, A> { fn as_raw_fd(&self) -> std::os::fd::RawFd { (**self).as_raw_fd() } }
-
-#[cfg(feature = "std")] impl<T: std::io::Read + ?Sized, A: Free> std::io::Read for ABox<T, A> {
-    #[inline] fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize>                                  { (**self).read(buf) }
-    #[inline] fn read_exact(&mut self, buf: &mut [u8]) -> std::io::Result<()>                               { (**self).read_exact(buf) }
-    #[inline] fn read_to_end(&mut self, buf: &mut alloc::vec::Vec<u8>) -> std::io::Result<usize>            { (**self).read_to_end(buf) }
-    #[inline] fn read_to_string(&mut self, buf: &mut alloc::string::String) -> std::io::Result<usize>       { (**self).read_to_string(buf) }
-    #[inline] fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize>   { (**self).read_vectored(bufs) }
-}
-
-#[cfg(feature = "std")] impl<T: std::io::Seek + ?Sized, A: Free> std::io::Seek for ABox<T, A> {
-    #[inline] fn rewind(&mut self) -> std::io::Result<()>                                                   { (**self).rewind() }
-    #[inline] fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64>                            { (**self).seek(pos) }
-    #[inline] fn stream_position(&mut self) -> std::io::Result<u64>                                         { (**self).stream_position() }
-}
-
-#[cfg(feature = "std")] impl<T: std::io::Write + ?Sized, A: Free> std::io::Write for ABox<T, A> {
-    #[inline] fn flush(&mut self) -> std::io::Result<()>                                                    { (**self).flush() }
-    #[inline] fn write(&mut self, buf: &[u8]) -> std::io::Result<usize>                                     { (**self).write(buf) }
-    #[inline] fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()>                                    { (**self).write_all(buf) }
-    #[inline] fn write_fmt(&mut self, fmt: alloc::fmt::Arguments<'_>) -> std::io::Result<()>                { (**self).write_fmt(fmt) }
-    #[inline] fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize>         { (**self).write_vectored(bufs) }
-}
-
-#[cfg(feature = "std")] impl<T: std::io::BufRead + ?Sized, A: Free> std::io::BufRead for ABox<T, A> {
-    #[inline] fn consume(&mut self, amt: usize)                                                             { (**self).consume(amt) }
-    #[inline] fn fill_buf(&mut self) -> std::io::Result<&[u8]>                                              { (**self).fill_buf() }
-    #[inline] fn read_line(&mut self, buf: &mut alloc::string::String) -> std::io::Result<usize>            { (**self).read_line(buf) }
-    #[inline] fn read_until(&mut self, byte: u8, buf: &mut alloc::vec::Vec<u8>) -> std::io::Result<usize>   { (**self).read_until(byte, buf) }
-}
