@@ -1,12 +1,9 @@
 use crate::boxed::ABox;
 use crate::fat::*;
-use crate::meta::ZstSupported;
-use crate::vec::AVec;
 
 use core::borrow::{Borrow, BorrowMut};
 use core::cmp::Ordering;
 use core::hash::{Hash, Hasher};
-use core::iter::FusedIterator;
 use core::ops::{Deref, DerefMut};
 
 
@@ -76,25 +73,6 @@ impl<T: ?Sized + Hasher, A: Free> Hasher for ABox<T, A> {
     fn write_isize  (&mut self, i: isize)       { T::write_isize(self, i) }
 }
 
-impl<T: ?Sized + Iterator, A: Free> Iterator for ABox<T, A> {
-    type Item = T::Item;
-    fn next(&mut self) -> Option<Self::Item> { (**self).next() }
-    fn size_hint(&self) -> (usize, Option<usize>) { (**self).size_hint() }
-    fn nth(&mut self, n: usize) -> Option<Self::Item> { (**self).nth(n) }
-    // XXX: last()
-}
-
-impl<T: ?Sized + ExactSizeIterator, A: Free> ExactSizeIterator for ABox<T, A> {
-    fn len(&self) -> usize { (**self).len() }
-}
-
-impl<T: ?Sized + DoubleEndedIterator, A: Free> DoubleEndedIterator for ABox<T, A> {
-    fn next_back(&mut self) -> Option<Self::Item> { (**self).next_back() }
-    fn nth_back(&mut self, n: usize) -> Option<Self::Item> { (**self).nth_back(n) }
-}
-
-impl<T: ?Sized + FusedIterator, A: Free> FusedIterator for ABox<T, A> {}
-
 #[cfg(feature = "alloc")]
 #[cfg(global_oom_handling)]
 impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
@@ -102,15 +80,6 @@ impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
         iter.into_iter().for_each(move |s| self.push_str(&s));
     }
 }
-
-#[cfg(global_oom_handling)]
-impl<T, A: Realloc + Default + ZstSupported> FromIterator<T> for ABox<[T], A> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        AVec::<T, A>::from_iter(iter).into_boxed_slice()
-    }
-}
-
-// TODO: FromIterator<ABox<str, A>> for String
 
 // TODO:
 //  • [ ] impl Generator<...>
