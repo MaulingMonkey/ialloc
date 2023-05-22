@@ -44,9 +44,6 @@ impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
 //  • [ ] impl Generator<...>
 //
 // TODO:
-//  • [ ] impl Fn
-//  • [ ] impl FnMut
-//  • [ ] impl FnOnce
 //  • [ ] impl Future
 //  • [ ] impl Unpin
 //
@@ -54,3 +51,8 @@ impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
 //  • [ ] impl From<...>
 //  • [ ] impl From<...>
 //  • [ ] impl TryFrom<...>
+
+// TODO† (unstable: requires fn_traits & unboxed_closures https://github.com/rust-lang/rust/issues/29625):
+//  • [ ] impl Fn
+//  • [ ] impl FnMut
+//  • [ ] impl FnOnce
