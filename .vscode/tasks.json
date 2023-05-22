@@ -59,6 +59,10 @@
             "label":            "git push github master",
             "command":          "git push github master",
         },
+        {
+            "label":            "gitk --all",
+            "command":          "gitk --all",
+        },
 
 
 
