@@ -205,15 +205,13 @@ impl<T, A: Free> ABox<T, A> {
 impl<T, A: Free> ABox<MaybeUninit<T>, A> {
     // MaybeUninit<T>
 
-    // XXX: make pub?
-    pub(super) unsafe fn assume_init(self) -> ABox<T, A> {
+    pub(crate) unsafe fn assume_init(self) -> ABox<T, A> {
         let (data, allocator) = ABox::into_raw_with_allocator(self);
         // SAFETY: ✔️ we just decomposed (data, allocator) from a compatible-layout box
         unsafe { ABox::from_raw_in(data.cast(), allocator) }
     }
 
-    // XXX: make pub?
-    pub(super) fn write(boxed: Self, value: T) -> ABox<T, A> {
+    pub(crate) fn write(boxed: Self, value: T) -> ABox<T, A> {
         // SAFETY: ✔️ boxed.data is guaranteed to point at a valid allocation of T
         unsafe { boxed.data.as_ptr().write(MaybeUninit::new(value)) };
         // SAFETY: ✔️ we just wrote to `boxed`
@@ -224,7 +222,6 @@ impl<T, A: Free> ABox<MaybeUninit<T>, A> {
 impl<T, A: Free> ABox<[MaybeUninit<T>], A> {
     // [MaybeUninit<T>]
 
-    // XXX: make pub?
     pub(crate) unsafe fn assume_init(self) -> ABox<[T], A> {
         let (data, allocator) = ABox::into_raw_with_allocator(self);
         let data = util::nn::slice_from_raw_parts(data.cast(), data.len());
