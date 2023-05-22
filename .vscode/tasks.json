@@ -39,7 +39,7 @@
         },
         {
             "label":            "check-file",
-            "command":          "cargo build",
+            "command":          "cargo +nightly build",
         },
         {
             "label":            "help",
