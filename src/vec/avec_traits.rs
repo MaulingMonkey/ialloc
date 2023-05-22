@@ -2,8 +2,6 @@ use crate::fat::*;
 use crate::vec::AVec;
 
 use core::fmt::{self, Debug, Formatter};
-use core::ops::{Index, IndexMut};
-use core::slice::SliceIndex;
 
 
 
@@ -16,15 +14,6 @@ impl<T: Debug, A: Free + Debug> Debug for AVec<T, A> { fn fmt(&self, f: &mut For
 // TODO:
 //  • [ ] From
 //  • [ ] TryFrom
-
-impl<T, A: Free, I: SliceIndex<[T]>> Index<I> for AVec<T, A> {
-    type Output = I::Output;
-    fn index(&self, index: I) -> &I::Output { self.as_slice().index(index) }
-}
-
-impl<T, A: Free, I: SliceIndex<[T]>> IndexMut<I> for AVec<T, A> {
-    fn index_mut(&mut self, index: I) -> &mut I::Output { self.as_slice_mut().index_mut(index) }
-}
 
 #[cfg(feature = "std")]
 impl<A: Realloc> std::io::Write for AVec<u8, A> {
