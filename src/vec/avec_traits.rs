@@ -73,16 +73,6 @@ impl<T: PartialOrd, A: Free> PartialOrd for AVec<T, A> {
 
 // TODO:
 //  • [ ] From
-
-#[cfg(global_oom_handling)] impl<T, A: Realloc + Default + ZstSupported> FromIterator<T> for AVec<T, A> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mut v = Self::new();
-        v.extend(iter);
-        v
-    }
-}
-
-// TODO:
 //  • [ ] TryFrom
 
 impl<T, A: Free, I: SliceIndex<[T]>> Index<I> for AVec<T, A> {
@@ -94,8 +84,6 @@ impl<T, A: Free, I: SliceIndex<[T]>> IndexMut<I> for AVec<T, A> {
     fn index_mut(&mut self, index: I) -> &mut I::Output { self.as_slice_mut().index_mut(index) }
 }
 
-// TODO:
-//  • [ ] IntoIterator
 // TODO:
 //  • [ ] PartialEq spam
 //  • [ ] PartialOrd spam
