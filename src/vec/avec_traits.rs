@@ -52,9 +52,6 @@ impl<T: PartialOrd, A: Free> PartialOrd for AVec<T, A> {
 
 
 
-#[cfg(    global_oom_handling )] impl<T, A: Free + Alloc + Default + ZstSupported  > Default for AVec<T, A> { fn default() -> Self { Self::new() } }
-#[cfg(not(global_oom_handling))] impl<T, A: Free + Alloc + Default + ZstInfalliable> Default for AVec<T, A> { fn default() -> Self { Self::new() } }
-
 #[cfg(global_oom_handling)] impl<T, A: Realloc + ZstSupported> Extend<T> for AVec<T, A> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let iter = iter.into_iter();
