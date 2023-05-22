@@ -2,7 +2,7 @@ use crate::*;
 use crate::meta::Meta;
 
 use core::alloc::Layout;
-use core::mem::MaybeUninit;
+use core::mem::{MaybeUninit, size_of};
 use core::ptr::NonNull;
 
 /// "This function sets `errno` to `ENOMEM` if the memory allocation failed or if the requested size was greater than `_HEAP_MAXREQ`."<br>
@@ -28,22 +28,30 @@ const _HEAP_MAXREQ : usize = usize::MAX & !0x1F;
 ///
 /// | Rust                              | MSVC Release CRT <br> ~~MSVC Debug CRT~~                                                                                              | !MSVC<br>C11 or C++17     |
 /// | ----------------------------------| --------------------------------------------------------------------------------------------------------------------------------------| --------------------------|
-/// | [`fat::Alloc::alloc_uninit`]      | <code>[_aligned_malloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc-dbg)}</code>     | [`aligned_alloc`]
-/// | [`fat::Alloc::alloc_zeroed`]      | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
-/// | [`fat::Realloc::realloc_uninit`]  | <code>[_aligned_realloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc-dbg)}</code>   | [`realloc`] or [`aligned_alloc`] + [`memcpy`]
-/// | [`fat::Realloc::realloc_zeroed`]  | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code> | &emsp;&emsp;+ [`memset`]
-/// | [`fat::Free::free`]               | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>         | [`free`] or [`free_aligned_sized`] (C23)
-/// | [`thin::Free::free`]              | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>         | [`free`]
+/// | [`fat::Alloc::alloc_uninit`]      | <code>[_aligned_malloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc-dbg)}</code>†    | [`aligned_alloc`]
+/// | [`fat::Alloc::alloc_zeroed`]      | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code>†| &emsp;&emsp;+ [`memset`]
+/// | [`fat::Realloc::realloc_uninit`]  | <code>[_aligned_realloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-realloc-dbg)}</code>†  | [`realloc`] or [`aligned_alloc`] + [`memcpy`]
+/// | [`fat::Realloc::realloc_zeroed`]  | <code>[_aligned_recalloc]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-recalloc-dbg)}</code>†| &emsp;&emsp;+ [`memset`]
+/// | [`fat::Free::free`]               | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>†        | [`free`] or [`free_aligned_sized`]† (C23)
+/// | [`thin::Free::free`]              | <code>[_aligned_free]{,[~~_dbg~~](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-free-dbg)}</code>†        | [`free`]
+///
+/// ## † ⚠️ FFI Safety Caveats ⚠️
+/// *   **OS X:** POSIX may require alignment to be a multiple of `sizeof(void*)`.  This impl rounds [`Layout`] alignments up to that, and size up to alignment, which may make it incompatible with naively passing the same values to [`free_aligned_sized`].
+/// *   **Windows:** this uses `_aligned_*` which is *not* compatible with [`free`].
+/// *   **Windows:** I reserve the right to call `_aligned_*_dbg` variants in the future if debug CRT support is added.
 ///
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct AlignedMalloc;
 
 impl AlignedMalloc {
-    fn check_layout(layout: Layout) -> Result<Layout, ()> {
-        if cfg!(target_os = "macos") {                                          // `aligned_alloc` is what I would consider to be a miserable pile of bugs, at least on macOS 11.7.6 20G1231.
-            if layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }   // 1. it will "succeed" when requesting 4 GiB+ alignment - but only provide 2 GiB alignment.  Manually reject these bogus fulfillments of our requests.
-            let layout = layout.align_to(8).map_err(|_| {})?;                   // 2. it will fail if the requested alignment is less than 8.  Even for something like size=align=1.  For no good reason whatsoever.  So... increase alignment:
-            let layout = layout.pad_to_align();                                 // 3. it might succeed if size=0, align=8, but will fail with size=1, align=8.  I'll interpret this as requiring size to be a multiple of alignment... make it so.
+    /// Not all valid [`Layout`]s are valid on all implementations of this allocator.
+    /// Notably, OS X has several (POSIX-sanctioned?) edge cases.
+    /// This may increase alignment and/or size.
+    fn fix_layout(layout: Layout) -> Result<Layout, ()> {
+        if cfg!(target_os = "macos") {                                              // `aligned_alloc` is what I would consider to be a miserable pile of bugs, at least on 64-bit macOS 11.7.6 20G1231.
+            if layout.align() > Self::MAX_ALIGN.as_usize() { return Err(()) }       // 1. it will "succeed" when requesting 4 GiB+ alignment - but only provide 2 GiB alignment.  Manually reject these bogus fulfillments of our requests.
+            let layout = layout.align_to(size_of::<*const ()>()).map_err(|_| {})?;  // 2. it will fail if the requested alignment is less than 8.  Even for something like size=align=1.  For no good reason whatsoever.  So... increase alignment:
+            let layout = layout.pad_to_align();                                     // 3. it might succeed if size=0, align=8, but will fail with size=1, align=8.  I'll interpret this as requiring size to be a multiple of alignment... make it so.
             // some of these spicy preconditions may stem from forwarding blindly to POSIX - see e.g. <https://man7.org/linux/man-pages/man3/posix_memalign.3.html> which requires, among other things, that `alignment` be a multiple of `sizeof(void *)`.
             Ok(layout)
         } else {
@@ -62,52 +70,114 @@ impl Meta for AlignedMalloc {
     /// | Windows 64-bit    | [`Alignment::MAX`] (2<sup>63</sup> B)
     /// | \* 32-bit         | [`Alignment::MAX`] (2 GiB)
     const MAX_ALIGN : Alignment = if cfg!(target_os = "macos") { ALIGN_MIN_2_GiB_MAX } else { Alignment::MAX };
+    // MSVC MIN_ALIGN is 4 ..= 8
 
     const MAX_SIZE  : usize     = usize::MAX;
+
+    /// | Platform          | Behavior |
+    /// | ------------------| ---------|
+    /// | Linux             | Succeeds?
+    /// | Windows           | Fails?  [`_aligned_malloc`] explicitly documents "If \[...\] `size` is zero, this function invokes the invalid parameter handler, as described in [Parameter validation](https://learn.microsoft.com/en-us/cpp/c-runtime-library/parameter-validation). If execution is allowed to continue, this function returns `NULL` and sets `errno` to `EINVAL`."
+    ///
+    #[doc = include_str!("_refs.md")]
     const ZST_SUPPORTED : bool  = false;
-    // MSVC MIN_ALIGN is 4 ..= 8
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+
+
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ✔️ Validated via [`fat::test::alignment`]
+/// | `size`        | ✔️ Validated via [`fat::test::edge_case_sizes`]
+/// | `pin`         | ✔️ [`AlignedMalloc`] is `'static` - allocations by [`_aligned_malloc`] (MSVC) / [`aligned_alloc`] (C11) live until [`_aligned_free`] (MSVC) / [`free`]d (C89)
+/// | `compatible`  | ⚠️ [`AlignedMalloc`] uses exclusively intercompatible fns - see type-level docs for details, especially "FFI Safety Caveats"
+/// | `exclusive`   | ✔️ Allocations by [`_aligned_malloc`] / [`aligned_alloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`_aligned_malloc`] / [`aligned_alloc`] throw no exceptions (C API) and return null on error (possibly setting `errno`)
+/// | `threads`     | ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+/// | `zeroed`      | ✔️ Validated via [`fat::test::zeroed_alloc`]
+///
+#[doc = include_str!("_refs.md")]
+// SAFETY: per above
 unsafe impl fat::Alloc for AlignedMalloc {
     #[track_caller] fn alloc_uninit(&self, layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        let layout = Self::check_layout(layout)?;
+        let layout = Self::fix_layout(layout)?;
+
+        // SAFETY: ✔️ `layout` has been checked/fixed for platform validity
         #[cfg(    target_env = "msvc") ] let alloc = unsafe { ffi::_aligned_malloc(layout.size(), layout.align()) };
+
+        // SAFETY: ✔️ `layout` has been checked/fixed for platform validity
         #[cfg(not(target_env = "msvc"))] let alloc = unsafe { ffi::aligned_alloc(layout.align(), layout.size()) };
+
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     #[cfg(target_env = "msvc")]
     #[track_caller] fn alloc_zeroed(&self, layout: Layout) -> Result<NonNull<u8>, Self::Error> {
-        let layout = Self::check_layout(layout)?;
+        let layout = Self::fix_layout(layout)?;
+        // SAFETY: ✔️ `layout` has been checked/fixed for platform validity
         let alloc = unsafe { ffi::_aligned_recalloc(core::ptr::null_mut(), 1, layout.size(), layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ⚠️ [`AlignedMalloc`] uses exclusively intercompatible fns - see type-level docs for details, especially "FFI Safety Caveats"
+/// | `exceptions`  | ✔️ [`_aligned_free`] / [`free`] / [`free_aligned_sized`] throw no exceptions (C API) and return no errors.
+/// | `threads`     | ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+///
+#[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
+// SAFETY: per above
 unsafe impl fat::Free for AlignedMalloc {
     #[track_caller] unsafe fn free(&self, ptr: NonNull<MaybeUninit<u8>>, _layout: Layout) {
-        #[cfg(target_env = "msvc")] unsafe { ffi::_aligned_free(ptr.as_ptr().cast()) }
-        #[cfg(not(target_env = "msvc"))] unsafe {
-            #[cfg(c23)] ffi::free_aligned_sized(ptr.as_ptr().cast(), _layout.align(), _layout.size());
-            #[allow(dead_code)] ffi::free(ptr.as_ptr().cast());
+        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Free::free`]'s documented safety preconditions
+        // SAFETY: ✔️ `_layout` may have been modified by `Self::fix_layout`, so immediately shadow it to avoid bugs:
+        let _layout = Self::fix_layout(_layout);
+
+        #[cfg(all(c23, not(target_env = "msvc")))] if let Ok(_layout) = _layout {
+            // SAFETY: per above
+            return unsafe { ffi::free_aligned_sized(ptr.as_ptr().cast(), _layout.align(), _layout.size()) };
         }
+
+        // SAFETY: per above
+        #[cfg(not(target_env = "msvc"))] unsafe { ffi::free(ptr.as_ptr().cast()) }
+
+        // SAFETY: per above
+        #[cfg(target_env = "msvc")] unsafe { ffi::_aligned_free(ptr.as_ptr().cast()) }
     }
 }
 
-// SAFETY: ✔️ all fat::* impls intercompatible with each other
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `align`       | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `size`        | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
+/// | `pin`         | ✔️ [`AlignedMalloc`] is `'static` - reallocations by [`_aligned_realloc`] (MSVC) / [`free`]+[`aligned_alloc`] (C11) live until [`_aligned_free`] (MSVC) / [`free`]d (C89)
+/// | `compatible`  | ⚠️ [`AlignedMalloc`] uses exclusively intercompatible fns - see type-level docs for details, especially "FFI Safety Caveats"
+/// | `exclusive`   | ✔️ Allocations by [`_aligned_realloc`] / [`free`]+[`aligned_alloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`_aligned_realloc`] / [`free`]+[`aligned_alloc`] throw no exceptions (C API) and return null on error (possibly setting `errno`)
+/// | `threads`     | ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+/// | `zeroed`      | ⚠️
+/// | `preserved`   | ⚠️ untested, but *should* be the case...
+///
+#[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
+// SAFETY: per above
 unsafe impl fat::Realloc for AlignedMalloc {
     #[cfg(target_env = "msvc")]
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
-        let new_layout = Self::check_layout(new_layout)?;
+        let new_layout = Self::fix_layout(new_layout)?;
+        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_uninit`]'s documented safety preconditions
+        // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
         let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
     #[cfg(target_env = "msvc")]
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
-        let new_layout = Self::check_layout(new_layout)?;
+        let new_layout = Self::fix_layout(new_layout)?;
+        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_zeroed`]'s documented safety preconditions
+        // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
         let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size(), new_layout.align()) };
         NonNull::new(alloc.cast()).ok_or(())
     }
@@ -117,14 +187,26 @@ unsafe impl fat::Realloc for AlignedMalloc {
 
 // thin::{Alloc, Realloc, ReallocZeroed} could infer an alignment, but that seems like a mild possible footgun
 
+/// | Safety Item   | Description   |
+/// | --------------| --------------|
+/// | `compatible`  | ⚠️ [`AlignedMalloc`] uses exclusively intercompatible fns - see type-level docs for details, especially "FFI Safety Caveats"
+/// | `exceptions`  | ✔️ [`_aligned_free`] / [`free`] / [`free_aligned_sized`] throw no exceptions (C API) and return no errors.
+/// | `threads`     | ⚠️ thread-unsafe stdlibs existed once upon a time.  I consider linking them in a multithreaded program defacto undefined behavior beyond the scope of this to guard against.
+///
+#[doc = include_str!("_refs.md")]
+#[allow(clippy::missing_safety_doc)]
+// SAFETY: per above
 unsafe impl thin::Free for AlignedMalloc {
     #[track_caller] unsafe fn free_nullable(&self, ptr: *mut MaybeUninit<u8>) {
-        #[cfg(    target_env = "msvc") ] unsafe { ffi::_aligned_free(ptr.cast()) }
+        // SAFETY: ✔️ `ptr` can be nullptr (C89 § 7.20.3.2 ¶ 2, validated via [`thin::test::nullable`])
+        // SAFETY: ✔️ `ptr` otherwise belongs to `self` per [`fat::Realloc::realloc_zeroed`]'s documented safety preconditions
         #[cfg(not(target_env = "msvc"))] unsafe { ffi::free(ptr.cast()) }
+        // SAFETY: per above
+        #[cfg(    target_env = "msvc") ] unsafe { ffi::_aligned_free(ptr.cast()) }
     }
 }
 
-// thin::SizeOf is not applicable: _aligned_msize requires alignment/offset, which isn't available for thin::SizeOf::size_of
+// thin::SizeOf{,Debug} is not applicable: _aligned_msize requires alignment/offset, which isn't available for thin::SizeOf::size_of
 
 
 
