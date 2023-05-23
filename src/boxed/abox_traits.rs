@@ -30,16 +30,6 @@ impl<T: ?Sized, A: Free> BorrowMut<T>   for ABox<T, A> { fn borrow_mut(&mut self
 
 
 
-// Misc. Operators
-
-#[cfg(feature = "alloc")]
-#[cfg(global_oom_handling)]
-impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
-    fn extend<I: IntoIterator<Item = ABox<str, A>>>(&mut self, iter: I) {
-        iter.into_iter().for_each(move |s| self.push_str(&s));
-    }
-}
-
 // TODO:
 //  • [ ] impl Generator<...>
 //
@@ -47,11 +37,6 @@ impl<A: Free> Extend<ABox<str, A>> for alloc::string::String {
 //  • [ ] impl Future
 //  • [ ] impl Unpin
 //
-// TODO:
-//  • [ ] impl From<...>
-//  • [ ] impl From<...>
-//  • [ ] impl TryFrom<...>
-
 // TODO† (unstable: requires fn_traits & unboxed_closures https://github.com/rust-lang/rust/issues/29625):
 //  • [ ] impl Fn
 //  • [ ] impl FnMut

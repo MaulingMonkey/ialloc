@@ -10,6 +10,7 @@ mod abox_convert_infallible_;
 mod abox_convert_infallible_alloc;
 mod abox_convert_infallible_std;
 mod abox_default;
+mod abox_extend;
 mod abox_fmt;
 mod abox_io;
 mod abox_iter;
