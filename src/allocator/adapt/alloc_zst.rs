@@ -33,6 +33,10 @@ impl<A: Meta> AllocZst<A> {
     }
 }
 
+
+
+// meta::*
+
 impl<A: Meta> Meta for AllocZst<A> {
     type Error                  = A::Error;
     const MAX_ALIGN : Alignment = A::MAX_ALIGN;
@@ -41,6 +45,8 @@ impl<A: Meta> Meta for AllocZst<A> {
 }
 
 impl<A: Meta> ZstSupported for AllocZst<A> {}
+
+unsafe impl<A: DefaultCompatible> DefaultCompatible for AllocZst<A> {}
 
 
 

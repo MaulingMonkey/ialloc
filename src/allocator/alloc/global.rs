@@ -1,5 +1,5 @@
 use crate::*;
-use crate::meta::{Meta, ZstSupported, ZstInfalliable};
+use crate::meta::*;
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
@@ -32,6 +32,9 @@ impl ZstSupported for Global {}
 
 // SAFETY: ✔️ simply returns dangling pointers when size is zero
 unsafe impl ZstInfalliable for Global {}
+
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for Global {}
 
 
 

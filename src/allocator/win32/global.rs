@@ -53,6 +53,9 @@ impl Meta for Global {
 
 impl ZstSupported for Global {}
 
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for Global {}
+
 
 
 // thin::*

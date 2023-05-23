@@ -42,7 +42,12 @@ impl<A: Meta> Meta for PanicOverAlign<A> {
 
 impl<A: ZstSupported> ZstSupported for PanicOverAlign<A> {}
 
+// SAFETY: ✔️ per underlying allocator
 unsafe impl<A: ZstInfalliable> ZstInfalliable for PanicOverAlign<A> {}
+
+// SAFETY: ✔️ per underlying allocator
+unsafe impl<A: DefaultCompatible> DefaultCompatible for PanicOverAlign<A> {}
+
 
 
 // fat::*

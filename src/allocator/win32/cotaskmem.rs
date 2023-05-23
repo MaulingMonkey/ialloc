@@ -39,6 +39,9 @@ impl Meta for CoTaskMem {
 
 impl ZstSupported for CoTaskMem {}
 
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for CoTaskMem {}
+
 
 
 // thin::*

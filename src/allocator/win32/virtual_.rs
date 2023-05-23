@@ -37,6 +37,9 @@ impl Meta for VirtualCommit {
     const ZST_SUPPORTED : bool  = false;
 }
 
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for VirtualCommit {}
+
 
 
 // thin::*

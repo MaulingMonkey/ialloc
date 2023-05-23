@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 
 use libc::*;
 
@@ -21,7 +22,11 @@ use core::ptr::NonNull;
 #[doc = include_str!("_refs.md")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Malloc;
 
-impl meta::Meta for Malloc {
+
+
+// meta::*
+
+impl Meta for Malloc {
     type Error = ();
 
     /// | Platform          | Value     |
@@ -55,6 +60,11 @@ impl meta::Meta for Malloc {
     /// | Windows           | Allocate
     const ZST_SUPPORTED : bool = false;
 }
+
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for Malloc {}
+
+
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

@@ -1,5 +1,5 @@
 use crate::*;
-use crate::meta::Meta;
+use crate::meta::*;
 
 use core::alloc::Layout;
 use core::mem::{MaybeUninit, size_of};
@@ -60,6 +60,10 @@ impl AlignedMalloc {
     }
 }
 
+
+
+// meta::*
+
 impl Meta for AlignedMalloc {
     type Error                  = ();
 
@@ -83,7 +87,12 @@ impl Meta for AlignedMalloc {
     const ZST_SUPPORTED : bool  = false;
 }
 
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for AlignedMalloc {}
 
+
+
+// fat::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
@@ -184,6 +193,8 @@ unsafe impl fat::Realloc for AlignedMalloc {
 }
 
 
+
+// thin::*
 
 // thin::{Alloc, Realloc, ReallocZeroed} could infer an alignment, but that seems like a mild possible footgun
 

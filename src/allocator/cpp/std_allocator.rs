@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::*;
 use super::ffi;
 
 use core::alloc::Layout;
@@ -22,12 +23,25 @@ impl<T> StdAllocator<T> {
     pub const fn new() -> Self { Self(PhantomData) }
 }
 
-impl<T> meta::Meta for StdAllocator<T> {
+
+
+// meta::*
+
+impl<T> Meta for StdAllocator<T> {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::of::<T>(); // more in practice, but this is what I'll rely on
     const MAX_SIZE  : usize     = usize::MAX;           // less in practice
     const ZST_SUPPORTED : bool  = false;                // supported on some linux, unsupported on windows
 }
+
+/// SAFETY: ✔️ <code>[std::allocator]&lt;char&gt;</code> is stateless (see `is_always_equal` checks in `ffi.cpp`)
+///
+#[doc = include_str!("_refs.md")]
+unsafe impl DefaultCompatible for StdAllocator<c_char> {} // likely applicable to most std::allocator<T> where T is a builtin
+
+
+
+// thin::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
@@ -52,6 +66,10 @@ unsafe impl thin::Alloc for StdAllocator<c_char> {
 
 // SAFETY: ⚠️ DO NOT IMPLEMENT: thin::Free
 // [`std::allocator<T>::deallocate`] requires a size, and thus cannot implement this interface without an adapter allocator
+
+
+
+// fat::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

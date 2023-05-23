@@ -1,5 +1,5 @@
 use crate::*;
-use crate::meta::Meta;
+use crate::meta::*;
 use super::ffi;
 
 use core::alloc::Layout;
@@ -10,6 +10,10 @@ use core::ptr::NonNull;
 /// [`::operator new(size_t, align_val_t, nothrow_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_new) <br>
 /// [`::operator delete(void*, align_val_t)`](https://en.cppreference.com/w/cpp/memory/new/operator_delete)
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct NewDeleteAligned;
+
+
+
+// meta::*
 
 impl Meta for NewDeleteAligned {
     type Error                  = ();
@@ -25,6 +29,13 @@ impl Meta for NewDeleteAligned {
     const MAX_SIZE  : usize     = usize::MAX;
     const ZST_SUPPORTED : bool  = false;            // platform behavior too inconsistent
 }
+
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for NewDeleteAligned {}
+
+
+
+// fat::*
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|

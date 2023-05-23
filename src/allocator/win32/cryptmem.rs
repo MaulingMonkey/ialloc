@@ -33,6 +33,9 @@ impl Meta for CryptMem {
 
 impl ZstSupported for CryptMem {}
 
+// SAFETY: ✔️ global state only
+unsafe impl DefaultCompatible for CryptMem {}
+
 
 
 // thin::*

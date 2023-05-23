@@ -19,6 +19,10 @@ impl<A: Meta> DangleZst<A> {
 
 impl<A> core::ops::Deref for DangleZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
 
+
+
+// meta::*
+
 impl<A: Meta> Meta for DangleZst<A> {
     type Error                  = A::Error;
     const MAX_ALIGN : Alignment = A::MAX_ALIGN;
@@ -29,6 +33,8 @@ impl<A: Meta> Meta for DangleZst<A> {
 impl<A: Meta> ZstSupported for DangleZst<A> {}
 
 unsafe impl<A: Meta> ZstInfalliable for DangleZst<A> {}
+
+unsafe impl<A: DefaultCompatible> DefaultCompatible for DangleZst<A> {}
 
 
 

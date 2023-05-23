@@ -91,3 +91,8 @@ impl<'a, A: ZstSupported> ZstSupported for &'a A {}
 ///
 /// Although unless it's to report potential undefined behavior, this is at least discouraged.
 pub unsafe trait ZstInfalliable : ZstSupported {}
+
+
+
+/// Two allocators independenly constructed via [`Default`] will be compatible with each other (e.g. [`fat`]/[`thin`] traits can be used to allocate with one and free with another)
+pub unsafe trait DefaultCompatible : Default {}

@@ -100,6 +100,7 @@ impl<const A: usize, const B: usize, const N: usize> Meta for &'_ FixedPoolLinea
 impl<const A: usize, const B: usize, const N: usize> ZstSupported for &'_ FixedPoolLinearProbe<A, B, N> where [(); A] : ValidAlignLessThan1GiB {}
 
 
+
 // thin::*
 
 // SAFETY: ✔️ all thin::* impls intercompatible with each other
