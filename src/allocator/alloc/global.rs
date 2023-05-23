@@ -1,4 +1,5 @@
 use crate::*;
+use crate::meta::{Meta, ZstSupported, ZstInfalliable};
 
 use core::alloc::Layout;
 use core::mem::MaybeUninit;
@@ -16,35 +17,60 @@ use core::ptr::NonNull;
 #[cfg(feature = "alloc")] #[cfg(allocator_api = "*")] impl From<Global> for alloc::alloc::Global { fn from(_: Global) -> Self { Self } }
 #[cfg(feature = "alloc")] #[cfg(allocator_api = "*")] impl From<alloc::alloc::Global> for Global { fn from(_: alloc::alloc::Global) -> Self { Self } }
 
-impl meta::Meta for Global {
+
+
+// meta::*
+
+impl Meta for Global {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::MAX;
     const MAX_SIZE  : usize     = usize::MAX/2;
-    const ZST_SUPPORTED : bool  = false; // XXX: Awkward for `core::alloc::Allocator`
+    const ZST_SUPPORTED : bool  = true;
 }
+
+impl ZstSupported for Global {}
+
+// SAFETY: ✔️ simply returns dangling pointers when size is zero
+unsafe impl ZstInfalliable for Global {}
+
+
+
+// fat::*
 
 // SAFETY: ✔️ all `impl fat::* for Global` are compatible with each other and return allocations compatible with their alignments
 unsafe impl fat::Alloc for Global {
     fn alloc_uninit(&self, layout: Layout) -> Result<AllocNN, Self::Error> {
-        if layout.size() == 0 { return Err(()) }
-        // SAFETY: ✔️ we just ensured `layout` has a nonzero size
-        let alloc = unsafe { alloc::alloc::alloc(layout) };
-        NonNull::new(alloc.cast()).ok_or(())
+        match layout.size() {
+            0                       => Ok(util::nn::dangling(layout)),
+            n if n > Self::MAX_SIZE => Err(()),
+            _ => {
+                debug_assert!(layout.pad_to_align().size() <= Self::MAX_SIZE, "bug: undefined behavior: Layout when padded to alignment exceeds isize::MAX, which violates Layout's invariants");
+                // SAFETY: ✔️ we just ensured `layout` has a valid (nonzero, <= isize::MAX) size
+                let alloc = unsafe { alloc::alloc::alloc(layout) };
+                NonNull::new(alloc.cast()).ok_or(())
+            }
+        }
     }
 
     fn alloc_zeroed(&self, layout: Layout) -> Result<AllocNN0, Self::Error> {
-        if layout.size() == 0 { return Err(()) }
-        // SAFETY: ✔️ we just ensured `layout` has a nonzero size
-        let alloc = unsafe { alloc::alloc::alloc_zeroed(layout) };
-        NonNull::new(alloc.cast()).ok_or(())
+        match layout.size() {
+            0                       => Ok(util::nn::dangling(layout)),
+            n if n > Self::MAX_SIZE => Err(()),
+            _ => {
+                debug_assert!(layout.pad_to_align().size() <= Self::MAX_SIZE, "bug: undefined behavior: Layout when padded to alignment exceeds isize::MAX, which violates Layout's invariants");
+                // SAFETY: ✔️ we just ensured `layout` has a nonzero size
+                let alloc = unsafe { alloc::alloc::alloc_zeroed(layout) };
+                NonNull::new(alloc.cast()).ok_or(())
+            }
+        }
     }
 }
 
 // SAFETY: ✔️ all `impl fat::* for Global` are compatible with each other and return allocations compatible with their alignments
 unsafe impl fat::Free for Global {
     unsafe fn free(&self, ptr: AllocNN, layout: Layout) {
-        if cfg!(debug_assertions) && layout.size() == 0 { bug::ub::invalid_zst_for_allocator(ptr) }
-        // SAFETY: ✔ `ptr` should belong to `self` and `layout` should describe the allocation by documented fat::Free::free safety precondition
+        if layout.size() == 0 { return }
+        // SAFETY: ✔️ `ptr` belongs to `self` and `layout` describes the allocation per [`fat::Free::free`]'s documented safety preconditions
         unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), layout) }
     }
 }
@@ -52,20 +78,12 @@ unsafe impl fat::Free for Global {
 // SAFETY: ✔️ all `impl fat::* for Global` are compatible with each other and return allocations compatible with their alignments
 unsafe impl fat::Realloc for Global {
     unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
-        if old_layout == new_layout {
+        if new_layout.size() > Self::MAX_SIZE {
+            Err(())
+        } else if old_layout == new_layout {
             Ok(ptr)
-        } else if old_layout.align() == new_layout.align() {
-            if new_layout.size() == 0 { return Err(()); }
-            // SAFETY: ✔️ we just ensured `new_layout` has a nonzero size
-            // SAFETY: ✔️ `ptr` belongs to `self` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
-            // SAFETY: ✔️ `ptr` is valid for `old_layout` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
-            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), old_layout, new_layout.size()) };
-            NonNull::new(alloc.cast()).ok_or(())
-        } else { // alignment change
-            if new_layout.size() == 0 { return Err(()); }
-            // SAFETY: ✔️ we just ensured `new_layout` has a nonzero size
-            let alloc = unsafe { alloc::alloc::alloc(new_layout) };
-            let alloc : AllocNN = NonNull::new(alloc.cast()).ok_or(())?;
+        } else if old_layout.align() != new_layout.align() || old_layout.size() == 0 || new_layout.size() == 0 {
+            let alloc = fat::Alloc::alloc_uninit(self, new_layout)?;
             {
                 // SAFETY: ✔️ `ptr` is valid for `old_layout` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
                 // SAFETY: ✔️ `alloc` was just allocated using `new_layout`
@@ -76,14 +94,26 @@ unsafe impl fat::Realloc for Global {
                 let n = old.len().min(new.len());
                 new[..n].copy_from_slice(&old[..n]);
             }
-            // SAFETY: ✔ `ptr` should belong to `self`, and `old_layout` should describe the allocation, by `fat::Realloc::realloc_uninit`'s documented safety preconditions
-            unsafe { alloc::alloc::dealloc(ptr.as_ptr().cast(), old_layout) };
+            // SAFETY: ✔️ `ptr` belongs to `self`, and `old_layout` should describe the allocation, by `fat::Realloc::realloc_uninit`'s documented safety preconditions
+            unsafe { fat::Free::free(self, ptr, old_layout) };
             Ok(alloc)
+        } else {
+            // SAFETY: ✔️ layouts have same alignments
+            // SAFETY: ✔️ layouts have nonzero sizes
+            // SAFETY: ✔️ `ptr` belongs to `self` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
+            // SAFETY: ✔️ `ptr` is valid for `old_layout` by `fat::Realloc::realloc_uninit`'s documented safety preconditions
+            // SAFETY: ✔️ `new_layout.size()` was bounds checked at start of fn
+            let alloc = unsafe { alloc::alloc::realloc(ptr.as_ptr().cast(), old_layout, new_layout.size()) };
+            NonNull::new(alloc.cast()).ok_or(())
         }
     }
 
     // realloc_uninit "could" be specialized to use alloc_zeroed on alloc realignment, but it's unclear if that'd be a perf gain (free zeroed memory pages) or perf loss (double zeroing)
 }
+
+
+
+// core::alloc::*
 
 #[allow(clippy::undocumented_unsafe_blocks)] // SAFETY: ✔️ alloc::alloc::*'s preconditions are documented in terms of GlobalAlloc's equivalents
 unsafe impl core::alloc::GlobalAlloc for Global {
@@ -93,15 +123,11 @@ unsafe impl core::alloc::GlobalAlloc for Global {
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8  { unsafe { alloc::alloc::realloc(ptr, layout, new_size) } }
 }
 
-#[cfg(never)] // SAFETY: ❌ NOT AT THIS TIME
-//
 //  • "Allocator is designed to be implemented on ZSTs, references, or smart pointers because having an allocator like MyAlloc([u8; N]) cannot be moved, without updating the pointers to the allocated memory."
 //    ✔️ Trivial: `Global` is indeed a ZST containing none of the memory intended for allocation.
 //
 //  • "Unlike GlobalAlloc, zero-sized allocations are allowed in Allocator. If an underlying allocator does not support this (like jemalloc) or return a null pointer (such as libc::malloc), this must be caught by the implementation."
-//    ❌ `ZST_SUPPORTED` is currently `false` to encourage users to explicitly chose `AllocZst` or `DangleZst`.
-//        While `DangleZst` is the correct choice for `core::alloc::Allocator`, I'm unsure if I should do so implicitly.
-//
+//    ✔️ `ZST_SUPPORTED` is currently `true`, matching behavior of `alloc::alloc::Global`.
 //
 // ## Currently allocated memory
 //
