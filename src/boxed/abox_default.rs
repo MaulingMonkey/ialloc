@@ -1,5 +1,6 @@
 use crate::boxed::ABox;
 use crate::fat::{Alloc, Free};
+use crate::meta::*;
 
 
 
@@ -17,9 +18,12 @@ use crate::fat::{Alloc, Free};
     }
 }
 
+#[cfg(    global_oom_handling )] impl<T, A: Alloc + Free + Default + ZstSupported  > Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::new_uninit_slice(0).assume_init() } } }
+#[cfg(not(global_oom_handling))] impl<T, A: Alloc + Free + Default + ZstInfalliable> Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::try_new_uninit_slice(0).unwrap().assume_init() } } }
+
 // TODO:
-//  • [ ] impl Default for slice boxes
-//  • [ ] impl Default for str boxes
+//#[cfg(    global_oom_handling )] impl<T, A: Alloc + Free + Default + ZstSupported  > Default for ABox<str, A> { fn default() -> Self { Self::from(ABox::<u8, A>::new_uninit_slice(0)) } }
+//#[cfg(not(global_oom_handling))] impl<T, A: Alloc + Free + Default + ZstInfalliable> Default for ABox<str, A> { fn default() -> Self { Self::from(ABox::<u8, A>::try_new_uninit_slice(0).unwrap()) } }
 
 /// Non-panicing alternatives to [`Default`] / support for alternative allocators.
 impl<T: Default, A: Free> ABox<T, A> {
