@@ -109,9 +109,9 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::try_new_bytemuck_zeroed_slice_in(1, alloc).unwrap();
     /// ```
-    #[track_caller] pub fn try_new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] pub fn try_new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
-        let layout = Layout::array::<T>(len).map_err(|_| ExcessiveSliceRequestedError{ requested: len }.into())?;
+        let layout = Layout::array::<T>(len).map_err(|_| ExcessiveSliceRequestedError{ requested: len })?;
         let data = util::nn::slice_from_raw_parts(allocator.alloc_zeroed(layout)?.cast(), len);
         // SAFETY: ✔️ we just allocated `data` with `allocator`
         // SAFETY: ✔️ `T` is `Zeroable`, so our `alloc_zeroed` should've made `*data` a valid initialized `[T; len]`
@@ -208,7 +208,7 @@ impl<T: Zeroable, A: Alloc + Free> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, _>::new_bytemuck_zeroed_slice_in(1, alloc);
     /// ```
-    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] pub fn new_bytemuck_zeroed_slice_in(len: usize, allocator: A) -> ABox<[T], A> where A : ZstSupported {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_bytemuck_zeroed_slice_in(len, allocator).expect("unable to allocate")
     }
@@ -307,7 +307,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, A>::try_new_bytemuck_zeroed_slice(1).unwrap();
     /// ```
-    #[track_caller] #[inline(always)] pub fn try_new_bytemuck_zeroed_slice(len: usize) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
+    #[track_caller] #[inline(always)] pub fn try_new_bytemuck_zeroed_slice(len: usize) -> Result<ABox<[T], A>, A::Error> where A : ZstSupported {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::try_new_bytemuck_zeroed_slice_in(len, A::default())
     }
@@ -402,7 +402,7 @@ impl<T: Zeroable, A: Alloc + Free + Default> ABox<T, A> {
     /// unsafe impl bytemuck::Zeroable for Page {}
     /// let a = ABox::<Page, A>::new_bytemuck_zeroed_slice(1);
     /// ```
-    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where A : ZstSupported, ExcessiveSliceRequestedError : Into<A::Error> {
+    #[cfg(global_oom_handling)] #[track_caller] #[inline(always)] pub fn new_bytemuck_zeroed_slice(len: usize) -> ABox<[T], A> where A : ZstSupported {
         let _ = Self::ASSERT_A_CAN_ALLOC_T_SLICE;
         Self::new_bytemuck_zeroed_slice_in(len, A::default())
     }
