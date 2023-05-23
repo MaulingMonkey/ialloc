@@ -13,6 +13,9 @@ use core::ptr::NonNull;
 /// Use <code>[alloc::alloc]::{[alloc](alloc::alloc::alloc), [alloc_zeroed](alloc::alloc::alloc_zeroed), [realloc](alloc::alloc::realloc), [dealloc](alloc::alloc::realloc)}</code>
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)] #[repr(transparent)] pub struct Global;
 
+#[cfg(feature = "alloc")] #[cfg(allocator_api = "*")] impl From<Global> for alloc::alloc::Global { fn from(_: Global) -> Self { Self } }
+#[cfg(feature = "alloc")] #[cfg(allocator_api = "*")] impl From<alloc::alloc::Global> for Global { fn from(_: alloc::alloc::Global) -> Self { Self } }
+
 impl meta::Meta for Global {
     type Error                  = ();
     const MAX_ALIGN : Alignment = Alignment::MAX;
