@@ -79,15 +79,25 @@ impl<T, A: Realloc                  > From   <AVec<T, A>    > for ABox<[T], A> {
 }
 
 #[cfg(feature = "std")] mod std {
-    // TODO: impl From<&OsStr> for ABox<OsStr, A> - layout underspecified?
-    // TODO: impl From<&Path > for ABox<Path,  A> - layout underspecified?
+    use crate::allocator::alloc::Global;
+    use super::*;
+
+    use ::std::borrow::Cow;
+    use ::std::boxed::Box;
+    use ::std::ffi::{OsStr, OsString};
+    use ::std::path::{Path, PathBuf};
+
+    impl<A: Free + From<Global>> From<&OsStr> for ABox<OsStr, A> { fn from(value: &OsStr) -> Self { Self::from(Box::<OsStr>::from(value)) } }
+    impl<A: Free + From<Global>> From<&Path>  for ABox<Path,  A> { fn from(value: &Path ) -> Self { Self::from(Box::<Path >::from(value)) } }
 
     // TODO: impl From<&str> for ABox<dyn Error + ..., A>
 
-    // TODO: impl From<Cow<'_, OsStr>   > for ABox<OsStr, A>
-    // TODO: impl From<Cow<'_, Path >   > for ABox<Path,  A>
+    impl<A: Free + From<Global>> From<Cow<'_, OsStr>> for ABox<OsStr, A> { fn from(value: Cow<'_, OsStr>) -> Self { Self::from(Box::<OsStr>::from(value)) } }
+    impl<A: Free + From<Global>> From<Cow<'_, Path >> for ABox<Path,  A> { fn from(value: Cow<'_, Path >) -> Self { Self::from(Box::<Path >::from(value)) } }
+
     // TODO: impl From<Cow<'_, str>     > for ABox<dyn Error + ..., A>
     // TODO: impl From<impl Error       > for ABox<dyn Error + ..., A>
-    // TODO: impl From<OsString         > for ABox<OsStr, A>
-    // TODO: impl From<PathBuf          > for ABox<Path, A>
+
+    impl<A: Free + From<Global>> From<OsString> for ABox<OsStr, A> { fn from(value: OsString) -> Self { Self::from(Box::<OsStr>::from(value)) } }
+    impl<A: Free + From<Global>> From<PathBuf > for ABox<Path,  A> { fn from(value: PathBuf ) -> Self { Self::from(Box::<Path >::from(value)) } }
 }
