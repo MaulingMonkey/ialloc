@@ -1,5 +1,6 @@
 #[cfg(doc)] use crate as ialloc;
 use crate::*;
+use crate::meta::DefaultCompatible;
 use fat::*;
 
 use core::alloc::Layout;
@@ -70,7 +71,6 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
         Self { data, allocator, _phantom: PhantomData }
     }
 
-    const ASSERT_A_IS_ZST_FROM_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` happens to be compatible with `A::default()`.  Prefer `ABox::from_raw_in` to specify an allocator instead.");
     /// Construct an [`ABox`] from a pointer to raw data.
     ///
     /// ## Failure modes
@@ -89,8 +89,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
     /// ```
-    pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Default {
-        let _ = Self::ASSERT_A_IS_ZST_FROM_RAW;
+    pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : DefaultCompatible {
         // SAFETY: ✔️ same preconditions as documented
         unsafe { Self::from_raw_in(data, A::default()) }
     }
@@ -114,7 +113,6 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
         (data, allocator)
     }
 
-    const ASSERT_A_IS_ZST_INTO_RAW : () = assert!(size_of::<A>() == 0, "A is not a ZST - it is unlikely that `data` can be freed with anything but the discarded allocator.  Prefer `ABox::into_raw_with_allocator` to acquire `data`'s allocator as well.");
     /// Decompose an [`ABox`] into a pointer to raw data.
     ///
     /// ## Failure modes
@@ -129,8 +127,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
     /// ```
-    pub fn into_raw(this: Self) -> NonNull<T> {
-        let _ = Self::ASSERT_A_IS_ZST_INTO_RAW;
+    pub fn into_raw(this: Self) -> NonNull<T> where A : DefaultCompatible {
         Self::into_raw_with_allocator(this).0
     }
 

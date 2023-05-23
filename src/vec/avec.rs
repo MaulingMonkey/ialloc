@@ -79,7 +79,7 @@ impl<T, A: Free> AVec<T, A> {
 
     // TODO: pub
     #[allow(dead_code)]
-    pub(crate) unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : Default {
+    pub(crate) unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : DefaultCompatible {
         unsafe { Self::from_raw_parts_in(data, length, capacity, A::default()) }
     }
 
