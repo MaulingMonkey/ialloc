@@ -100,19 +100,20 @@ pub unsafe trait ZstInfalliable : ZstSupported {}
 /// In other words, [`fat`] and [`thin`] traits can be used to allocate with one, reallocate with another, and free with a third.
 /// While such [`Stateless`] allocators are typically ZSTs, they *don't* necessairly *have* to be - caching a reference or Arc or similar is allowed.
 ///
+/// Implementing this trait also means that destroying `Self` can no longer invalidate existing allocations - they *must* remain alive until explicitly freed.
+///
 /// ### Safety
 /// By implementing this trait for, say, `Malloc`, one would indicate that the following code is sound:
 /// ```rust
 /// use ialloc::allocator::c::Malloc;
 /// use ialloc::thin::{Alloc, Free};
 ///
-/// let a1 = Malloc::default();
-/// let a2 = Malloc::default();
-/// let alloc = a1.alloc_uninit(42).unwrap();
-/// unsafe { a2.free(alloc) };
+/// let alloc = Malloc::default().alloc_uninit(42).unwrap();
+/// unsafe { Malloc::default().free(alloc) };
 /// ```
-///
-/// As all [`fat`] and [`thin`] traits from independently constructed instances of `Malloc` are safe, as <code>Malloc : [Stateless]</code>.
+/// Despite the fact that each call to `Malloc::default()` creates an entirely new independent instance of `Malloc`.
+/// *   [`fat`] traits should remain compatible with each other for different instaces of `Malloc`.
+/// *   [`thin`] traits should remain compatible with each other for different instaces of `Malloc`.
 ///
 /// This is mainly used to gate the following functions, which are footguns in the presence of stateful allocators:
 /// *   [`boxed::ABox::from_raw`] (use [`boxed::ABox::from_raw_in`] instead)
