@@ -7,6 +7,7 @@ use crate::fat::*;
 use core::mem::ManuallyDrop;
 use core::mem::MaybeUninit;
 use core::ops::{RangeBounds, Bound};
+use core::ptr::NonNull;
 
 
 
@@ -76,7 +77,19 @@ impl<T, A: Free> AVec<T, A> {
         }
     }
 
-    // TODO: from_raw_parts, from_raw_parts_in
+    // TODO: pub
+    #[allow(dead_code)]
+    pub(crate) unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : Default {
+        unsafe { Self::from_raw_parts_in(data, length, capacity, A::default()) }
+    }
+
+    // TODO: pub
+    pub(crate) unsafe fn from_raw_parts_in(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize, allocator: A) -> Self {
+        let data = crate::util::nn::slice_from_raw_parts(data, capacity);
+        let data = unsafe { ABox::from_raw_in(data, allocator) };
+        Self { data, len: length }
+    }
+
     // TODO: insert
 
     fn try_into_boxed_slice(self) -> Result<ABox<[T], A>, (Self, A::Error)> where A : Realloc {
