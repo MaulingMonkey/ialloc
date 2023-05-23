@@ -71,6 +71,9 @@ bytemuck.features = [           # automatically opt into features that exist onl
     "zeroable_atomics",         # requires MSRV 1.60.0, ialloc has MSRV 1.69.0
 ]
 
+lazy_static.version         = "1"
+lazy_static.features        = ["spin_no_std"]
+
 libc.version                = "0.2"
 libc.optional               = true
 

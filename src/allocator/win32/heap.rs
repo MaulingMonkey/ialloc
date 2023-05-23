@@ -31,6 +31,8 @@ use core::ptr::NonNull;
 #[repr(transparent)] // SAFETY: Heap::borrow makes use of this
 pub struct Heap(HANDLE); // SAFETY: This should always be a valid `Heap*` compatible handle
 
+impl From<ProcessHeap> for &'static Heap { fn from(_: ProcessHeap) -> Self { Heap::process() } }
+
 impl Drop for Heap {
     fn drop(&mut self) {
         // SAFETY: ✔️ We supposedly exclusively own `self.0`
@@ -111,16 +113,31 @@ impl Heap {
 
     /// <code>[GetProcessHeap]\(\)</code>
     #[doc = include_str!("_refs.md")]
-    pub fn with_process<R>(f: impl FnOnce(&Self) -> R) -> R {
+    pub fn process() -> &'static Self {
+        // SAFETY: ✔️ `GetProcessHeap` is process-wide state and safe to access from any thread
         // SAFETY: ⚠️ I assert that undefined behavior must've already happened if things have gone so catastrophically wrong as for this to fail.
-        let heap = unsafe { GetProcessHeap() };
+        lazy_static::lazy_static! { static ref PROCESS_HEAP : ThreadSafeHandle = ThreadSafeHandle(unsafe { GetProcessHeap() }); }
+        struct ThreadSafeHandle(HANDLE);
+        // SAFETY: per above
+        unsafe impl Send for ThreadSafeHandle {}
+        // SAFETY: per above
+        unsafe impl Sync for ThreadSafeHandle {}
+
+        let handle = &(PROCESS_HEAP.0);
+        debug_assert!(!(*handle).is_null(), "GetProcessHeap() returned nullptr");
 
         // SAFETY: I assert that undefined behavior must've already happened if things have gone so catastrophically wrong for any of the following assumptions to not be true:
         // SAFETY: ✔️ `GetProcessHeap()` is a valid [`HeapAlloc`]-compatible `HANDLE`
         // SAFETY: ✔️ `GetProcessHeap()` is a growable heap
         // SAFETY: ⚠️ `GetProcessHeap()` is never used with [`HEAP_NO_SERIALIZE`] ("This value should not be specified when accessing the process's default heap.")
         // SAFETY: ⚠️ `GetProcessHeap()` is valid for the lifetime of the process / `'static`, as any code closing it presumably invokes undefined behavior by third party injected DLLs.
-        f(unsafe { Self::borrow(&heap) })
+        unsafe { Self::borrow(handle) }
+    }
+
+    /// <code>[GetProcessHeap]\(\)</code>
+    #[doc = include_str!("_refs.md")]
+    pub fn with_process<R>(f: impl FnOnce(&Self) -> R) -> R {
+        f(Self::process())
     }
 }
 
