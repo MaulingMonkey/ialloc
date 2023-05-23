@@ -31,7 +31,7 @@ impl Meta for NewDeleteArray {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for NewDeleteArray {}
+unsafe impl Stateless for NewDeleteArray {}
 
 
 

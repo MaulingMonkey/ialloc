@@ -88,7 +88,7 @@ impl Meta for AlignedMalloc {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for AlignedMalloc {}
+unsafe impl Stateless for AlignedMalloc {}
 
 
 

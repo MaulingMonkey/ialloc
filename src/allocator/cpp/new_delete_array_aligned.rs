@@ -31,7 +31,7 @@ impl Meta for NewDeleteArrayAligned {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for NewDeleteArrayAligned {}
+unsafe impl Stateless for NewDeleteArrayAligned {}
 
 
 

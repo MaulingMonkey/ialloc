@@ -31,7 +31,7 @@ impl Meta for NewDeleteAligned {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for NewDeleteAligned {}
+unsafe impl Stateless for NewDeleteAligned {}
 
 
 

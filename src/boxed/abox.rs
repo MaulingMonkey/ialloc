@@ -1,11 +1,11 @@
 #[cfg(doc)] use crate as ialloc;
 use crate::*;
-use crate::meta::DefaultCompatible;
+use crate::meta::Stateless;
 use fat::*;
 
 use core::alloc::Layout;
 use core::marker::PhantomData;
-use core::mem::{ManuallyDrop, MaybeUninit, size_of};
+use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ptr::*;
 
 
@@ -89,7 +89,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
     /// ```
-    pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : DefaultCompatible {
+    pub unsafe fn from_raw(data: NonNull<T>) -> Self where A : Stateless {
         // SAFETY: ✔️ same preconditions as documented
         unsafe { Self::from_raw_in(data, A::default()) }
     }
@@ -127,7 +127,7 @@ impl<T: ?Sized, A: Free> ABox<T, A> {
     ///
     /// let b = unsafe { ABox::<_, Malloc>::from_raw(data) };
     /// ```
-    pub fn into_raw(this: Self) -> NonNull<T> where A : DefaultCompatible {
+    pub fn into_raw(this: Self) -> NonNull<T> where A : Stateless {
         Self::into_raw_with_allocator(this).0
     }
 

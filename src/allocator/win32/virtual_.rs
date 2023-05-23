@@ -38,7 +38,7 @@ impl Meta for VirtualCommit {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for VirtualCommit {}
+unsafe impl Stateless for VirtualCommit {}
 
 
 

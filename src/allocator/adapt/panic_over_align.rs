@@ -46,7 +46,7 @@ impl<A: ZstSupported> ZstSupported for PanicOverAlign<A> {}
 unsafe impl<A: ZstInfalliable> ZstInfalliable for PanicOverAlign<A> {}
 
 // SAFETY: ✔️ per underlying allocator
-unsafe impl<A: DefaultCompatible> DefaultCompatible for PanicOverAlign<A> {}
+unsafe impl<A: Stateless> Stateless for PanicOverAlign<A> {}
 
 
 

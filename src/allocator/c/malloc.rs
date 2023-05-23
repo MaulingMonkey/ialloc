@@ -62,7 +62,7 @@ impl Meta for Malloc {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for Malloc {}
+unsafe impl Stateless for Malloc {}
 
 
 

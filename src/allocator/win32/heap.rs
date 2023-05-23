@@ -315,7 +315,7 @@ impl Meta for ProcessHeap {
 impl ZstSupported for ProcessHeap {}
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for ProcessHeap {}
+unsafe impl Stateless for ProcessHeap {}
 
 
 

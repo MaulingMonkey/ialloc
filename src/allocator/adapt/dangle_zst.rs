@@ -34,7 +34,7 @@ impl<A: Meta> ZstSupported for DangleZst<A> {}
 
 unsafe impl<A: Meta> ZstInfalliable for DangleZst<A> {}
 
-unsafe impl<A: DefaultCompatible> DefaultCompatible for DangleZst<A> {}
+unsafe impl<A: Stateless> Stateless for DangleZst<A> {}
 
 
 

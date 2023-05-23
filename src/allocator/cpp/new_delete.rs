@@ -31,7 +31,7 @@ impl Meta for NewDelete {
 }
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for NewDelete {}
+unsafe impl Stateless for NewDelete {}
 
 
 

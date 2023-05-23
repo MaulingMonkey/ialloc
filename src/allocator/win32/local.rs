@@ -54,7 +54,7 @@ impl Meta for Local {
 impl ZstSupported for Local {}
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for Local {}
+unsafe impl Stateless for Local {}
 
 
 

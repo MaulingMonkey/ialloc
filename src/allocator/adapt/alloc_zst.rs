@@ -46,7 +46,7 @@ impl<A: Meta> Meta for AllocZst<A> {
 
 impl<A: Meta> ZstSupported for AllocZst<A> {}
 
-unsafe impl<A: DefaultCompatible> DefaultCompatible for AllocZst<A> {}
+unsafe impl<A: Stateless> Stateless for AllocZst<A> {}
 
 
 

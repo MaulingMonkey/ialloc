@@ -23,7 +23,7 @@ impl Meta for Null {
 
 impl ZstSupported for Null {}
 
-unsafe impl DefaultCompatible for Null {}
+unsafe impl Stateless for Null {}
 
 
 

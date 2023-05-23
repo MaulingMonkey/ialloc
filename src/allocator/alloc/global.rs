@@ -34,7 +34,7 @@ impl ZstSupported for Global {}
 unsafe impl ZstInfalliable for Global {}
 
 // SAFETY: ✔️ global state only
-unsafe impl DefaultCompatible for Global {}
+unsafe impl Stateless for Global {}
 
 
 

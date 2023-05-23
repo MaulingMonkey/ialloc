@@ -37,7 +37,7 @@ impl<T> Meta for StdAllocator<T> {
 /// SAFETY: ✔️ <code>[std::allocator]&lt;char&gt;</code> is stateless (see `is_always_equal` checks in `ffi.cpp`)
 ///
 #[doc = include_str!("_refs.md")]
-unsafe impl DefaultCompatible for StdAllocator<c_char> {} // likely applicable to most std::allocator<T> where T is a builtin
+unsafe impl Stateless for StdAllocator<c_char> {} // likely applicable to most std::allocator<T> where T is a builtin
 
 
 
