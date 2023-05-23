@@ -77,14 +77,11 @@ impl<T, A: Free> AVec<T, A> {
         }
     }
 
-    // TODO: pub
-    #[allow(dead_code)]
-    pub(crate) unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : Stateless {
+    pub unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : Stateless {
         unsafe { Self::from_raw_parts_in(data, length, capacity, A::default()) }
     }
 
-    // TODO: pub
-    pub(crate) unsafe fn from_raw_parts_in(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize, allocator: A) -> Self {
+    pub unsafe fn from_raw_parts_in(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize, allocator: A) -> Self {
         let data = crate::util::nn::slice_from_raw_parts(data, capacity);
         let data = unsafe { ABox::from_raw_in(data, allocator) };
         Self { data, len: length }
