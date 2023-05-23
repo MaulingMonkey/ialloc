@@ -94,5 +94,30 @@ pub unsafe trait ZstInfalliable : ZstSupported {}
 
 
 
-/// Two allocators independenly constructed via [`Default`] will be compatible with each other (e.g. [`fat`]/[`thin`] traits can be used to allocate with one and free with another)
+/// Independently constructed allocators are intercompatible.
+///
+/// Allocators constructed independently of each other (be that through [`Default`] or other means) will still be compatible with each other.
+/// In other words, [`fat`] and [`thin`] traits can be used to allocate with one, reallocate with another, and free with a third.
+/// While such [`Stateless`] allocators are typically ZSTs, they *don't* necessairly *have* to be - caching a reference or Arc or similar is allowed.
+///
+/// ### Safety
+/// By implementing this trait for, say, `Malloc`, one would indicate that the following code is sound:
+/// ```rust
+/// use ialloc::allocator::c::Malloc;
+/// use ialloc::thin::{Alloc, Free};
+///
+/// let a1 = Malloc::default();
+/// let a2 = Malloc::default();
+/// let alloc = a1.alloc_uninit(42).unwrap();
+/// unsafe { a2.free(alloc) };
+/// ```
+///
+/// As all [`fat`] and [`thin`] traits from independently constructed instances of `Malloc` are safe, as <code>Malloc : [Stateless]</code>.
+///
+/// This is mainly used to gate the following functions, which are footguns in the presence of stateful allocators:
+/// *   [`boxed::ABox::from_raw`] (use [`boxed::ABox::from_raw_in`] instead)
+/// *   [`boxed::ABox::into_raw`] (use [`boxed::ABox::into_raw_with_allocator`] instead)
+/// *   [`vec::AVec::from_raw_parts`] (use [`vec::AVec::from_raw_parts_in`] instead)
+/// *   [`vec::AVec::into_raw_parts`] (use [`vec::AVec::into_raw_parts_with_allocator`] instead)
+#[allow(rustdoc::broken_intra_doc_links)] // FIXME: remove
 pub unsafe trait Stateless : Default {}
