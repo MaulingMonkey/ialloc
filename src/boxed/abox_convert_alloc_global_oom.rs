@@ -3,56 +3,16 @@
 use crate::boxed::ABox;
 use crate::meta::*;
 use crate::fat::*;
-use crate::util;
 use crate::vec::AVec;
 
 use core::ffi::CStr;
-use core::ptr::NonNull;
 
 
 
-impl<T: Copy, A: Alloc + Free + Default + ZstSupported> From<&[T]> for ABox<[T], A> {
-    fn from(value: &[T]) -> Self {
-        let len : usize = value.len();
-        let mut b = ABox::<T, A>::new_uninit_slice(len);
-        unsafe { core::ptr::copy_nonoverlapping(value.as_ptr(), b.as_mut_ptr().cast(), len) };
-        unsafe { b.assume_init() }
-    }
-}
-
-impl<A: Alloc + Free + Default + ZstSupported> From<&CStr> for ABox<CStr, A> {
-    fn from(value: &CStr) -> Self {
-        let bytes = value.to_bytes_with_nul();
-        let len = bytes.len();
-        let mut b = ABox::<u8, A>::new_uninit_slice(len);
-        unsafe { core::ptr::copy_nonoverlapping(value.as_ptr(), b.as_mut_ptr().cast(), len) };
-        let (data, allocator) = ABox::into_raw_with_allocator(b);
-        unsafe { ABox::from_raw_in(NonNull::new_unchecked(data.as_ptr() as *mut CStr), allocator) }
-    }
-}
-
-impl<A: Alloc + Free + Default + ZstSupported> From<&str> for ABox<str, A> {
-    fn from(value: &str) -> Self {
-        let bytes = value.as_bytes();
-        let len = bytes.len();
-        let mut b = ABox::<u8, A>::new_uninit_slice(len);
-        unsafe { core::ptr::copy_nonoverlapping(value.as_ptr(), b.as_mut_ptr().cast(), len) };
-        let (data, allocator) = ABox::into_raw_with_allocator(b);
-        unsafe { ABox::from_raw_in(NonNull::new_unchecked(data.as_ptr() as *mut str), allocator) }
-    }
-}
-
-
-impl<T, A: Alloc + Free + Default + ZstSupported, const N : usize> From<[T; N]> for ABox<[T], A> {
-    fn from(value: [T; N]) -> Self {
-        let mut b = ABox::<T, A>::new_uninit_slice(N);
-        unsafe { core::ptr::copy_nonoverlapping(value.as_ptr(), b.as_mut_ptr().cast(), N) };
-        core::mem::forget(value);
-        let (data, allocator) = ABox::into_raw_with_allocator(b);
-        let data = util::nn::slice_assume_init(data);
-        unsafe { ABox::from_raw_in(data, allocator) }
-    }
-}
+impl<T: Copy, A: Alloc + Free + Default + ZstSupported                  > From<&[T] > for ABox<[T],  A> { fn from(value: &[T] ) -> Self { Self::try_from_slice(value).expect("out of memory") } }
+impl<         A: Alloc + Free + Default + ZstSupported                  > From<&CStr> for ABox<CStr, A> { fn from(value: &CStr) -> Self { Self::try_from_cstr (value).expect("out of memory") } }
+impl<         A: Alloc + Free + Default + ZstSupported                  > From<&str > for ABox<str,  A> { fn from(value: &str ) -> Self { Self::try_from_str  (value).expect("out of memory") } }
+impl<T,       A: Alloc + Free + Default + ZstSupported, const N : usize > From<[T;N]> for ABox<[T],  A> { fn from(value: [T;N]) -> Self { Self::try_from_array(value).expect("out of memory") } }
 
 impl<T, A: Alloc + Free + Default   > From   <T             > for ABox<T,   A> { fn from(value: T)          -> Self { Self::new(value) } }
 impl<T, A: Realloc                  > From   <AVec<T, A>    > for ABox<[T], A> { fn from(value: AVec<T, A>) -> Self { value.into_boxed_slice() } }
