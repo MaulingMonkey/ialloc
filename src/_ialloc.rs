@@ -3,7 +3,9 @@
 #![doc = include_str!("../doc/features.md")]
 #![no_std]
 
+#![forbid(unreachable_patterns)] // often indicates e.g. a typoed "constant" in a match statement
 #![forbid(unsafe_op_in_unsafe_fn)]
+#![deny(non_snake_case)] // often indicates e.g. a typoed "constant" in a match statement
 #![warn(clippy::undocumented_unsafe_blocks)]
 #![allow(clippy::let_unit_value)] // very common for const assertions
 #![cfg_attr(not(feature = "default"), allow(dead_code, unused_imports))] // suppress noisy "dead code" warnings in non-default build configs
