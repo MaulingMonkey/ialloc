@@ -1,5 +1,3 @@
-#![cfg(feature = "bytemuck")]
-
 use crate::boxed::ABox;
 use crate::error::ExcessiveSliceRequestedError;
 use crate::fat::*;

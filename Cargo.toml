@@ -26,7 +26,7 @@ path                        = "src/_ialloc.rs"
 
 [features]
 default = [
-    "bytemuck", "panicy",
+    "panicy",
     "std", "win32", "msvc",
     "c23", "c++23",
 ]
@@ -35,8 +35,8 @@ panicy                      = ["panicy-bounds", "panicy-memory"]
 panicy-bounds               = [] # XXX: not yet used for anything, undocumented as such
 panicy-memory               = [] # ≈ not(no_global_oom_handling)
 
-alloc                       = []
-std                         = ["alloc"]
+alloc                       = ["bytemuck/extern_crate_alloc"]
+std                         = ["alloc", "bytemuck/extern_crate_std"]
 win32                       = ["winapi", "winresult"]
 msvc                        = ["libc"]
 
@@ -64,7 +64,6 @@ cc.optional                 = true
 
 [dependencies]
 bytemuck.version            = "1"
-bytemuck.optional           = true
 bytemuck.features = [           # automatically opt into features that exist only to protect MSRV
     "zeroable_maybe_uninit",    # requires MSRV 1.36.0, ialloc has MSRV 1.69.0
     "min_const_generics",       # requires MSRV 1.51.0, ialloc has MSRV 1.69.0

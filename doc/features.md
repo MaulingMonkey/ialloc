@@ -10,7 +10,6 @@
 |                       | **Dependencies**
 | `"alloc"`             | [`alloc`] crate support (rust standard library) |
 | `"std"`               | [`std`] crate support (rust standard library) |
-| `"bytemuck"`          | [`bytemuck`] crate support                    |
 | `"msvc"`              | MSVC-specific library support                 | <code>[target_env](https://doc.rust-lang.org/reference/conditional-compilation.html#target_env) = `"msvc"`</code>
 | `"win32"`             | Windows-specific allocators                   | <code>[target_os](https://doc.rust-lang.org/reference/conditional-compilation.html#target_os) = `"windows"`</code>
 |
