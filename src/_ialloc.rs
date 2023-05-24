@@ -4,6 +4,7 @@
 #![no_std]
 
 #![forbid(unsafe_op_in_unsafe_fn)]
+#![warn(clippy::undocumented_unsafe_blocks)]
 #![allow(clippy::let_unit_value)] // very common for const assertions
 #![cfg_attr(not(feature = "default"), allow(dead_code, unused_imports))] // suppress noisy "dead code" warnings in non-default build configs
 
