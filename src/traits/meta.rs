@@ -92,6 +92,10 @@ impl<'a, A: ZstSupported> ZstSupported for &'a A {}
 /// Although unless it's to report potential undefined behavior, this is at least discouraged.
 pub unsafe trait ZstInfalliable : ZstSupported {}
 
+#[cfg(    global_oom_handling )] #[doc(hidden)] pub use ZstSupported   as ZstInfalliableOrGlobalOomHandling;
+#[cfg(not(global_oom_handling))] #[doc(hidden)] pub use ZstInfalliable as ZstInfalliableOrGlobalOomHandling;
+
+
 
 
 /// Independently constructed allocators are intercompatible.

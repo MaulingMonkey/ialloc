@@ -18,12 +18,10 @@ use crate::meta::*;
     }
 }
 
-#[cfg(    global_oom_handling )] impl<T, A: Alloc + Free + Default + ZstSupported  > Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::new_uninit_slice(0).assume_init() } } }
-#[cfg(not(global_oom_handling))] impl<T, A: Alloc + Free + Default + ZstInfalliable> Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::try_new_uninit_slice(0).unwrap().assume_init() } } }
+impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::try_new_uninit_slice(0).unwrap().assume_init() } } }
 
 // TODO:
-//#[cfg(    global_oom_handling )] impl<T, A: Alloc + Free + Default + ZstSupported  > Default for ABox<str, A> { fn default() -> Self { Self::from(ABox::<u8, A>::new_uninit_slice(0)) } }
-//#[cfg(not(global_oom_handling))] impl<T, A: Alloc + Free + Default + ZstInfalliable> Default for ABox<str, A> { fn default() -> Self { Self::from(ABox::<u8, A>::try_new_uninit_slice(0).unwrap()) } }
+//impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<str, A> { fn default() -> Self { Self::from(ABox::<u8, A>::try_new_uninit_slice(0).unwrap()) } }
 
 /// Non-panicing alternatives to [`Default`] / support for alternative allocators.
 impl<T: Default, A: Free> ABox<T, A> {

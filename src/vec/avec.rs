@@ -109,10 +109,8 @@ impl<T, A: Free> AVec<T, A> {
     // TODO: into_raw_parts, into_raw_parts_with_allocator
     // TODO: leak
 
-    #[cfg(    global_oom_handling )] pub fn new() -> Self where A : Alloc + Default + ZstSupported { Self::with_capacity(0) }
-    #[cfg(not(global_oom_handling))] pub fn new() -> Self where A : Alloc + Default + ZstInfalliable { Self::try_with_capacity(0).expect("zero-sized allocation failed despite ZstInfalliable") }
-    #[cfg(    global_oom_handling )] pub fn new_in(allocator: A) -> Self where A : Alloc + ZstSupported { Self::with_capacity_in(0, allocator) }
-    #[cfg(not(global_oom_handling))] pub fn new_in(allocator: A) -> Self where A : Alloc + ZstInfalliable { Self::try_with_capacity_in(0, allocator).expect("zero-sized allocation failed despite ZstInfalliable") }
+    pub fn new() -> Self where A : Alloc + Default + ZstInfalliableOrGlobalOomHandling { Self::try_with_capacity(0).unwrap() }
+    pub fn new_in(allocator: A) -> Self where A : Alloc + ZstInfalliableOrGlobalOomHandling { Self::try_with_capacity_in(0, allocator).unwrap() }
 
     pub fn pop(&mut self) -> Option<T> {
         let idx_to_pop = self.len.checked_sub(1)?;
