@@ -2,8 +2,10 @@
 #![doc = include_str!("../Readme.md")]
 #![doc = include_str!("../doc/features.md")]
 #![no_std]
+
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::let_unit_value)] // very common for const assertions
+#![cfg_attr(not(feature = "default"), allow(dead_code, unused_imports))] // suppress noisy "dead code" warnings in non-default build configs
 
 #[cfg(any(feature = "alloc", doc, test))] extern crate alloc;
 #[cfg(any(feature = "std",   doc, test))] extern crate std;
