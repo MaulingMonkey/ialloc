@@ -156,7 +156,10 @@ unsafe impl thin::Free for IMalloc {
 // SAFETY: per above
 unsafe impl thin::SizeOfDebug for IMalloc {
     unsafe fn size_of_debug(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
-        Some(unsafe { self.0.GetSize(ptr.as_ptr().cast()) })
+        match unsafe { self.0.GetSize(ptr.as_ptr().cast()) } {
+            usize::MAX  => None,
+            size        => Some(size),
+        }
     }
 }
 
