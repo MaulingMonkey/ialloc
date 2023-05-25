@@ -2,6 +2,8 @@ use crate::boxed::ABox;
 use crate::fat::{Alloc, Free};
 use crate::meta::*;
 
+use core::ffi::CStr;
+
 
 
 // Allocating traits, falliable counterparts
@@ -20,6 +22,17 @@ use crate::meta::*;
 
 impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<[T], A> { fn default() -> Self { ABox::<[T], A>::try_from_array([]).unwrap() } }
 impl<   A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<str, A> { fn default() -> Self { ABox::<str, A>::try_from_str("").unwrap() } }
+// TODO: impl Default for ABox<OsStr, A>
+// TODO: impl Default for ABox<Path,  A>
+
+// TODO: remove A : ZstSupported bound?  CStr is never a ZST as it always has at least a `\0`
+#[cfg(global_oom_handling)] impl<A: Alloc + Free + Default + ZstSupported> Default for ABox<CStr, A> {
+    fn default() -> Self { ABox::<CStr,A>::try_from_cstr(CStr::from_bytes_with_nul(b"\0").unwrap()).unwrap() }
+}
+
+// TODO: Non-panic alternatives to [`Default`] / support for alternative allocators for slice, str, CStr
+
+
 
 /// Non-panicing alternatives to [`Default`] / support for alternative allocators.
 impl<T: Default, A: Free> ABox<T, A> {

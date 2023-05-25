@@ -1,5 +1,8 @@
 use crate::boxed::ABox;
 use crate::fat::{Alloc, Free};
+use crate::meta::ZstSupported;
+
+use core::ffi::CStr;
 
 
 
@@ -20,9 +23,12 @@ use crate::fat::{Alloc, Free};
     }
 }
 
-// TODO:
-//  • [ ] impl Clone for slice boxes
-//  • [ ] impl Clone for str boxes
+// TODO: widen to T: Clone
+#[cfg(global_oom_handling)] impl<T: Copy, A: Alloc + Free + Clone + ZstSupported> Clone for ABox<[T],  A> { fn clone(&self) -> Self { Self::try_from_slice_in(self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized slices?
+#[cfg(global_oom_handling)] impl<         A: Alloc + Free + Clone + ZstSupported> Clone for ABox<str,  A> { fn clone(&self) -> Self { Self::try_from_str_in(  self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized strs?
+#[cfg(global_oom_handling)] impl<         A: Alloc + Free + Clone + ZstSupported> Clone for ABox<CStr, A> { fn clone(&self) -> Self { Self::try_from_cstr_in( self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized CStrs?
+// impl Clone for ABox<Path,  A> ?
+// impl Clone for ABox<OsStr, A> ?
 
 /// Non-panicing alternatives to [`Clone`] / support for alternative allocators.
 impl<T: Clone, A: Free> ABox<T, A> {
