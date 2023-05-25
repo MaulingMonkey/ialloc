@@ -29,6 +29,7 @@ mod align {
     pub mod constants;
 }
 
+#[cfg(doc)] #[doc = include_str!("../doc/assumptions.md")] pub mod _assumptions {}
 #[path = "allocator/_allocator.rs"      ] pub mod allocator;
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
