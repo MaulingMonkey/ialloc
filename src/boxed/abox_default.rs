@@ -18,7 +18,7 @@ use crate::meta::*;
     }
 }
 
-impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<[T], A> { fn default() -> Self { unsafe { ABox::<T, A>::try_new_uninit_slice(0).unwrap().assume_init() } } }
+impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<[T], A> { fn default() -> Self { ABox::<[T], A>::try_from_array([]).unwrap() } }
 impl<   A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<str, A> { fn default() -> Self { ABox::<str, A>::try_from_str("").unwrap() } }
 
 /// Non-panicing alternatives to [`Default`] / support for alternative allocators.
