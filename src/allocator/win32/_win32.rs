@@ -1,5 +1,5 @@
 #![cfg(all(target_os = "windows", feature = "win32"))]
-//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`Local`], [`VirtualCommit`]
+//! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`IMalloc`], [`Local`], [`VirtualCommit`]
 //!
 //! | Allocator                     | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |
 //! | ------------------------------| ----------------------| ----------------------| ------------------| ----------------------|
@@ -41,11 +41,11 @@
 //!
 //! | Allocator             | Eventually implemented in terms of    |
 //! | ----------------------| --------------------------------------|
-//! | [`CoTaskMem`]         | `IMalloc` → [`Heap`]
+//! | [`CoTaskMem`]         | [`IMalloc`] → [`Heap`]
 //! | [`CryptMem`]          | [`Local`] w/ [`LMEM_ZEROINIT`] → [`Heap`] w/ [`HEAP_ZERO_MEMORY`]
 //! | [`Global`]            | [`Heap`]
 //! | [`Local`]             | [`Heap`]
-//! | `IMalloc`             | [`Heap`]
+//! | [`IMalloc`]           | [`Heap`]
 //!
 //! [heap functions]:   https://learn.microsoft.com/en-us/windows/win32/memory/heap-functions
 //!

@@ -83,11 +83,11 @@ impl ZstSupported for IMalloc {}
 /// | --------------| --------------|
 /// | `align`       | ✔️ Validated via [`thin::test::alignment`]
 /// | `size`        | ✔️ Validated via [`thin::test::edge_case_sizes`]
-/// | `pin`         |
-/// | `compatible`  |
-/// | `exclusive`   |
-/// | `exceptions`  |
-/// | `threads`     |
+/// | `pin`         | ✔️ [`IMalloc`] is `'static` - allocations by [`IMalloc::Alloc`] live until [`IMalloc::Realloc`]ed, [`IMalloc::Free`]d, or theoretically with some impls, perhaps if the last reference to the underlying `IMalloc` is released (not merely moved.)
+/// | `compatible`  | ✔️ [`IMalloc`] uses exclusively intercompatible fns
+/// | `exclusive`   | ✔️ Allocations by [`IMalloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`IMalloc::Alloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`IMalloc`] is <code>\![Send] + \![Sync]</code>
 /// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], trivial default impl
 ///
 #[doc = include_str!("_refs.md")]
@@ -105,12 +105,12 @@ unsafe impl thin::Alloc for IMalloc {
 /// | --------------| --------------|
 /// | `align`       | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
 /// | `size`        | ⚠️ untested, but *should* be safe if [`thin::Alloc`] was
-/// | `pin`         |
-/// | `compatible`  |
-/// | `exclusive`   |
-/// | `exceptions`  |
-/// | `threads`     |
-/// | `zeroed`      |
+/// | `pin`         | ✔️ [`IMalloc`] is `'static` - reallocations by [`IMalloc::Realloc`] live until [`IMalloc::Realloc`]ed, [`IMalloc::Free`]d, or theoretically with some impls, perhaps if the last reference to the underlying `IMalloc` is released (not merely moved.)
+/// | `compatible`  | ✔️ [`IMalloc`] uses exclusively intercompatible fns
+/// | `exclusive`   | ✔️ Reallocations by [`IMalloc`] are exclusive/unique
+/// | `exceptions`  | ✔️ [`IMalloc::Realloc`] returns null on error per docs / lack of [`HEAP_GENERATE_EXCEPTIONS`].  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`IMalloc`] is <code>\![Send] + \![Sync]</code>
+/// | `zeroed`      | ✔️ Trivial [`Err`] / not supported
 /// | `preserved`   | ⚠️ untested, but *should* be the case...
 ///
 #[doc = include_str!("_refs.md")]
@@ -131,9 +131,9 @@ unsafe impl thin::Realloc for IMalloc {
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
-/// | `compatible`  |
-/// | `exceptions`  |
-/// | `threads`     |
+/// | `compatible`  | ✔️ [`IMalloc`] uses exclusively intercompatible fns
+/// | `exceptions`  | ✔️ [`IMalloc::Free`] returns no errors per docs.  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`IMalloc`] is <code>\![Send] + \![Sync]</code>
 ///
 #[doc = include_str!("_refs.md")]
 #[allow(clippy::missing_safety_doc)]
@@ -146,10 +146,10 @@ unsafe impl thin::Free for IMalloc {
 
 /// | Safety Item   | Description   |
 /// | --------------| --------------|
-/// | `size`        |
-/// | `compatible`  |
-/// | `exceptions`  |
-/// | `threads`     |
+/// | `size`        | ✔️ Verified by [`thin::test::size_exact_alloc`]
+/// | `compatible`  | ✔️ [`IMalloc`] uses exclusively intercompatible fns
+/// | `exceptions`  | ✔️ [`IMalloc::GetSize`] returns `-1` on error per docs.  Non-unwinding fatalish heap corruption exceptions will only occur after previous undefined behavior.
+/// | `threads`     | ✔️ [`IMalloc`] is <code>\![Send] + \![Sync]</code>
 ///
 #[doc = include_str!("_refs.md")]
 #[allow(clippy::missing_safety_doc)]
