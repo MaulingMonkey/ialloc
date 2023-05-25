@@ -1,17 +1,17 @@
 #![cfg(all(target_os = "windows", feature = "win32"))]
 //! [`CoTaskMem`], [`CryptMem`], [`Global`], [`Heap`], [`ProcessHeap`], [`IMalloc`], [`Local`], [`VirtualCommit`]
 //!
-//! | Allocator                     | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |
-//! | ------------------------------| ----------------------| ----------------------| ------------------| ----------------------|
-//! | [`CoTaskMem`]†                | [`CoTaskMemAlloc`]    | [`CoTaskMemRealloc`]  | [`CoTaskMemFree`] | ❌                    |
-//! | [`CryptMem`]†                 | [`CryptMemAlloc`]     | [`CryptMemRealloc`]   | [`CryptMemFree`]  | ❌                    |
-//! | [`Global`]†                   | [`GlobalAlloc`]       | [`GlobalReAlloc`]     | [`GlobalFree`]    | [`GlobalSize`]        |
-//! | <code>[Heap]\(HANDLE\)</code> | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
-//! | [`HeapNoSerialize`]           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
-//! | [`ProcessHeap`]               | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
-//! | [`IMalloc`]†                  | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
-//! | [`Local`]†                    | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
-//! | [`VirtualCommit`]             | [`VirtualAlloc`]      | ❌                    | [`Virtualfree`]   | ❌                    |
+//! | Allocator                                 | [`thin::Alloc`]       | [`thin::Realloc`]     | [`thin::Free`]    | [`thin::SizeOf`]      |
+//! | ------------------------------------------| ----------------------| ----------------------| ------------------| ----------------------|
+//! | [`CoTaskMem`]†                            | [`CoTaskMemAlloc`]    | [`CoTaskMemRealloc`]  | [`CoTaskMemFree`] | ❌                    |
+//! | [`CryptMem`]†                             | [`CryptMemAlloc`]     | [`CryptMemRealloc`]   | [`CryptMemFree`]  | ❌                    |
+//! | [`Global`]†                               | [`GlobalAlloc`]       | [`GlobalReAlloc`]     | [`GlobalFree`]    | [`GlobalSize`]        |
+//! | <code>[Heap]\(HANDLE\)</code>             | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | <code>[HeapNoSerialize]\(HANDLE\)</code>  | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | [`ProcessHeap`]                           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | <code>[IMalloc]\(\*IMalloc\)</code>†      | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
+//! | [`Local`]†                                | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
+//! | [`VirtualCommit`]                         | [`VirtualAlloc`]      | ❌                    | [`Virtualfree`]   | ❌                    |
 //!
 //! ## Recommended Reading
 //! *   [Comparing Memory Allocation Methods](https://learn.microsoft.com/en-us/windows/win32/memory/comparing-memory-allocation-methods) (learn.microsoft.com)
