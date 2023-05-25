@@ -77,10 +77,12 @@ libc.version                = "0.2"
 libc.optional               = true
 
 [target.'cfg(windows)'.dependencies]
+mcom.version                = "0.1"
 winapi.version              = "0.3"
 winapi.optional             = true
 winapi.features = [
     # shared
+    "winerror",
 
     # um
     "combaseapi",

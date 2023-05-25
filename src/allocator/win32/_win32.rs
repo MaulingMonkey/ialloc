@@ -9,11 +9,9 @@
 //! | <code>[Heap]\(HANDLE\)</code> | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`HeapNoSerialize`]           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | [`ProcessHeap`]               | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
+//! | [`IMalloc`]†                  | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
 //! | [`Local`]†                    | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
 //! | [`VirtualCommit`]             | [`VirtualAlloc`]      | ❌                    | [`Virtualfree`]   | ❌                    |
-//! |
-//! | (TODO)                        |
-//! | `IMalloc`†                    | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
 //!
 //! ## Recommended Reading
 //! *   [Comparing Memory Allocation Methods](https://learn.microsoft.com/en-us/windows/win32/memory/comparing-memory-allocation-methods) (learn.microsoft.com)
@@ -60,6 +58,7 @@ mod cryptmem;           pub use cryptmem::*;
 mod global;             pub use global::*;
 mod heap;               pub use heap::*;
 mod heap_no_serialize;  pub use heap_no_serialize::*;
+mod imalloc;            pub use imalloc::*;
 mod local;              pub use local::*;
 mod virtual_;           pub use virtual_::*;
 

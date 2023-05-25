@@ -20,6 +20,7 @@ use core::ptr::NonNull;
 /// Consider using [`Heap`](super::Heap) directly instead, unless you're specifically doing COM / have documentation mandating a specific (de)allocator for interop purpouses.
 ///
 /// ## References
+/// *   [`IMalloc`](super::IMalloc) (stateful equivalent)
 /// *   [Memory Allocation in COM](https://learn.microsoft.com/en-us/windows/win32/learnwin32/memory-allocation-in-com) (learn.microsoft.com)
 ///
 #[doc = include_str!("_refs.md")]
