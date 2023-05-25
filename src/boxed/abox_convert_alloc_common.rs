@@ -3,7 +3,9 @@ use crate::meta::*;
 use crate::fat::*;
 use crate::util;
 
+use core::alloc::Layout;
 use core::ffi::CStr;
+use core::mem::MaybeUninit;
 use core::ptr::NonNull;
 
 
@@ -43,6 +45,55 @@ impl<A: Alloc + Free + ZstSupported> ABox<str, A> {
     }
 }
 
+#[cfg(feature = "std")] impl<A: Alloc + Free + ZstSupported> ABox<std::ffi::OsStr, A> {
+    pub(crate) fn try_from_osstr(value: &std::ffi::OsStr) -> Result<Self, A::Error> where A : Default { Self::try_from_osstr_in(value, A::default()) }
+    pub(crate) fn try_from_osstr_in(value: &std::ffi::OsStr, allocator: A) -> Result<Self, A::Error> {
+        use std::ffi::*;
+
+        let layout = Layout::for_value(value);
+        let n = layout.size() / layout.align();
+        assert_eq!(layout.size(), n * layout.align());
+
+        let data = if layout.size() != 0 { allocator.alloc_uninit(layout)? } else { util::nn::dangling(layout) };
+        {
+            let dst = unsafe { core::slice::from_raw_parts_mut(data.as_ptr(), layout.size()) };
+            let src = unsafe { core::slice::from_raw_parts(value as *const OsStr as *const MaybeUninit<u8>, layout.size()) };
+            dst.copy_from_slice(src);
+        }
+
+        match layout.align() {
+            1 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u8 >>(), n) as *mut OsStr), allocator) }),
+            2 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u16>>(), n) as *mut OsStr), allocator) }),
+            4 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u32>>(), n) as *mut OsStr), allocator) }),
+            _ => panic!("absurd alignment for OsStr"),
+        }
+    }
+}
+
+#[cfg(feature = "std")] impl<A: Alloc + Free + ZstSupported> ABox<std::path::Path, A> {
+    pub(crate) fn try_from_path(value: &std::path::Path) -> Result<Self, A::Error> where A : Default { Self::try_from_path_in(value, A::default()) }
+    pub(crate) fn try_from_path_in(value: &std::path::Path, allocator: A) -> Result<Self, A::Error> {
+        use std::path::*;
+
+        let layout = Layout::for_value(value);
+        let n = layout.size() / layout.align();
+        assert_eq!(layout.size(), n * layout.align());
+
+        let data = if layout.size() != 0 { allocator.alloc_uninit(layout)? } else { util::nn::dangling(layout) };
+        {
+            let dst = unsafe { core::slice::from_raw_parts_mut(data.as_ptr(), layout.size()) };
+            let src = unsafe { core::slice::from_raw_parts(value as *const Path as *const MaybeUninit<u8>, layout.size()) };
+            dst.copy_from_slice(src);
+        }
+
+        match layout.align() {
+            1 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u8 >>(), n) as *mut Path), allocator) }),
+            2 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u16>>(), n) as *mut Path), allocator) }),
+            4 => Ok(unsafe { ABox::from_raw_in(NonNull::new_unchecked(core::ptr::slice_from_raw_parts_mut(data.as_ptr().cast::<MaybeUninit<u32>>(), n) as *mut Path), allocator) }),
+            _ => panic!("absurd alignment for Path"),
+        }
+    }
+}
 
 impl<T, A: Alloc + Free + ZstSupported> ABox<[T], A> {
     pub(crate) fn try_from_array<const N : usize>(value: [T; N]) -> Result<Self, A::Error> where A : Default { Self::try_from_array_in(value, A::default()) }

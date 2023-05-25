@@ -27,8 +27,8 @@ use core::ffi::CStr;
 #[cfg(global_oom_handling)] impl<T: Copy, A: Alloc + Free + Clone + ZstSupported> Clone for ABox<[T],  A> { fn clone(&self) -> Self { Self::try_from_slice_in(self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized slices?
 #[cfg(global_oom_handling)] impl<         A: Alloc + Free + Clone + ZstSupported> Clone for ABox<str,  A> { fn clone(&self) -> Self { Self::try_from_str_in(  self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized strs?
 #[cfg(global_oom_handling)] impl<         A: Alloc + Free + Clone + ZstSupported> Clone for ABox<CStr, A> { fn clone(&self) -> Self { Self::try_from_cstr_in( self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized CStrs?
-// impl Clone for ABox<Path,  A> ?
-// impl Clone for ABox<OsStr, A> ?
+#[cfg(feature = "std")] #[cfg(global_oom_handling)] impl<A: Alloc + Free + Clone + ZstSupported> Clone for ABox<std::ffi::OsStr, A> { fn clone(&self) -> Self { Self::try_from_osstr_in(self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized OsStrs?
+#[cfg(feature = "std")] #[cfg(global_oom_handling)] impl<A: Alloc + Free + Clone + ZstSupported> Clone for ABox<std::path::Path, A> { fn clone(&self) -> Self { Self::try_from_path_in( self, Self::allocator(self).clone()).unwrap() } } // TODO: clone_from for same-sized Paths?
 
 /// Non-panicing alternatives to [`Clone`] / support for alternative allocators.
 impl<T: Clone, A: Free> ABox<T, A> {

@@ -22,8 +22,8 @@ use core::ffi::CStr;
 
 impl<T, A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<[T], A> { fn default() -> Self { ABox::<[T], A>::try_from_array([]).unwrap() } }
 impl<   A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<str, A> { fn default() -> Self { ABox::<str, A>::try_from_str("").unwrap() } }
-// TODO: impl Default for ABox<OsStr, A>
-// TODO: impl Default for ABox<Path,  A>
+#[cfg(feature = "std")] impl<A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<std::ffi::OsStr, A> { fn default() -> Self { Self::try_from_osstr(std::ffi::OsStr::new("")).unwrap() } }
+#[cfg(feature = "std")] impl<A: Alloc + Free + Default + ZstInfalliableOrGlobalOomHandling> Default for ABox<std::path::Path, A> { fn default() -> Self { Self::try_from_path(std::path::Path::new("")).unwrap() } }
 
 // TODO: remove A : ZstSupported bound?  CStr is never a ZST as it always has at least a `\0`
 #[cfg(global_oom_handling)] impl<A: Alloc + Free + Default + ZstSupported> Default for ABox<CStr, A> {
