@@ -74,7 +74,7 @@ In practice, I believe the existence of APIs such as [`std::ffi::OsStr::to_str`]
 
 What makes this rather naughty is the fact that the stdlib has taken pains to avoid explicitly documenting such a thing:
 
-```rust
+```rust,ignore
 // FIXME:
 // `OsStr::from_inner` current implementation relies
 // on `OsStr` being layout-compatible with `Slice`.
@@ -87,7 +87,7 @@ pub struct OsStr {
 ```
 [`std/src/ffi/os_str.rs` lines 113-121](https://github.com/rust-lang/rust/blob/eb9da7bfa375ad58bcb946115f3191a2756785e5/library/std/src/ffi/os_str.rs#L113-L121)
 
-```rust
+```rust,ignore
 // FIXME:
 // `Path::new` current implementation relies
 // on `Path` being layout-compatible with `OsStr`.
