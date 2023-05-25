@@ -20,6 +20,16 @@ using std::nothrow;
     #endif
 #endif
 
+#if defined(_MSC_VER)
+#   if !defined(_MT)
+#       if _MSC_VER >= 1400
+#           error "Rust bindings assume the C++ standard library is thread safe, but you're supposedly using a variant that isn't.  You're using Visual Studio 2005 or later according to _MSC_VER, which supposedly removed single-threaded variants of the C++ standard library.  This is likely some kind of weirdly misconfigured build environment that undefines _MT, or fails to define it in the first place."
+#       else
+#           error "Rust bindings assume the C++ standard library is thread safe, but you're supposedly using a variant that isn't.  You're supposedly using Visual Studio 2003 or earlier.  Consider using a compiler that's not two decades old.  Alternative, switch to a multithreaded runtime with /MD, /MDd, /MT, or /MTd.  See https://learn.microsoft.com/en-us/cpp/build/reference/md-mt-ld-use-run-time-library for details"
+#       endif
+#   endif
+#endif
+
 IALLOC_FN(void*, std_allocator_char_allocate        ) (size_t count)                    { try { return std::allocator<char>().allocate(count); } catch (const std::bad_alloc&) { return 0; } }
 IALLOC_FN(void,  std_allocator_char_deallocate      ) (char* ptr, size_t count)         { return std::allocator<char>().deallocate(ptr, count); }
 
