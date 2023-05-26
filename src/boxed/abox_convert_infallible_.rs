@@ -15,7 +15,7 @@ impl<T, A: Free + ZstSupported> From<ABox<[T], A>> for AVec<T, A> {
         let data : *mut [T] = data.as_ptr();
         let data : *mut MaybeUninit<T> = data as _;
         let data = unsafe { NonNull::new_unchecked(data) };
-        unsafe { Self::from_raw_parts_in(data, len, len, allocator) }
+        unsafe { Self::from_raw_parts_in(data.cast(), len, len, allocator) }
     }
 }
 

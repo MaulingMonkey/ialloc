@@ -77,12 +77,12 @@ impl<T, A: Free> AVec<T, A> {
         }
     }
 
-    pub unsafe fn from_raw_parts(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize) -> Self where A : Stateless {
+    pub unsafe fn from_raw_parts(data: NonNull<T>, length: usize, capacity: usize) -> Self where A : Stateless {
         unsafe { Self::from_raw_parts_in(data, length, capacity, A::default()) }
     }
 
-    pub unsafe fn from_raw_parts_in(data: NonNull<MaybeUninit<T>>, length: usize, capacity: usize, allocator: A) -> Self {
-        let data = crate::util::nn::slice_from_raw_parts(data, capacity);
+    pub unsafe fn from_raw_parts_in(data: NonNull<T>, length: usize, capacity: usize, allocator: A) -> Self {
+        let data = crate::util::nn::slice_from_raw_parts(data.cast(), capacity);
         let data = unsafe { ABox::from_raw_in(data, allocator) };
         Self { data, len: length }
     }
@@ -106,7 +106,22 @@ impl<T, A: Free> AVec<T, A> {
     #[cfg(global_oom_handling)] pub fn into_boxed_slice(self) -> ABox<[T], A> where A : Realloc { self.try_into_boxed_slice().map_err(|(_, err)| err).expect("unable to shrink alloc") }
 
     // TODO: into_flattened
-    // TODO: into_raw_parts, into_raw_parts_with_allocator
+
+    pub fn into_raw_parts(self) -> (NonNull<T>, usize, usize) where A : Stateless {
+        let (data, len, cap, _) = self.into_raw_parts_with_allocator();
+        (data, len, cap)
+    }
+
+    pub fn into_raw_parts_with_allocator(self) -> (NonNull<T>, usize, usize, A) {
+        let this            = ManuallyDrop::new(self);
+        let len             = this.len;
+        let data            = unsafe { std::ptr::read(&this.data) };
+        let _               = this;
+        let (data, alloc)   = ABox::into_raw_with_allocator(data);
+        let cap             = data.len();
+        (data.cast(), len, cap, alloc)
+    }
+
     // TODO: leak
 
     pub fn new() -> Self where A : Alloc + Default + ZstInfalliableOrGlobalOomHandling { Self::try_with_capacity(0).unwrap() }
