@@ -33,4 +33,12 @@ impl<T, A: Realloc + Default + ZstSupported> FromIterator<T> for ABox<[T], A> {
     }
 }
 
-// TODO: FromIterator<ABox<str, A>> for String
+#[cfg(global_oom_handling)]
+#[cfg(feature = "alloc")]
+impl<A: Free + Default + ZstSupported> FromIterator<ABox<str, A>> for alloc::string::String {
+    fn from_iter<T: IntoIterator<Item = ABox<str, A>>>(iter: T) -> Self {
+        let mut b = alloc::string::String::new();
+        for abox in iter { b.push_str(&abox) }
+        b
+    }
+}
