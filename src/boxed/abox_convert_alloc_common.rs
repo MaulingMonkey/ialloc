@@ -20,6 +20,22 @@ impl<T: Copy, A: Alloc + Free + ZstSupported> ABox<[T], A> {
     }
 }
 
+impl<T: Clone, A: Alloc + Free + ZstSupported> ABox<[T], A> {
+    #[allow(dead_code)]
+    pub(crate) fn try_from_clone_slice(value: &[T]) -> Result<Self, A::Error> where A : Default { Self::try_from_clone_slice_in(value, A::default()) }
+    pub(crate) fn try_from_clone_slice_in(value: &[T], allocator: A) -> Result<Self, A::Error> {
+        let len : usize = value.len();
+        let mut abox = ABox::<T, A>::try_new_uninit_slice_in(len, allocator)?;
+        let mut drop = util::drop::InPlaceOnDrop::default();
+        for i in 0 .. len {
+            unsafe { drop.set(core::ptr::slice_from_raw_parts_mut(abox.as_mut_ptr().cast::<T>(), i)) };
+            abox[i] = MaybeUninit::new(value[i].clone());
+        }
+        drop.forget();
+        Ok(unsafe { abox.assume_init() })
+    }
+}
+
 // TODO: remove A : ZstSupported bound?  CStr is never a ZST as it always has at least a `\0`
 impl<A: Alloc + Free + ZstSupported> ABox<CStr, A> {
     pub(crate) fn try_from_cstr(value: &CStr) -> Result<Self, A::Error> where A : Default { Self::try_from_cstr_in(value, A::default()) }
