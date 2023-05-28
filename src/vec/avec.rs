@@ -13,8 +13,8 @@ use core::ptr::NonNull;
 
 /// [`fat::Alloc`]-friendly [`alloc::vec::Vec`] alternative
 pub struct AVec<T, A: Free> {
-    data:   ABox<[MaybeUninit<T>], A>,
-    len:    usize,
+    pub(super) data:   ABox<[MaybeUninit<T>], A>,
+    pub(super) len:    usize,
 }
 
 impl<T, A: Free> Drop for AVec<T, A> { fn drop(&mut self) { self.clear() } }
@@ -190,7 +190,8 @@ impl<T, A: Free> AVec<T, A> {
     #[cfg(global_oom_handling)] pub fn resize(&mut self, new_len: usize, value: T) where T : Clone, A : Realloc { self.try_resize(new_len, value).expect("unable to reserve more memory") }
     #[cfg(global_oom_handling)] pub fn resize_with<F: FnMut() -> T>(&mut self, new_len: usize, f: F) where A : Realloc { self.try_resize_with(new_len, f).expect("unable to reserve more memory") }
 
-    // TODO: retain, retain_mut
+    pub fn retain    <F: FnMut(&    T) -> bool>(&mut self, mut f: F) { self.retain_mut(|v| f(v)) }
+    pub fn retain_mut<F: FnMut(&mut T) -> bool>(&mut self, mut f: F) { self.retain_imp(|v| f(v)) }
 
     pub(crate) fn try_shrink_to(&mut self, min_capacity: usize) -> Result<(), A::Error> where A : Realloc { let c = min_capacity.max(self.len()); ABox::try_realloc_uninit_slice(&mut self.data, c) }
     pub(crate) fn try_shrink_to_fit(&mut self) -> Result<(), A::Error> where A : Realloc { self.try_shrink_to(self.len()) }

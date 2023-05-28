@@ -11,3 +11,4 @@ mod avec_from;
 mod avec_index;
 mod avec_io;
 mod avec_iter;              pub use avec_iter::*;
+mod avec_retain;
