@@ -59,4 +59,23 @@ impl<T> Drop for RemoveHoleOnDrop<'_, T> {
     assert_eq!(v[..], [2, 4]);
 }
 
-// TODO: validate drop logic
+#[test] fn retain_drop() {
+    use crate::util::drop::Tester;
+
+    let mut v = AVec::<Tester, crate::allocator::alloc::Global>::new();
+    v.try_push(Tester::new(1)).unwrap();
+    v.try_push(Tester::new(2)).unwrap();
+    v.try_push(Tester::new(3)).unwrap();
+    v.try_push(Tester::new(4)).unwrap();
+    v.try_push(Tester::new(5)).unwrap();
+    assert!(Tester::counts().starts_with(&[0, 1, 1, 1, 1, 1, 0]));
+
+    v.retain(|x| x.get() % 2 == 0);
+    assert_eq!(v.len(), 2);
+    assert_eq!(v[0].get(), 2);
+    assert_eq!(v[1].get(), 4);
+    assert!(Tester::counts().starts_with(&[0, 0, 1, 0, 1, 0, 0]));
+
+    drop(v);
+    assert!(Tester::counts().starts_with(&[0, 0, 0, 0, 0, 0, 0]));
+}
