@@ -58,7 +58,7 @@ impl<T, A: Free> AVec<T, A> {
     /// ### Safety
     /// *   `new_len` must be less than or equal to <code>[capacity](Self::capacity)()</code>.
     /// *   If <code>new_len &gt; [avec](Self).[len](Self::len)()</code>, the elements between <code>[avec](Self).[len](Self::len)() .. new_len</code> must have been initialized.
-    #[inline(always)] pub unsafe fn set_len(&mut self, new_len: usize) { self.len = new_len; }
+    #[inline(always)] pub unsafe fn set_len(&mut self, new_len: usize) { debug_assert!(new_len <= self.capacity(), "undefined behavior: `new_len` exceeds `capacity()`"); self.len = new_len; }
 
     /// Return a slice to the uninitialized elements between <code>[avec](Self).[len](Self::len)() .. [avec](Self).[capacity](Self::capacity)()</code>.
     #[inline(always)] pub fn spare_capacity_mut(&mut self) -> &mut [MaybeUninit<T>] { self.data.get_mut(self.len..).unwrap_or(&mut []) }
