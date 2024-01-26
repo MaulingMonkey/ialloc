@@ -1,4 +1,5 @@
-## Features
+Cargo features of the [`ialloc`](crate) crate.
+
 | Feature               | Description                                   | Additional Requirements |
 | ----------------------| ----------------------------------------------| ------------------------|
 |                       | **API Design**

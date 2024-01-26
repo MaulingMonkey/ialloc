@@ -1,6 +1,5 @@
 #![cfg_attr(allocator_api = "unstable", feature(allocator_api))]
 #![doc = include_str!("../Readme.md")]
-#![doc = include_str!("../doc/features.md")]
 #![no_std]
 
 #![forbid(unreachable_patterns)] // often indicates e.g. a typoed "constant" in a match statement
@@ -30,6 +29,8 @@ mod align {
 }
 
 #[cfg(doc)] #[doc = include_str!("../doc/assumptions.md")] pub mod _assumptions {}
+#[cfg(doc)] #[doc = include_str!("../doc/features.md")] pub mod _features {}
+
 #[path = "allocator/_allocator.rs"      ] pub mod allocator;
 #[path = "boxed/_boxed.rs"              ] pub mod boxed;
 #[path = "traits/_traits.rs"            ] pub mod traits; #[doc(hidden)] pub use traits::*;
