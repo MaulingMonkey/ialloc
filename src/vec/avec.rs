@@ -20,6 +20,7 @@ pub struct AVec<T, A: Free> {
 impl<T, A: Free> Drop for AVec<T, A> { fn drop(&mut self) { self.clear() } }
 
 impl<T, A: Free> AVec<T, A> {
+    /// Retrieve the [`fat::Free`] (+ [`fat::Alloc`] + [`fat::Realloc`] + ...) associated with this [`AVec`].
     #[inline(always)] pub fn allocator(&self) -> &A { ABox::allocator(&self.data) }
 
     /// Get a pointer to the underlying buffer of `T`s without going through a reference to `T` or `[T]` (which could narrow provenance.)
