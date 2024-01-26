@@ -48,6 +48,13 @@ impl<T: ?Sized, A: Free> Drop for ABox<T, A> {
 impl<T: ?Sized, A: Free> ABox<T, A> {
     /// Retrieve the [`fat::Free`] (+ [`fat::Alloc`] + [`fat::Realloc`] + ...) associated with this [`ABox`].
     #[inline(always)] pub fn allocator(this: &Self) -> &A { &this.allocator }
+
+    /// Get a pointer to the underlying `T` without going through a reference to `T` (which could narrow provenance.)
+    #[inline(always)] pub fn as_ptr(this: &Self) -> *const T { this.data.as_ptr() }
+
+    /// Get a pointer to the underlying `T` without going through a reference to `T` (which could narrow provenance.)
+    #[inline(always)] pub fn as_mut_ptr(this: &mut Self) -> *mut T { this.data.as_ptr() }
+
     #[inline(always)] pub(super) fn data(&self) -> NonNull<T> { self.data }
     #[inline(always)] pub(super) unsafe fn set_data(&mut self, data: NonNull<T>) { self.data = data; }
     #[inline(always)] pub(super) fn layout(&self) -> Layout { Layout::for_value(&**self) }

@@ -21,8 +21,19 @@ impl<T, A: Free> Drop for AVec<T, A> { fn drop(&mut self) { self.clear() } }
 
 impl<T, A: Free> AVec<T, A> {
     #[inline(always)] pub fn allocator(&self) -> &A { ABox::allocator(&self.data) }
-    #[inline(always)] pub fn as_ptr(&self) -> *const T { self.data.as_ptr().cast() }
-    #[inline(always)] pub fn as_mut_ptr(&mut self) -> *mut T { self.data.as_mut_ptr().cast() }
+
+    /// Get a pointer to the underlying buffer of `T`s without going through a reference to `T` or `[T]` (which could narrow provenance.)
+    ///
+    /// Unlike <code>[avec](Self).[as_slice](Self::as_slice)\(\).[as_ptr](slice::as_ptr)\(\)</code>, the spatial provenance of this pointer extends into the (likely) uninitialized
+    /// data between <code>[avec](Self).[len](Self::len)\(\) .. [avec](Self).[capacity](Self::capacity)\(\)</code>, which can be used to initialize elements in-place before calling <code>[avec](Self).[set_len](Self::set_len)\(\)</code>.
+    #[inline(always)] pub fn as_ptr(&self) -> *const T { ABox::as_ptr(&self.data).cast() }
+
+    /// Get a pointer to the underlying buffer of `T`s without going through a reference to `T` or `[T]` (which could narrow provenance.)
+    ///
+    /// Unlike <code>[avec](Self).[as_slice_mut](Self::as_slice_mut)\(\).[as_mut_ptr](slice::as_mut_ptr)\(\)</code>, the spatial provenance of this pointer extends into the (likely) uninitialized
+    /// data between <code>[avec](Self).[len](Self::len)\(\) .. [avec](Self).[capacity](Self::capacity)\(\)</code>, which can be used to initialize elements in-place before calling <code>[avec](Self).[set_len](Self::set_len)\(\)</code>.
+    #[inline(always)] pub fn as_mut_ptr(&mut self) -> *mut T { ABox::as_mut_ptr(&mut self.data).cast() }
+
     #[inline(always)] pub fn as_slice(&self) -> &[T] { unsafe { core::slice::from_raw_parts(self.as_ptr(), self.len) } }
     #[inline(always)] pub fn as_slice_mut(&mut self) -> &mut [T] { unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr(), self.len) } }
     #[inline(always)] pub fn capacity(&self) -> usize { self.data.len() }
