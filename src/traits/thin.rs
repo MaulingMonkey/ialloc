@@ -296,7 +296,7 @@ pub mod test {
 
         // Something a little more stress testy
         for size in [1, 2, 4, 8, 16, 32, 64, 128, 256] {
-            std::dbg!(size);
+            #[cfg(feature = "std")] std::dbg!(size);
             let mut addr_bits = 0;
             for _ in 0 .. 100 {
                 if let Ok(alloc) = TTB::try_new_uninit(&allocator, size) {
@@ -320,7 +320,7 @@ pub mod test {
         for boundary in boundaries.iter().copied() {
             for offset in -64_isize .. 64_isize {
                 let Some(size) = boundary.checked_add_signed(offset) else { continue };
-                std::dbg!(size);
+                #[cfg(feature = "std")] std::dbg!(size);
                 let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
                 if let Some(last_byte_index) = size.checked_sub(1) {
                     let last_byte_index = last_byte_index.min(isize::MAX as usize);

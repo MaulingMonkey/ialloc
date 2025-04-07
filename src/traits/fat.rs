@@ -197,7 +197,7 @@ pub mod test {
             loop {
                 let unaligned_mask = align.as_usize() - 1;
                 let alloc = Layout::from_size_align(size, align.as_usize()).ok().and_then(|layout| FTB::try_new_uninit(&allocator, layout).ok());
-                std::println!("attempted to allocate size={size} align={align:?} ... {}", if alloc.is_some() { "ok" } else { "FAILED" });
+                #[cfg(feature = "std")] std::println!("attempted to allocate size={size} align={align:?} ... {}", if alloc.is_some() { "ok" } else { "FAILED" });
                 if let Some(alloc) = alloc {
                     let alloc = alloc.as_ptr();
                     let addr = alloc as usize;
@@ -224,7 +224,7 @@ pub mod test {
             for offset in -64_isize .. 64_isize {
                 let Some(size) = boundary.checked_add_signed(offset) else { continue };
                 let Ok(layout) = Layout::from_size_align(size, 1) else { continue };
-                std::dbg!(size);
+                #[cfg(feature = "std")] std::dbg!(size);
                 let Ok(alloc) = FTB::try_new_uninit(&allocator, layout) else { continue };
                 if let Some(last_byte_index) = size.checked_sub(1) {
                     let last_byte_index = last_byte_index.min(isize::MAX as usize);

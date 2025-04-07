@@ -162,7 +162,7 @@ impl<T, A: Free> AVec<T, A> {
 
         // decompose without Drop
         let v = ManuallyDrop::new(v);
-        let data = unsafe { std::ptr::read(&v.data) };
+        let data = unsafe { core::ptr::read(&v.data) };
         core::mem::forget(v);
 
         //let (raw, allocator) = data.into_raw_with_allocator();
@@ -191,7 +191,7 @@ impl<T, A: Free> AVec<T, A> {
     pub fn into_raw_parts_with_allocator(self) -> (NonNull<T>, usize, usize, A) {
         let this            = ManuallyDrop::new(self);
         let len             = this.len;
-        let data            = unsafe { std::ptr::read(&this.data) };
+        let data            = unsafe { core::ptr::read(&this.data) };
         let _               = this;
         let (data, alloc)   = ABox::into_raw_with_allocator(data);
         let cap             = data.len();
