@@ -4,7 +4,7 @@
 name                        = "ialloc"
 version                     = "0.0.0-2025-04-07"
 edition                     = "2021"
-rust-version                = "1.69.0" # MSRV: CARGO_BIN_NAME in examples/nightly/stable-main-stub.rs
+rust-version                = "1.81.0" # MSRV: mcom = "0.1.5"
 
 license                     = "Apache-2.0 OR MIT"
 authors                     = ["MaulingMonkey <git@maulingmonkey.com>"]
@@ -35,8 +35,8 @@ panicy                      = ["panicy-bounds", "panicy-memory"]
 panicy-bounds               = [] # XXX: not yet used for anything, undocumented as such
 panicy-memory               = [] # ≈ not(no_global_oom_handling)
 
-alloc                       = ["bytemuck/extern_crate_alloc"]
-std                         = ["alloc", "bytemuck/extern_crate_std"]
+alloc                       = ["bytemuck/extern_crate_alloc", "mcom/alloc"]
+std                         = ["alloc", "bytemuck/extern_crate_std", "mcom/std"]
 win32                       = ["winapi", "winresult"]
 msvc                        = ["libc"]
 
@@ -65,9 +65,9 @@ cc.optional                 = true
 [dependencies]
 bytemuck.version            = "1"
 bytemuck.features = [           # automatically opt into features that exist only to protect MSRV
-    "zeroable_maybe_uninit",    # requires MSRV 1.36.0, ialloc has MSRV 1.69.0
-    "min_const_generics",       # requires MSRV 1.51.0, ialloc has MSRV 1.69.0
-    "zeroable_atomics",         # requires MSRV 1.60.0, ialloc has MSRV 1.69.0
+    "zeroable_maybe_uninit",    # requires MSRV 1.36.0, ialloc has MSRV 1.81.0
+    "min_const_generics",       # requires MSRV 1.51.0, ialloc has MSRV 1.81.0
+    "zeroable_atomics",         # requires MSRV 1.60.0, ialloc has MSRV 1.81.0
 ]
 
 lazy_static.version         = "1"
@@ -77,7 +77,12 @@ libc.version                = "0.2"
 libc.optional               = true
 
 [target.'cfg(windows)'.dependencies]
-mcom.version                = "0.1"
+mcom.version                = "0.1.5" # `alloc` and `std` features
+mcom.default-features       = false
+mcom.features = [
+    "windows-2000",
+    "winapi-family-all",
+]
 winapi.version              = "0.3"
 winapi.optional             = true
 winapi.features = [

@@ -209,7 +209,8 @@ type Element<const A : usize, const B : usize> = UnsafeCell<MaybeUninit<AlignN<A
             ABox::try_new_in(next, &pool).unwrap()
         });
         assert!(ABox::try_new_in(0u32, &pool).is_err(), "pool out of elements");
-        std::dbg!(&_integers[0]);
+        let _ = &_integers[0];
+        #[cfg(feature = "std")] std::dbg!(&_integers[0]);
     }
 }
 

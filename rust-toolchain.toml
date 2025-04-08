@@ -1,2 +1,2 @@
 [toolchain]
-channel = "1.69.0" # MSRV: CARGO_BIN_NAME in examples/nightly/stable-main-stub.rs
+channel = "1.81.0" # MSRV: mcom = "0.1.5"
