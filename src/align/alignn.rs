@@ -71,7 +71,7 @@ use _align_impl::*;
     impl ValidAlignLessThan1GiB for [(); 268435456] { type Align = Align268435456; }
     impl ValidAlignLessThan1GiB for [(); 536870912] { type Align = Align536870912; }
 
-    pub trait ByAlign<const A : usize> where Self : Sized {
+    #[allow(dead_code)] pub trait ByAlign<const A : usize> where Self : Sized {
         #[doc(hidden)] type Align : Clone + Copy + Default + core::fmt::Debug + PartialEq + Eq + PartialOrd + Ord + core::hash::Hash;
     }
 

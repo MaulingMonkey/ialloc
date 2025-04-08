@@ -10,6 +10,15 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::{Command, Stdio};
 
+const CFGS          : &'static [&'static str] = &[
+    "msvc",
+    r#"allocator_api, values("*", "1.50", "unstable")"#,
+    "global_oom_handling", "no_global_oom_handling",
+    "nope", "never", // XXX
+];
+const C_STANDARDS   : &'static [&'static str] = &["23", "17", "11", "99", "89"];
+const CPP_STANDARDS : &'static [&'static str] = &["23", "20", "17", "14", "11", "03", "98"];
+
 #[cfg(feature = "cc")] const C : &[&str] = &[
     //"src/allocator/c/ffi.c",
 ];
@@ -21,6 +30,11 @@ use std::process::{Command, Stdio};
 
 
 fn main() {
+    //println!("cargo:rustc-check-cfg=cfg(allocator_api, values(\"*\", \"1.50\", \"unstable\"))");
+    for cfg in CFGS         .iter().copied() { println!("cargo:rustc-check-cfg=cfg({cfg})"); }
+    for ver in C_STANDARDS  .iter().copied() { println!("cargo:rustc-check-cfg=cfg(c{ver})"); }
+    for ver in CPP_STANDARDS.iter().copied() { println!("cargo:rustc-check-cfg=cfg(cpp{ver})"); }
+
     if feature_test("allocator_api_1_50_stable") {
         println!("cargo:rustc-cfg=allocator_api=\"*\"");
         println!("cargo:rustc-cfg=allocator_api=\"1.50\"");
@@ -64,8 +78,8 @@ fn use_cc() {
         }
 
         // define standards
-        let mut c_standards     = "23 17 11 99 89".split(' ').peekable();
-        let mut cpp_standards   = "23 20 17 14 11 03 98".split(' ').peekable();
+        let mut c_standards     = C_STANDARDS.iter().copied().peekable();
+        let mut cpp_standards   = CPP_STANDARDS.iter().copied().peekable();
 
         // skip unconfigured standards
         skip_until(&mut   c_standards, |yy| var_os(format!("CARGO_FEATURE_C{yy}"  )).is_some());
