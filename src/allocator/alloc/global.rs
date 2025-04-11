@@ -197,8 +197,13 @@ unsafe impl core::alloc::GlobalAlloc for Global {
 
 
 
+#[cfg(test)] const GLOBAL_ALLOC_ZERO_INITS : bool = cfg!(any(
+    target_os = "linux",    // from the start of `ialloc` on CI and WSL
+    target_os = "macos",    // github's `macos-11` runners didn't zero init, but `macos-14`(? via `macos-latest`) does.
+));
+
 #[test] fn fat_alignment()          { fat::test::alignment(Global) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Global) }
-#[test] fn fat_uninit()             { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(Global) } } }
+#[test] fn fat_uninit()             { if !GLOBAL_ALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(Global) } } }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Global) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Global) }

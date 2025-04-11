@@ -91,15 +91,20 @@ unsafe impl fat::Realloc for NewDelete {}
 
 
 
+#[cfg(test)] pub(crate) const OPERATOR_NEW_ZERO_INITS : bool = cfg!(any(
+    target_os = "linux",    // from the start of `ialloc` on CI and WSL
+    target_os = "macos",    // github's `macos-11` runners didn't zero init, but `macos-14`(? via `macos-latest`) does.
+));
+
 #[test] fn thin_alignment()         { thin::test::alignment(NewDelete) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(NewDelete) }
 #[test] fn thin_nullable()          { thin::test::nullable(NewDelete) }
-#[test] fn thin_uninit()            { if !cfg!(target_os = "linux") { unsafe { thin::test::uninit_alloc_unsound(NewDelete) } } } // `::operator new` returns zeroed memory on some platforms
+#[test] fn thin_uninit()            { if !OPERATOR_NEW_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(NewDelete) } } }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(NewDelete) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_conservative(NewDelete) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(NewDelete) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(NewDelete) }
-#[test] fn fat_uninit()             { if !cfg!(target_os = "linux") { unsafe { fat::test::uninit_alloc_unsound(NewDelete) } } }
+#[test] fn fat_uninit()             { if !OPERATOR_NEW_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(NewDelete) } } }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(NewDelete) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(NewDelete) }
