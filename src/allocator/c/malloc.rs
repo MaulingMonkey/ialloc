@@ -238,7 +238,8 @@ unsafe impl thin::SizeOfDebug for Malloc {
     #[test] fn thin_alignment()             { thin::test::alignment(AllocZst(Malloc)) }
     #[test] fn thin_edge_case_sizes()       { thin::test::edge_case_sizes(AllocZst(Malloc)) }
     #[test] fn thin_nullable()              { thin::test::nullable(AllocZst(Malloc)) }
-    #[test] fn thin_size()                  { thin::test::size_exact_alloc_except_zsts(AllocZst(Malloc)) }
+    #[cfg(    target_env = "msvc" )] #[test] fn thin_size_msvc()    { thin::test::size_exact_alloc_except_zsts(Malloc) }
+    #[cfg(not(target_env = "msvc"))] #[test] fn thin_size()         { thin::test::size_exact_alloc(Malloc) }
     #[test] fn thin_uninit()                { if !MALLOC_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(AllocZst(Malloc)) } } }
     #[test] fn thin_uninit_realloc()        { thin::test::uninit_realloc(AllocZst(Malloc)) }
     #[test] fn thin_zeroed()                { thin::test::zeroed_alloc(AllocZst(Malloc)) }
