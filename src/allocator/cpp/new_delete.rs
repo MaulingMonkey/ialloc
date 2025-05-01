@@ -100,11 +100,15 @@ unsafe impl fat::Realloc for NewDelete {}
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(NewDelete) }
 #[test] fn thin_nullable()          { thin::test::nullable(NewDelete) }
 #[test] fn thin_uninit()            { if !OPERATOR_NEW_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(NewDelete) } } }
+//test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(NewDelete) } // does not implement thin::Realloc
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(NewDelete) }
+//test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(NewDelete) } // does not implement thin::Realloc
 #[test] fn thin_zst_support()       { thin::test::zst_supported_conservative(NewDelete) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(NewDelete) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(NewDelete) }
 #[test] fn fat_uninit()             { if !OPERATOR_NEW_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(NewDelete) } } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(NewDelete) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(NewDelete) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(NewDelete) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(NewDelete) }

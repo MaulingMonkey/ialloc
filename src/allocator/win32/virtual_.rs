@@ -110,12 +110,16 @@ unsafe impl fat::Realloc for VirtualCommit {}
 #[test] fn thin_alignment()         { thin::test::alignment(VirtualCommit) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(VirtualCommit) }
 #[test] fn thin_nullable()          { thin::test::nullable(VirtualCommit) }
-//#[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
+//test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
+//test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(VirtualCommit) } // does not implement thin::Realloc
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(VirtualCommit) }
+//test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(VirtualCommit) } // does not implement thin::Realloc
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(VirtualCommit) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(VirtualCommit) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(VirtualCommit) }
-//#[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
+//test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(VirtualCommit) } } // VirtualCommit is always zeroed
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(VirtualCommit) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(VirtualCommit) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(VirtualCommit) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(VirtualCommit) }

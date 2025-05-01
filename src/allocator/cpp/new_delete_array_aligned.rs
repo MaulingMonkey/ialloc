@@ -82,5 +82,7 @@ unsafe impl fat::Realloc for NewDeleteArrayAligned {}
 #[test] fn fat_alignment()          { fat::test::alignment(NewDeleteArrayAligned) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(NewDeleteArrayAligned) }
 #[test] fn fat_uninit()             { if !allocator::cpp::OPERATOR_NEW_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(NewDeleteArrayAligned) } } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(NewDeleteArrayAligned) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(NewDeleteArrayAligned) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(NewDeleteArrayAligned) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(NewDeleteArrayAligned) }

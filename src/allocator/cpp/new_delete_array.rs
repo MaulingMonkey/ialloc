@@ -95,11 +95,15 @@ unsafe impl fat::Realloc for NewDeleteArray {}
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(NewDeleteArray) }
 #[test] fn thin_nullable()          { thin::test::nullable(NewDeleteArray) }
 #[test] fn thin_uninit()            { if !allocator::cpp::OPERATOR_NEW_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(NewDeleteArray) } } }
+//test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(NewDeleteArray) } // does not implement thin::Realloc
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(NewDeleteArray) }
+//test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(NewDeleteArray) } // does not implement thin::Realloc
 #[test] fn thin_zst_support()       { thin::test::zst_supported_conservative(NewDeleteArray) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(NewDeleteArray) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(NewDeleteArray) }
 #[test] fn fat_uninit()             { if !allocator::cpp::OPERATOR_NEW_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(NewDeleteArray) } } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(NewDeleteArray) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(NewDeleteArray) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(NewDeleteArray) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(NewDeleteArray) }

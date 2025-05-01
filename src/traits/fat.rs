@@ -169,6 +169,7 @@ unsafe impl<'a, A: Realloc> Realloc for &'a A {
 /// Testing functions to verify implementations of [`fat`] traits.
 pub mod test {
     use super::*;
+    #[cfg(feature = "std")] use std::io::Write;
 
     /// "Fat Test Box"
     #[allow(clippy::upper_case_acronyms)]
@@ -264,6 +265,67 @@ pub mod test {
         assert!(!any, "A::alloc_uninit appears to allocate zeroed memory");
     }
 
+    fn bytes(n: usize) -> Layout { Layout::array::<u8>(n).unwrap() }
+
+    /// Stress test [`Realloc::realloc_zeroed`]
+    pub fn uninit_realloc<A: Realloc>(allocator: A) {
+        #[cfg(feature = "std")] let log_spam = std::env::var_os("IALLOC_TEST_VERBOSE").is_some();
+
+        let unit_layout = Layout::new::<()>();
+        if let Ok(alloc) = allocator.alloc_uninit(unit_layout) {
+            let alloc = unsafe { allocator.realloc_uninit(alloc, unit_layout, unit_layout) }.expect("allocating 0 bytes succeeds, but reallocating to 0 bytes fails: this allocator likely *freed* and should add explicit checks to ban zero-length (re)allocs!");
+            unsafe { allocator.free(alloc, unit_layout) };
+        }
+
+        for mut size in 0 ..= 100 {
+            let Ok(mut alloc) = allocator.alloc_uninit(bytes(size)) else {
+                #[cfg(feature = "std")] std::eprintln!("initial allocation of {size} bytes failed");
+                continue
+            };
+            #[cfg(feature = "std")] std::eprintln!("initial allocation of {size} bytes @ {alloc:?}");
+
+            for (pos, byte) in unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) }.iter_mut().enumerate() { *byte = MaybeUninit::new(pos as u8); }
+
+            for realloc_size in [
+                size+1, size+2, size+3, size.saturating_sub(1), size.saturating_sub(2), size.saturating_sub(3),
+                0, 0, 0, 50, 50, 0, 25, 30, 100, 66, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+            ] {
+                #[cfg(feature = "std")] let stdout = log_spam.then(|| {
+                    let mut stdout = std::io::stdout().lock();
+                    let _ = write!(stdout, "attempting to realloc_uninit({alloc:?}, ...) from {size} → {realloc_size} bytes...");
+                    let _ = stdout.flush();
+                    stdout
+                });
+
+                if let Ok(realloc) = unsafe { allocator.realloc_uninit(alloc, bytes(size), bytes(realloc_size)) } {
+                    #[cfg(feature = "std")] if let Some(mut stdout) = stdout {
+                        let _ = writeln!(stdout, "successful reallocation to {realloc:?}");
+                        let _ = stdout.flush();
+                    }
+                    let prev_size   = size;
+                    alloc           = realloc.cast();
+                    size            = realloc_size;
+
+                    let slice = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) };
+                    for (pos, byte) in slice.iter_mut().enumerate() {
+                        if pos < prev_size {
+                            assert_eq!(unsafe { byte.assume_init() }, pos as u8);
+                        } else {
+                            *byte = MaybeUninit::new(pos as u8);
+                        }
+                    }
+                } else {
+                    #[cfg(feature = "std")] if let Some(mut stdout) = stdout {
+                        let _ = writeln!(stdout, "failed");
+                        let _ = stdout.flush();
+                    }
+                }
+            }
+
+            unsafe { allocator.free(alloc, bytes(size)) };
+        }
+    }
+
     /// Assert that `allocator` always provides zeroed memory when requested
     pub fn zeroed_alloc<A: Alloc + Free>(allocator: A) {
         for _ in 0 .. 1000 {
@@ -271,6 +333,74 @@ pub mod test {
                 assert!(*byte == 0u8, "A::alloc_zeroed returned unzeroed memory!");
                 *byte = 0xFF; // ensure we'll detect "unzeroed" memory if this alloc is reused without zeroing
             }
+        }
+    }
+
+    /// Stress test [`Realloc::realloc_zeroed`]
+    pub fn zeroed_realloc<A: Realloc>(allocator: A) {
+        #[cfg(feature = "std")] let log_spam = std::env::var_os("IALLOC_TEST_VERBOSE").is_some();
+
+        let unit_layout = Layout::new::<()>();
+        if let Ok(alloc) = allocator.alloc_zeroed(unit_layout) {
+            let alloc = unsafe { allocator.realloc_zeroed(alloc.cast(), unit_layout, unit_layout) }.expect("allocating 0 bytes succeeds, but reallocating to 0 bytes fails: this allocator likely *freed* and should add explicit checks to ban zero-length (re)allocs!");
+            unsafe { allocator.free(alloc.cast(), unit_layout) };
+        }
+
+        for mut size in 0 ..= 100 {
+            let Ok(alloc) = allocator.alloc_zeroed(bytes(size)) else {
+                #[cfg(feature = "std")] std::eprintln!("initial allocation of {size} bytes failed");
+                continue
+            };
+            #[cfg(feature = "std")] std::eprintln!("initial allocation of {size} bytes @ {alloc:?}");
+            let mut alloc : NonNull<MaybeUninit<u8>> = alloc.cast();
+            let mut min_prev_size = size;
+            let mut max_prev_size = size;
+
+            for (pos, byte) in unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) }.iter_mut().enumerate() { *byte = MaybeUninit::new(pos as u8); }
+
+            for realloc_size in [
+                size+1, size+2, size+3, size.saturating_sub(1), size.saturating_sub(2), size.saturating_sub(3),
+                0, 0, 0, 50, 50, 0, 25, 30, 100, 66, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+            ] {
+                #[cfg(feature = "std")] let stdout = log_spam.then(|| {
+                    let mut stdout = std::io::stdout().lock();
+                    let _ = write!(stdout, "attempting to realloc_zeroed({alloc:?}, ...) from {size} → {realloc_size} bytes...");
+                    let _ = stdout.flush();
+                    stdout
+                });
+
+                if let Ok(realloc) = unsafe { allocator.realloc_zeroed(alloc, bytes(size), bytes(realloc_size)) } {
+                    #[cfg(feature = "std")] if let Some(mut stdout) = stdout {
+                        let _ = writeln!(stdout, "successful reallocation to {realloc:?}");
+                        let _ = stdout.flush();
+                    }
+                    let prev_size   = size;
+                    alloc           = realloc.cast();
+                    size            = realloc_size;
+                    min_prev_size   = min_prev_size.min(prev_size);
+                    max_prev_size   = max_prev_size.max(prev_size);
+
+                    let slice = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), size) };
+                    for (pos, byte) in slice.iter_mut().enumerate() {
+                        let byte = unsafe { byte.assume_init() };
+                        if pos < min_prev_size {
+                            assert_eq!(byte, pos as u8);
+                        } else if pos < max_prev_size {
+                            assert!(byte == 0 || byte == pos as u8);
+                        } else {
+                            assert_eq!(byte, 0);
+                        }
+                    }
+                    for (pos, byte) in slice.iter_mut().enumerate().skip(prev_size) { *byte = MaybeUninit::new(pos as u8); }
+                } else {
+                    #[cfg(feature = "std")] if let Some(mut stdout) = stdout {
+                        let _ = writeln!(stdout, "failed");
+                        let _ = stdout.flush();
+                    }
+                }
+            }
+
+            unsafe { allocator.free(alloc, bytes(size)) };
         }
     }
 

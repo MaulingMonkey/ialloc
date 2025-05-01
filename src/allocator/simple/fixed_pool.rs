@@ -219,11 +219,15 @@ type Element<const A : usize, const B : usize> = UnsafeCell<MaybeUninit<AlignN<A
 #[test] fn thin_nullable()          { thin::test::nullable(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 //#[test] fn thin_size()              { thin::test::size_over_alloc(&FixedPoolLinearProbe::<4, 4, 1024>::new()) } // NYI
 #[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(&FixedPoolLinearProbe::<4, 4, 128>::new()) } }
+#[test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
+#[test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }
 #[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(&FixedPoolLinearProbe::<4, 4, 128>::new()) } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(&FixedPoolLinearProbe::<4, 4, 128>::new()) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(&FixedPoolLinearProbe::<4, 4, 1024>::new()) }

@@ -205,5 +205,7 @@ unsafe impl core::alloc::GlobalAlloc for Global {
 #[test] fn fat_alignment()          { fat::test::alignment(Global) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Global) }
 #[test] fn fat_uninit()             { if !GLOBAL_ALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(Global) } } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(Global) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Global) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(Global) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Global) }

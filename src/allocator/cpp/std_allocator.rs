@@ -107,5 +107,7 @@ unsafe impl fat::Realloc for StdAllocator<c_char> {}
 #[test] fn fat_alignment()          { fat::test::alignment(StdAllocator::<c_char>::new()) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(StdAllocator::<c_char>::new()) }
 #[test] fn fat_uninit()             { if !allocator::cpp::OPERATOR_NEW_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(StdAllocator::<c_char>::new()) } } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(StdAllocator::<c_char>::new()) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(StdAllocator::<c_char>::new()) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(StdAllocator::<c_char>::new()) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_conservative(StdAllocator::<c_char>::new()) }

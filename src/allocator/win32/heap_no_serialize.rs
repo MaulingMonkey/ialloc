@@ -287,9 +287,19 @@ unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     }
 }
 
+#[test] fn thin_uninit_realloc() {
+    thin::test::uninit_realloc(create_test_heap(None, None));
+    thin::test::uninit_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
 #[test] fn thin_zeroed() {
     thin::test::zeroed_alloc(create_test_heap(None, None));
     thin::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
+#[test] fn thin_zeroed_realloc() {
+    thin::test::zeroed_realloc(create_test_heap(None, None));
+    thin::test::zeroed_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
 }
 
 #[test] fn thin_zst_support() {
@@ -314,9 +324,19 @@ unsafe impl thin::SizeOfDebug for HeapNoSerialize {
     unsafe { fat::test::uninit_alloc_unsound(create_test_heap(None, NonZeroUsize::new(1024 * 1024))) };
 }
 
+#[test] fn fat_uninit_realloc() {
+    fat::test::uninit_realloc(create_test_heap(None, None));
+    fat::test::uninit_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
 #[test] fn fat_zeroed() {
     fat::test::zeroed_alloc(create_test_heap(None, None));
     fat::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+}
+
+#[test] fn fat_zeroed_realloc() {
+    fat::test::zeroed_realloc(create_test_heap(None, None));
+    fat::test::zeroed_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
 }
 
 #[test] fn fat_zst_support() {

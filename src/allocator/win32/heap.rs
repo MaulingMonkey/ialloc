@@ -406,11 +406,25 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of_debug(&self,
     }
 }
 
+#[test] fn thin_uninit_realloc() {
+    thin::test::uninit_realloc(ProcessHeap);
+    thin::test::uninit_realloc(create_test_heap(None, None));
+    thin::test::uninit_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| thin::test::uninit_realloc(heap));
+}
+
 #[test] fn thin_zeroed() {
     thin::test::zeroed_alloc(ProcessHeap);
     thin::test::zeroed_alloc(create_test_heap(None, None));
     thin::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
     Heap::with_process(|heap| thin::test::zeroed_alloc(heap));
+}
+
+#[test] fn thin_zeroed_realloc() {
+    thin::test::zeroed_realloc(ProcessHeap);
+    thin::test::zeroed_realloc(create_test_heap(None, None));
+    thin::test::zeroed_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| thin::test::zeroed_realloc(heap));
 }
 
 #[test] fn thin_zst_support() {
@@ -443,11 +457,25 @@ unsafe impl thin::SizeOfDebug   for ProcessHeap { unsafe fn size_of_debug(&self,
     Heap::with_process(|heap| unsafe { fat::test::uninit_alloc_unsound(heap) });
 }
 
+#[test] fn fat_uninit_realloc() {
+    fat::test::uninit_realloc(ProcessHeap);
+    fat::test::uninit_realloc(create_test_heap(None, None));
+    fat::test::uninit_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::uninit_realloc(heap));
+}
+
 #[test] fn fat_zeroed() {
     fat::test::zeroed_alloc(ProcessHeap);
     fat::test::zeroed_alloc(create_test_heap(None, None));
     fat::test::zeroed_alloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
     Heap::with_process(|heap| fat::test::zeroed_alloc(heap));
+}
+
+#[test] fn fat_zeroed_realloc() {
+    fat::test::zeroed_realloc(ProcessHeap);
+    fat::test::zeroed_realloc(create_test_heap(None, None));
+    fat::test::zeroed_realloc(create_test_heap(None, NonZeroUsize::new(1024 * 1024)));
+    Heap::with_process(|heap| fat::test::zeroed_realloc(heap));
 }
 
 #[test] fn fat_zst_support() {
