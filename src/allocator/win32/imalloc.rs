@@ -23,7 +23,7 @@ use core::ptr::{NonNull, null_mut};
 /// | [`thin::SizeOf::size_of`]         | [`IMalloc::GetSize`] <sup>\[3\]</sup>
 ///
 /// 1. `size` / `layout` of 0 bytes will allocate successfully
-/// 2. `new_size` / `new_layout` will be rounded up to at least 1 byte, otherwise [`IMalloc::Realloc`] would free!
+/// 2. `new_size` / `new_layout.size()` of 0 bytes will go through alloc+free instead
 /// 3. size will be inconsistent for "zero" sized allocations
 ///
 /// ## References
@@ -77,8 +77,7 @@ impl Meta for IMalloc {
 
     /// -   `IMalloc::Alloc(0)` allocates successfully.
     /// -   `IMalloc::Realloc(ptr, 0)` **frees**.
-    ///     Note that [`thin::Realloc`] and [`fat::Realloc`] resolve this by always requesting at least 1 byte.
-    /// -   `IMalloc::GetSize(ptr)` will return inconsistent results for ZSTs as a result.
+    ///     Note that [`thin::Realloc`] and [`fat::Realloc`] resolve this by going through alloc + free for 0 bytes.
     ///
     const ZST_SUPPORTED : bool  = true;
 }
@@ -130,8 +129,14 @@ unsafe impl thin::Realloc for IMalloc {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { self.0.Realloc(ptr.as_ptr().cast(), new_size.max(1)) };
-        NonNull::new(alloc.cast()).ok_or(())
+        if new_size == 0 {
+            let alloc = thin::Alloc::alloc_uninit(self, new_size)?;
+            unsafe { thin::Free::free(self, ptr) };
+            Ok(alloc)
+        } else {
+            let alloc = unsafe { self.0.Realloc(ptr.as_ptr().cast(), new_size) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
     }
 
     unsafe fn realloc_zeroed(&self, _ptr: AllocNN, _new_size: usize) -> Result<AllocNN, Self::Error> {

@@ -20,7 +20,7 @@ use core::ptr::NonNull;
 /// | [`thin::Free::free`]              | [`CoTaskMemFree`]
 ///
 /// 1. `size` / `layout` of 0 bytes will allocate successfully
-/// 2. `new_size` / `new_layout` will be rounded up to at least 1 byte, otherwise [`CoTaskMemRealloc`] would free!
+/// 2. `new_size` / `new_layout.size()` of 0 bytes will go through alloc+free instead
 ///
 /// ## References
 /// *   [`IMalloc`](super::IMalloc) (stateful equivalent)
@@ -41,7 +41,7 @@ impl Meta for CoTaskMem {
 
     /// -   `CoTaskMemAlloc(0)` allocates successfully.
     /// -   `CoTaskMemRealloc(ptr, 0)` **frees**.
-    ///     Note that [`thin::Realloc`] and [`fat::Realloc`] resolve this by always requesting at least 1 byte.
+    ///     Note that [`thin::Realloc`] and [`fat::Realloc`] resolve this by going through alloc + free for 0 bytes.
     ///
     const ZST_SUPPORTED : bool  = true;
 }
@@ -97,9 +97,15 @@ unsafe impl thin::Realloc for CoTaskMem {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ✔️ `ptr` belongs to `self` per [`thin::Realloc::realloc_uninit`]'s documented safety preconditions, and thus was allocated with CoTaskMem{Alloc,Realloc}
-        let alloc = unsafe { CoTaskMemRealloc(ptr.as_ptr().cast(), new_size.max(1)) };
-        NonNull::new(alloc.cast()).ok_or(())
+        if new_size == 0 {
+            let alloc = thin::Alloc::alloc_uninit(self, new_size)?;
+            unsafe { thin::Free::free(self, ptr) };
+            Ok(alloc)
+        } else {
+            // SAFETY: ✔️ `ptr` belongs to `self` per [`thin::Realloc::realloc_uninit`]'s documented safety preconditions, and thus was allocated with CoTaskMem{Alloc,Realloc}
+            let alloc = unsafe { CoTaskMemRealloc(ptr.as_ptr().cast(), new_size) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
     }
 
     unsafe fn realloc_zeroed(&self, _ptr: AllocNN, _new_size: usize) -> Result<AllocNN, Self::Error> {
