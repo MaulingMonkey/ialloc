@@ -48,16 +48,24 @@ impl Meta for Malloc {
 
     const MAX_SIZE : usize = usize::MAX; // *slightly* less in practice
 
-    /// "If the size of the space requested is zero, the behavior is implementation defined: either a null pointer is returned, or the behavior is as if the size were some nonzero value, except that the returned pointer shall not be used to access an object."
-    /// C89 § 7.20.3 ¶ 1
+    /// `malloc(0)` is implementation defined at best (C89 § 7.20.3 ¶ 1), but `realloc(ptr, 0)` is [straight up undefined behavior as of C23](https://en.cppreference.com/w/c/memory/realloc#:~:text=the%20behavior%20is%20undefined)?
+    /// This wrapper works around that problem by invoking `malloc(0)` then `free(ptr)`.
     ///
-    /// Null pointers will be translated into an [`Err`], so this is at least defined behavior, but consider using an [`adapt`](crate::allocator::adapt) allocator for ZST support.
+    /// Consider using an [`adapt`](crate::allocator::adapt) allocator for ZST support.
     ///
-    /// | Platform          | Behavior  |
-    /// | ------------------| ----------|
-    /// | Linux             | Allocate
-    /// | OS X              | ???
-    /// | Windows           | Allocate
+    /// ### Platform: OS X
+    /// -   `malloc(0)` *untested?*
+    /// -   `realloc(ptr, 0)` *untested?*
+    ///
+    /// ### Platform: Linux
+    /// -   `malloc(0)` allocates
+    /// -   `realloc(ptr, 0)` *untested?*
+    ///
+    /// ### Platform: Windows
+    /// -   `malloc(0)` allocates
+    /// -   `_msize(zst)` returns `0`
+    /// -   `realloc(ptr, 0)` **frees** - to avoid this causing problems, this wrapper replaces it with `malloc(0)`, `free(ptr)`.
+    ///
     const ZST_SUPPORTED : bool = false;
 }
 
@@ -130,12 +138,24 @@ unsafe impl thin::Realloc for Malloc {
     const CAN_REALLOC_ZEROED : bool = cfg!(target_env = "msvc");
 
     #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `realloc`.
-        let alloc = unsafe { realloc(ptr.as_ptr().cast(), new_size) };
-        NonNull::new(alloc.cast()).ok_or(())
+        if new_size == 0 { // see <Malloc as Meta>::ZST_SUPPORTED rant above
+            let alloc = thin::Alloc::alloc_uninit(self, new_size)?;
+            unsafe { thin::Free::free(self, ptr) };
+            Ok(alloc)
+        } else {
+            // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions, and thus was allocated with one of `malloc`, `calloc`, `realloc, or `_recalloc` - all of which should be safe to `realloc`.
+            let alloc = unsafe { realloc(ptr.as_ptr().cast(), new_size) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
     }
 
     #[track_caller] unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if Self::CAN_REALLOC_ZEROED && new_size == 0 { // see <Malloc as Meta>::ZST_SUPPORTED rant above
+            let alloc = thin::Alloc::alloc_zeroed(self, new_size)?;
+            unsafe { thin::Free::free(self, ptr) };
+            return Ok(alloc.cast());
+        }
+
         #[cfg(target_env = "msvc")] {
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/recalloc
             extern "C" { fn _recalloc(memblock: *mut c_void, num: size_t, size: size_t) -> *mut c_void; }
@@ -195,9 +215,12 @@ unsafe impl thin::SizeOfDebug for Malloc {
 #[test] fn thin_alignment()             { thin::test::alignment(Malloc) }
 #[test] fn thin_edge_case_sizes()       { thin::test::edge_case_sizes(Malloc) }
 #[test] fn thin_nullable()              { thin::test::nullable(Malloc) }
-#[test] fn thin_size()                  { thin::test::size_over_alloc(Malloc) }
+#[cfg(    target_env = "msvc" )] #[test] fn thin_size_msvc()    { thin::test::size_exact_alloc_except_zsts(Malloc) }
+#[cfg(not(target_env = "msvc"))] #[test] fn thin_size()         { thin::test::size_exact_alloc(Malloc) }
 #[test] fn thin_uninit()                { if !MALLOC_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(Malloc) } } }
+#[test] fn thin_uninit_realloc()        { thin::test::uninit_realloc(Malloc) }
 #[test] fn thin_zeroed()                { thin::test::zeroed_alloc(Malloc) }
+#[test] fn thin_zeroed_realloc()        { thin::test::zeroed_realloc(Malloc) }
 #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(Malloc) }
 #[test] fn thin_zst_support_dangle()    { thin::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
 #[test] fn thin_zst_support_alloc()     { thin::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }
@@ -205,7 +228,9 @@ unsafe impl thin::SizeOfDebug for Malloc {
 #[test] fn fat_alignment()              { fat::test::alignment(Malloc) }
 #[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(Malloc) }
 #[test] fn fat_uninit()                 { if !MALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(Malloc) } } }
+#[test] fn fat_uninit_realloc()         { fat::test::uninit_realloc(Malloc) }
 #[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(Malloc) }
+#[test] fn fat_zeroed_realloc()         { fat::test::zeroed_realloc(Malloc) }
 #[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(Malloc) }
 #[test] fn fat_zst_support_dangle()     { fat::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
 #[test] fn fat_zst_support_alloc()      { fat::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }

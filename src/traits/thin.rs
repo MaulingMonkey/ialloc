@@ -352,6 +352,16 @@ pub mod test {
         }
     }
 
+    /// Assert that `allocator` always reports an exact allocation size, except for ZSTs
+    pub fn size_exact_alloc_except_zsts<A: Alloc + Free + SizeOfDebug>(allocator: A) {
+        for size in [0, 1, 3, 7, 15, 31, 63, 127] {
+            let Ok(alloc) = TTB::try_new_uninit(&allocator, size) else { continue };
+            // SAFETY: ✔️ `alloc` belongs to `allocator`
+            let query_size = unsafe { allocator.size_of_debug(alloc.as_nonnull()) }.unwrap_or(size);
+            assert_eq!(size.max(1), query_size, "allocator returns oversized allocs, use thin::test::size_over_alloc instead");
+        }
+    }
+
     /// Assert that `allocator` sometimes reports a larger-than-requested allocation size
     pub fn size_over_alloc<A: Alloc + Free + SizeOfDebug>(allocator: A) {
         let mut any_sized = false;

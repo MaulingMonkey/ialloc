@@ -78,10 +78,23 @@ impl Meta for AlignedMalloc {
 
     const MAX_SIZE  : usize     = usize::MAX;
 
-    /// | Platform          | Behavior |
-    /// | ------------------| ---------|
-    /// | Linux             | Succeeds?
-    /// | Windows           | Fails?  [`_aligned_malloc`] explicitly documents "If \[...\] `size` is zero, this function invokes the invalid parameter handler, as described in [Parameter validation](https://learn.microsoft.com/en-us/cpp/c-runtime-library/parameter-validation). If execution is allowed to continue, this function returns `NULL` and sets `errno` to `EINVAL`."
+    /// ### Platform: OS X
+    /// Zero sized allocs succeed.
+    /// Reallocs are untested.
+    ///
+    /// ### Platform: Linux
+    /// Zero sized allocs succeed.
+    /// Reallocs are untested.
+    ///
+    /// ### Platform: Windows
+    ///
+    /// [`_aligned_malloc`] is documented as failing when size = 0.
+    /// This is a lie: it succeeds, at least on 10.0.19045.5737.
+    /// OTOH, it may or may not trigger debug checks on other versions of windows or the CRT.
+    ///
+    /// [`_aligned_realloc`], on the other hand, is documented as *freeing* when size = 0.
+    /// Tests seem to confirm it, resulting in heap corruption checks if the buffers are sufficiently used afterwards.
+    /// As such, `*::Realloc` will skip it in favor of [`_aligned_malloc`] and [`_aligned_free`] when size = 0.
     ///
     #[doc = include_str!("_refs.md")]
     const ZST_SUPPORTED : bool  = false;
@@ -174,21 +187,33 @@ unsafe impl fat::Free for AlignedMalloc {
 // SAFETY: per above
 unsafe impl fat::Realloc for AlignedMalloc {
     #[cfg(target_env = "msvc")]
-    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+    #[track_caller] unsafe fn realloc_uninit(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
         let new_layout = Self::fix_layout(new_layout)?;
-        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_uninit`]'s documented safety preconditions
-        // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
-        let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size(), new_layout.align()) };
-        NonNull::new(alloc.cast()).ok_or(())
+        if new_layout.size() == 0 {
+            let alloc = fat::Alloc::alloc_uninit(self, new_layout)?;
+            unsafe { fat::Free::free(self, ptr, old_layout) };
+            Ok(alloc)
+        } else {
+            // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_uninit`]'s documented safety preconditions
+            // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
+            let alloc = unsafe { ffi::_aligned_realloc(ptr.as_ptr().cast(), new_layout.size(), new_layout.align()) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
     }
 
     #[cfg(target_env = "msvc")]
-    unsafe fn realloc_zeroed(&self, ptr: AllocNN, _old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
+    unsafe fn realloc_zeroed(&self, ptr: AllocNN, old_layout: Layout, new_layout: Layout) -> Result<AllocNN, Self::Error> {
         let new_layout = Self::fix_layout(new_layout)?;
-        // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_zeroed`]'s documented safety preconditions
-        // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
-        let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size(), new_layout.align()) };
-        NonNull::new(alloc.cast()).ok_or(())
+        if new_layout.size() == 0 {
+            let alloc = fat::Alloc::alloc_zeroed(self, new_layout)?;
+            unsafe { fat::Free::free(self, ptr, old_layout) };
+            Ok(alloc.cast())
+        } else {
+            // SAFETY: ✔️ `ptr` belongs to `self` per [`fat::Realloc::realloc_zeroed`]'s documented safety preconditions
+            // SAFETY: ✔️ `new_layout` has been checked/fixed for platform validity
+            let alloc = unsafe { ffi::_aligned_recalloc(ptr.as_ptr().cast(), 1, new_layout.size(), new_layout.align()) };
+            NonNull::new(alloc.cast()).ok_or(())
+        }
     }
 }
 
@@ -267,5 +292,7 @@ mod ffi {
 #[test] fn fat_alignment()              { fat::test::alignment(AlignedMalloc) }
 #[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(AlignedMalloc) }
 #[test] fn fat_uninit()                 { if !ALIGNED_ALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(AlignedMalloc) } } }
+#[test] fn fat_uninit_realloc()         { fat::test::uninit_realloc(AlignedMalloc) }
 #[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(AlignedMalloc) }
+#[test] fn fat_zeroed_realloc()         { fat::test::zeroed_realloc(AlignedMalloc) }
 #[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(AlignedMalloc) }
