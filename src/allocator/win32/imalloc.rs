@@ -70,6 +70,12 @@ impl Meta for IMalloc {
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
+
+    /// -   `IMalloc::Alloc(0)` allocates successfully.
+    /// -   `IMalloc::Realloc(ptr, 0)` **frees**.
+    ///     Note that [`thin::Realloc`] and [`fat::Realloc`] resolve this by always requesting at least 1 byte.
+    /// -   `IMalloc::GetSize(ptr)` will return inconsistent results for ZSTs as a result.
+    ///
     const ZST_SUPPORTED : bool  = true;
 }
 
@@ -120,7 +126,7 @@ unsafe impl thin::Realloc for IMalloc {
     const CAN_REALLOC_ZEROED : bool = false;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
-        let alloc = unsafe { self.0.Realloc(ptr.as_ptr().cast(), new_size) };
+        let alloc = unsafe { self.0.Realloc(ptr.as_ptr().cast(), new_size.max(1)) };
         NonNull::new(alloc.cast()).ok_or(())
     }
 
@@ -187,11 +193,15 @@ unsafe impl thin::SizeOf for IMalloc {}
 #[test] fn thin_nullable()          { thin::test::nullable(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn thin_size()              { thin::test::size_exact_alloc(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(IMalloc::co_get_malloc_1().unwrap()) } }
+#[test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(IMalloc::co_get_malloc_1().unwrap()) }
+#[test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(IMalloc::co_get_malloc_1().unwrap()) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(IMalloc::co_get_malloc_1().unwrap()) } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(IMalloc::co_get_malloc_1().unwrap()) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(IMalloc::co_get_malloc_1().unwrap()) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(IMalloc::co_get_malloc_1().unwrap()) }
