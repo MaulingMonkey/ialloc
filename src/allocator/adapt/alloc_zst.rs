@@ -86,6 +86,18 @@ unsafe impl<A: thin::Realloc> thin::Realloc for AllocZst<A> {
     }
 }
 
+unsafe impl<A: thin::SizeOf> thin::SizeOf for AllocZst<A> {
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> usize {
+        unsafe { self.0.size_of(ptr) }
+    }
+}
+
+unsafe impl<A: thin::SizeOfDebug> thin::SizeOfDebug for AllocZst<A> {
+    unsafe fn size_of_debug(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
+        unsafe { self.0.size_of_debug(ptr) }
+    }
+}
+
 
 
 // fat::*
