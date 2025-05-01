@@ -12,15 +12,19 @@ use core::ptr::{NonNull, null_mut};
 
 /// [`IMalloc::Alloc`] / [`IMalloc::Realloc`] / [`IMalloc::Free`] / [`IMalloc::GetSize`]
 ///
-/// | Rust                              | C++                   |
-/// | ----------------------------------| ----------------------|
-/// | [`thin::Alloc::alloc_uninit`]     | [`IMalloc::Alloc`]
-/// | [`thin::Realloc::realloc_uninit`] | [`IMalloc::Realloc`]
-/// | [`thin::Free::free`]              | [`IMalloc::Free`]
-/// | [`thin::SizeOf::size_of`]         | [`IMalloc::GetSize`]
-///
 /// Uses the [`IMalloc`](https://learn.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-imalloc) interface as used for COM (de)allocations.
 /// Consider using [`Heap`](super::Heap) directly instead, unless you're specifically doing COM / have documentation mandating a specific (de)allocator for interop purpouses.
+///
+/// | Rust                              | C++                   |
+/// | ----------------------------------| ----------------------|
+/// | [`thin::Alloc::alloc_uninit`]     | [`IMalloc::Alloc`] <sup>\[1\]</sup>
+/// | [`thin::Realloc::realloc_uninit`] | [`IMalloc::Realloc`] <sup>\[2\]</sup>
+/// | [`thin::Free::free`]              | [`IMalloc::Free`]
+/// | [`thin::SizeOf::size_of`]         | [`IMalloc::GetSize`] <sup>\[3\]</sup>
+///
+/// 1. `size` / `layout` of 0 bytes will allocate successfully
+/// 2. `new_size` / `new_layout` will be rounded up to at least 1 byte, otherwise [`IMalloc::Realloc`] would free!
+/// 3. size will be inconsistent for "zero" sized allocations
 ///
 /// ## References
 /// *   [`CoTaskMem`](super::CoTaskMem) (stateless equivalent)
