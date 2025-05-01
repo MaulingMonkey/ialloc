@@ -222,8 +222,6 @@ unsafe impl thin::SizeOfDebug for Malloc {
 #[test] fn thin_zeroed()                { thin::test::zeroed_alloc(Malloc) }
 #[test] fn thin_zeroed_realloc()        { thin::test::zeroed_realloc(Malloc) }
 #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(Malloc) }
-#[test] fn thin_zst_support_dangle()    { thin::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
-#[test] fn thin_zst_support_alloc()     { thin::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }
 
 #[test] fn fat_alignment()              { fat::test::alignment(Malloc) }
 #[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(Malloc) }
@@ -232,5 +230,49 @@ unsafe impl thin::SizeOfDebug for Malloc {
 #[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(Malloc) }
 #[test] fn fat_zeroed_realloc()         { fat::test::zeroed_realloc(Malloc) }
 #[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(Malloc) }
-#[test] fn fat_zst_support_dangle()     { fat::test::zst_supported_conservative(crate::allocator::adapt::DangleZst(Malloc)) }
-#[test] fn fat_zst_support_alloc()      { fat::test::zst_supported_conservative(crate::allocator::adapt::AllocZst(Malloc)) }
+
+#[cfg(test)] mod adapt_alloc_zst {
+    use crate::allocator::adapt::AllocZst;
+    use super::{thin, fat, Malloc, MALLOC_ZERO_INITS};
+
+    #[test] fn thin_alignment()             { thin::test::alignment(AllocZst(Malloc)) }
+    #[test] fn thin_edge_case_sizes()       { thin::test::edge_case_sizes(AllocZst(Malloc)) }
+    #[test] fn thin_nullable()              { thin::test::nullable(AllocZst(Malloc)) }
+    #[test] fn thin_size()                  { thin::test::size_exact_alloc_except_zsts(AllocZst(Malloc)) }
+    #[test] fn thin_uninit()                { if !MALLOC_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(AllocZst(Malloc)) } } }
+    #[test] fn thin_uninit_realloc()        { thin::test::uninit_realloc(AllocZst(Malloc)) }
+    #[test] fn thin_zeroed()                { thin::test::zeroed_alloc(AllocZst(Malloc)) }
+    #[test] fn thin_zeroed_realloc()        { thin::test::zeroed_realloc(AllocZst(Malloc)) }
+    #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(AllocZst(Malloc)) }
+
+    #[test] fn fat_alignment()              { fat::test::alignment(AllocZst(Malloc)) }
+    #[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(AllocZst(Malloc)) }
+    #[test] fn fat_uninit()                 { if !MALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(AllocZst(Malloc)) } } }
+    #[test] fn fat_uninit_realloc()         { fat::test::uninit_realloc(AllocZst(Malloc)) }
+    #[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(AllocZst(Malloc)) }
+    #[test] fn fat_zeroed_realloc()         { fat::test::zeroed_realloc(AllocZst(Malloc)) }
+    #[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(AllocZst(Malloc)) }
+}
+
+#[cfg(test)] mod adapt_dangle_zst {
+    use crate::allocator::adapt::DangleZst;
+    use super::{thin, fat, Malloc, MALLOC_ZERO_INITS};
+
+    #[test] fn thin_alignment()             { thin::test::alignment(DangleZst(Malloc)) }
+    #[test] fn thin_edge_case_sizes()       { thin::test::edge_case_sizes(DangleZst(Malloc)) }
+    #[test] fn thin_nullable()              { thin::test::nullable(DangleZst(Malloc)) }
+    #[test] fn thin_size()                  { thin::test::size_exact_alloc(DangleZst(Malloc)) }
+    #[test] fn thin_uninit()                { if !MALLOC_ZERO_INITS { unsafe { thin::test::uninit_alloc_unsound(DangleZst(Malloc)) } } }
+    #[test] fn thin_uninit_realloc()        { thin::test::uninit_realloc(DangleZst(Malloc)) }
+    #[test] fn thin_zeroed()                { thin::test::zeroed_alloc(DangleZst(Malloc)) }
+    #[test] fn thin_zeroed_realloc()        { thin::test::zeroed_realloc(DangleZst(Malloc)) }
+    #[test] fn thin_zst_support()           { thin::test::zst_supported_conservative(DangleZst(Malloc)) }
+
+    #[test] fn fat_alignment()              { fat::test::alignment(DangleZst(Malloc)) }
+    #[test] fn fat_edge_case_sizes()        { fat::test::edge_case_sizes(DangleZst(Malloc)) }
+    #[test] fn fat_uninit()                 { if !MALLOC_ZERO_INITS { unsafe { fat::test::uninit_alloc_unsound(DangleZst(Malloc)) } } }
+    #[test] fn fat_uninit_realloc()         { fat::test::uninit_realloc(DangleZst(Malloc)) }
+    #[test] fn fat_zeroed()                 { fat::test::zeroed_alloc(DangleZst(Malloc)) }
+    #[test] fn fat_zeroed_realloc()         { fat::test::zeroed_realloc(DangleZst(Malloc)) }
+    #[test] fn fat_zst_support()            { fat::test::zst_supported_conservative(DangleZst(Malloc)) }
+}

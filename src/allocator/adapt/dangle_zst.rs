@@ -14,7 +14,7 @@ use core::ptr::NonNull;
 
 impl<A: Meta> DangleZst<A> {
     // TODO: replace with NonNull::new when that stabilizes as a const fn
-    const DANGLE : NonNull<MaybeUninit<u8>> = unsafe { NonNull::new_unchecked(A::MAX_ALIGN.as_usize() as _) };
+    const DANGLE : NonNull<MaybeUninit<u8>> = match crate::util::nn::from_usize(A::MAX_ALIGN.as_usize()) { Some(nn) => nn, None => panic!("could not convert A::MAX_ALIGN to a NonNull") };
 }
 
 impl<A> core::ops::Deref for DangleZst<A> { fn deref(&self) -> &Self::Target { &self.0 } type Target = A; }
@@ -71,7 +71,21 @@ unsafe impl<A: thin::Realloc> thin::Realloc for DangleZst<A> {
     unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, new_size: usize) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
         if ptr == Self::DANGLE  { return self.0.alloc_zeroed(new_size).map(|a| a.cast()) }
         if new_size == 0        { unsafe { self.0.free(ptr) }; return Ok(Self::DANGLE) }
-        unsafe { self.0.realloc_uninit(ptr, new_size) }
+        unsafe { self.0.realloc_zeroed(ptr, new_size) }
+    }
+}
+
+unsafe impl<A: thin::SizeOf> thin::SizeOf for DangleZst<A> {
+    unsafe fn size_of(&self, ptr: NonNull<MaybeUninit<u8>>) -> usize {
+        if ptr == Self::DANGLE { return 0 }
+        unsafe { self.0.size_of(ptr) }
+    }
+}
+
+unsafe impl<A: thin::SizeOfDebug> thin::SizeOfDebug for DangleZst<A> {
+    unsafe fn size_of_debug(&self, ptr: NonNull<MaybeUninit<u8>>) -> Option<usize> {
+        if ptr == Self::DANGLE { return Some(0) }
+        unsafe { self.0.size_of_debug(ptr) }
     }
 }
 
@@ -114,42 +128,44 @@ unsafe impl<A: fat::Free> fat::Free for DangleZst<A> {
 
 unsafe impl<A: fat::Realloc> fat::Realloc for DangleZst<A> {
     unsafe fn realloc_uninit(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        if old_layout.size() > 0 && new_layout.size() > 0 {
-            unsafe { self.0.realloc_uninit(ptr, old_layout, new_layout) }
-        } else {
-            if cfg!(debug_assertions) && old_layout.size() == 0 {
-                if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
-                if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
-            }
-            let alloc = self.alloc_uninit(new_layout)?;
-            let n = old_layout.size().min(new_layout.size());
-            {
-                let src : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr  .as_ptr(), n) };
-                let dst : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), n) };
-                dst.copy_from_slice(src);
-            }
-            unsafe { self.free(ptr, old_layout) };
-            Ok(alloc)
+        let old_zst = old_layout.size() == 0;
+        let new_zst = new_layout.size() == 0;
+
+        if old_zst && cfg!(debug_assertions) {
+            if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
+            if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
+        }
+
+        if new_zst && new_layout.align() > A::MAX_ALIGN.as_usize() {
+            return Err(ExcessiveAlignmentRequestedError{ requested: new_layout.into(), supported: A::MAX_ALIGN }.into())
+        }
+
+        match (old_zst, new_zst) {
+            (false, false) => unsafe { self.0.realloc_uninit(ptr, old_layout, new_layout)       },
+            (false, true ) => unsafe { self.0.free(ptr, old_layout); Ok(Self::DANGLE.cast())    },
+            (true,  false) =>        { self.0.alloc_uninit(new_layout)                          },
+            (true,  true ) =>        { Ok(Self::DANGLE.cast())                                  },
         }
     }
 
     unsafe fn realloc_zeroed(&self, ptr: NonNull<MaybeUninit<u8>>, old_layout: Layout, new_layout: Layout) -> Result<NonNull<MaybeUninit<u8>>, Self::Error> {
-        if old_layout.size() > 0 && new_layout.size() > 0 {
-            unsafe { self.0.realloc_zeroed(ptr, old_layout, new_layout) }
-        } else {
-            if cfg!(debug_assertions) && old_layout.size() == 0 {
-                if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
-                if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
-            }
-            let alloc = self.alloc_zeroed(new_layout)?.cast();
-            let n = old_layout.size().min(new_layout.size());
-            {
-                let src : &    [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts    (ptr  .as_ptr(), n) };
-                let dst : &mut [MaybeUninit<u8>] = unsafe { core::slice::from_raw_parts_mut(alloc.as_ptr(), n) };
-                dst.copy_from_slice(src);
-            }
-            unsafe { self.free(ptr, old_layout) };
-            Ok(alloc)
+        let old_zst = old_layout.size() == 0;
+        let new_zst = new_layout.size() == 0;
+
+        if old_zst && cfg!(debug_assertions) {
+            if ptr != Self::DANGLE                          { bug::ub::invalid_ptr_for_allocator(ptr) }
+            if old_layout.align() > A::MAX_ALIGN.as_usize() { bug::ub::invalid_free_align_for_allocator(old_layout.align()) }
+        }
+
+        if new_zst && new_layout.align() > A::MAX_ALIGN.as_usize() {
+            return Err(ExcessiveAlignmentRequestedError{ requested: new_layout.into(), supported: A::MAX_ALIGN }.into())
+        }
+
+        match (old_zst, new_zst) {
+            (false, false) => unsafe { self.0.realloc_zeroed(ptr, old_layout, new_layout)       },
+            (false, true ) => unsafe { self.0.free(ptr, old_layout); Ok(Self::DANGLE.cast())    },
+            (true,  false) =>        { Ok(self.0.alloc_zeroed(new_layout)?.cast())              },
+            (true,  true ) =>        { Ok(Self::DANGLE.cast())                                  },
         }
     }
 }

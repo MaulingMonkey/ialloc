@@ -23,3 +23,7 @@ pub /*const*/ fn slice_assume_init<T>(data: NonNull<[MaybeUninit<T>]>) -> NonNul
 pub fn dangling<T>(layout: Layout) -> NonNull<T> {
     NonNull::new(layout.align() as _).unwrap_or(NonNull::dangling())
 }
+
+// TODO: replace with NonNull::new when that stabilizes as a const fn
+pub const fn from_usize<T>(value: usize) -> Option<NonNull<T>> { from_ptr(value as *mut T) }
+pub const fn from_ptr<T>(ptr: *mut T) -> Option<NonNull<T>> { unsafe { core::mem::transmute(ptr) } }
