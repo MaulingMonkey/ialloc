@@ -67,6 +67,7 @@ mod virtual_;           pub use virtual_::*;
 impl core::fmt::Debug   for Error { fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Debug::fmt(&self.0, f) } }
 //impl core::fmt::Display for Error { fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Display::fmt(&self.0, f) } }
 impl Error { pub(crate) fn get_last() -> Self { Self(winresult::ErrorHResultOrCode::from(get_last_error())) } }
+impl From<crate::error::BannedZeroSizedAllocationsError > for Error { fn from(_: crate::error::BannedZeroSizedAllocationsError  ) -> Self { Self(winresult::ERROR::BAD_LENGTH.into()) } } // XXX
 impl From<crate::error::ExcessiveAlignmentRequestedError> for Error { fn from(_: crate::error::ExcessiveAlignmentRequestedError ) -> Self { Self(winresult::ERROR::MAPPED_ALIGNMENT.into()) } } // XXX
 impl From<crate::error::ExcessiveSliceRequestedError    > for Error { fn from(_: crate::error::ExcessiveSliceRequestedError     ) -> Self { Self(winresult::ERROR::BUFFER_OVERFLOW.into()) } } // XXX
 

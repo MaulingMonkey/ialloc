@@ -48,7 +48,15 @@ impl Meta for Local {
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
-    const ZST_SUPPORTED : bool  = true;
+
+    /// ZST support in `Local*` is incredibly cursed:
+    /// -   `LocalAlloc(..., 0)` "allocates" 0 bytes.  This can be confirmed with `LocalSize(zst)` (doesn't set `GetLastError()`)
+    /// -   `LocalReAlloc(zst, 1, ...)` fails with <code>GetLastError() == ERROR_NOT_ENOUGH_MEMORY</code>.
+    /// -   `LocalReAlloc(zst, 0, ...)` frees?  Oops.
+    ///
+    /// As such, this wrapper straight up bans such allocations.
+    ///
+    const ZST_SUPPORTED : bool  = false;
 }
 
 impl ZstSupported for Local {}
@@ -75,12 +83,14 @@ unsafe impl Stateless for Local {}
 // SAFETY: per above
 unsafe impl thin::Alloc for Local {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        if size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant
         // SAFETY: per above
         let alloc = unsafe { LocalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        if size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant
         // SAFETY: ✔️ `LMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
         let alloc = unsafe { LocalAlloc(LMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
@@ -106,12 +116,14 @@ unsafe impl thin::Realloc for Local {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if new_size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalReAlloc`.
         let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if new_size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant
         // SAFETY: ✔️ `LMEM_ZEROINIT` should ensure the newly reallocated memory is zeroed.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Local{,Re}Alloc` - which should be safe to `LocalReAlloc`.
         let alloc = unsafe { LocalReAlloc(ptr.as_ptr().cast(), new_size, LMEM_ZEROINIT) };
@@ -180,11 +192,15 @@ unsafe impl thin::SizeOfDebug for Local {
 #[test] fn thin_nullable()          { thin::test::nullable(Local) }
 #[test] fn thin_size()              { thin::test::size_exact_alloc(Local) }
 #[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(Local) } }
+#[test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(Local) }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(Local) }
+#[test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(Local) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(Local) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(Local) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Local) }
 #[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(Local) } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(Local) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Local) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(Local) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Local) }

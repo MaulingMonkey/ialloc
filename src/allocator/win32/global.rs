@@ -48,7 +48,15 @@ impl Meta for Global {
     const MIN_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_ALIGN : Alignment = super::MEMORY_ALLOCATION_ALIGNMENT; // Verified through testing
     const MAX_SIZE  : usize     = usize::MAX;
-    const ZST_SUPPORTED : bool  = true;
+
+    /// ZST support in `Global*` is incredibly cursed:
+    /// -   `GlobalAlloc(..., 0)` "allocates" 0 bytes.  This can be confirmed with `GlobalSize(zst)` (doesn't set `GetLastError()`)
+    /// -   `GlobalReAlloc(zst, 1, ...)` fails with <code>GetLastError() == ERROR_NOT_ENOUGH_MEMORY</code>.
+    /// -   `GlobalReAlloc(zst, 0, ...)` frees?  Oops.
+    ///
+    /// As such, this wrapper straight up bans such allocations.
+    ///
+    const ZST_SUPPORTED : bool  = false;
 }
 
 impl ZstSupported for Global {}
@@ -75,12 +83,14 @@ unsafe impl Stateless for Global {}
 // SAFETY: per above
 unsafe impl thin::Alloc for Global {
     fn alloc_uninit(&self, size: usize) -> Result<AllocNN, Self::Error> {
+        if size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant above
         // SAFETY: per above
         let alloc = unsafe { GlobalAlloc(0, size) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     fn alloc_zeroed(&self, size: usize) -> Result<AllocNN0, Self::Error> {
+        if size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant above
         // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly allocated memory is zeroed.
         let alloc = unsafe { GlobalAlloc(GMEM_ZEROINIT, size) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
@@ -106,12 +116,14 @@ unsafe impl thin::Realloc for Global {
     const CAN_REALLOC_ZEROED : bool = true;
 
     unsafe fn realloc_uninit(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if new_size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant above
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, 0) };
         NonNull::new(alloc.cast()).ok_or_else(Error::get_last)
     }
 
     unsafe fn realloc_zeroed(&self, ptr: AllocNN, new_size: usize) -> Result<AllocNN, Self::Error> {
+        if new_size == 0 { Err(error::BannedZeroSizedAllocationsError)? } // see ZST_SUPPORTED rant above
         // SAFETY: ✔️ `GMEM_ZEROINIT` should ensure the newly reallocated memory is zeroed.
         // SAFETY: ✔️ `ptr` belongs to `self` per thin::Realloc's documented safety preconditions - and thus was allocated with `Global{,Re}Alloc` - which should be safe to `GlobalReAlloc`.
         let alloc = unsafe { GlobalReAlloc(ptr.as_ptr().cast(), new_size, GMEM_ZEROINIT) };
@@ -178,13 +190,17 @@ unsafe impl thin::SizeOfDebug for Global {
 #[test] fn thin_alignment()         { thin::test::alignment(Global) }
 #[test] fn thin_edge_case_sizes()   { thin::test::edge_case_sizes(Global) }
 #[test] fn thin_nullable()          { thin::test::nullable(Global) }
-#[test] fn thin_size()              { thin::test::size_over_alloc(Global) }
+#[test] fn thin_size()              { thin::test::size_exact_alloc(Global) }
 #[test] fn thin_uninit()            { unsafe { thin::test::uninit_alloc_unsound(Global) } }
+#[test] fn thin_uninit_realloc()    { thin::test::uninit_realloc(Global) }
 #[test] fn thin_zeroed()            { thin::test::zeroed_alloc(Global) }
+#[test] fn thin_zeroed_realloc()    { thin::test::zeroed_realloc(Global) }
 #[test] fn thin_zst_support()       { thin::test::zst_supported_accurate(Global) }
 
 #[test] fn fat_alignment()          { fat::test::alignment(Global) }
 #[test] fn fat_edge_case_sizes()    { fat::test::edge_case_sizes(Global) }
 #[test] fn fat_uninit()             { unsafe { fat::test::uninit_alloc_unsound(Global) } }
+#[test] fn fat_uninit_realloc()     { fat::test::uninit_realloc(Global) }
 #[test] fn fat_zeroed()             { fat::test::zeroed_alloc(Global) }
+#[test] fn fat_zeroed_realloc()     { fat::test::zeroed_realloc(Global) }
 #[test] fn fat_zst_support()        { fat::test::zst_supported_accurate(Global) }
