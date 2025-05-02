@@ -37,13 +37,13 @@ jobs:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
+    - name: Install
+      run: |
+        rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc
     - name: Info
       run: |
         rustc -V
         cargo -V
         cmd /C ver
-    - name: Install
-      run: |
-        rustup target add i686-pc-windows-msvc
     - name: Test
       run: scripts\build
