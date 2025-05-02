@@ -33,7 +33,7 @@ jobs:
     - name: Test
       run: cargo test
   build-windows-nightly-x64:
-    name: Windows 2019 Server (≈Nightly, x64)
+    name: Windows (≈Nightly, x64)
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
     - {name: Test,    run: scripts\test-nightly                                           }
     - {name: Docs,    run: scripts\doc                                                    }
   build-windows-stable-x64:
-    name: Windows 2019 Server (Stable, x64)
+    name: Windows (Stable, x64)
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -50,7 +50,7 @@ jobs:
     - {name: Info,    run: scripts\info-stable                                            }
     - {name: Test,    run: scripts\test-stable                                            }
   build-windows-msrv-x64:
-    name: Windows 2019 Server (MSRV, x64)
+    name: Windows (MSRV, x64)
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -58,7 +58,7 @@ jobs:
     - {name: Info,    run: scripts\info-msrv                                              }
     - {name: Test,    run: scripts\test-msrv                                              }
   build-windows-msrv-i686:
-    name: Windows 2019 Server (MSRV, i686)
+    name: Windows (MSRV, i686)
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
