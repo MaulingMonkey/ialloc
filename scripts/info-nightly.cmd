@@ -1,7 +1,7 @@
 @pushd "%~dp0.." && setlocal
 
-rustc -V
-cargo -V
+rustc +nightly -V
+cargo +nightly -V
 ver
 
 @popd && endlocal && exit /b %ERRORLEVEL%
