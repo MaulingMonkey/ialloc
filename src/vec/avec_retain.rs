@@ -52,14 +52,14 @@ impl<T> Drop for RemoveHoleOnDrop<'_, T> {
 
 
 
-#[test] fn retain() {
+#[cfg(feature = "alloc")] #[test] fn retain() {
     let mut v = AVec::<u32, crate::allocator::alloc::Global>::new();
     v.try_extend_from_slice(&[1, 2, 3, 4, 5]).unwrap();
     v.retain(|x| *x % 2 == 0);
     assert_eq!(v[..], [2, 4]);
 }
 
-#[test] fn retain_drop() {
+#[cfg(feature = "alloc")] #[test] fn retain_drop() {
     use crate::util::drop::Tester;
 
     let mut v = AVec::<Tester, crate::allocator::alloc::Global>::new();
