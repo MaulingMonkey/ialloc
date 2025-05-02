@@ -32,18 +32,44 @@ jobs:
         cargo -V
     - name: Test
       run: cargo test
-  build-windows:
-    name: Windows 2019 Server
+  build-windows-nightly-x64:
+    name: Windows 2019 Server (≈Nightly, x64)
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
-    - name: Install
-      run: |
-        rustup target add x86_64-pc-windows-msvc i686-pc-windows-msvc
-    - name: Info
-      run: |
-        rustc -V
-        cargo -V
-        cmd /C ver
-    - name: Test
-      run: scripts\build
+    - {name: Install, run: rustup target add --toolchain=nightly x86_64-pc-windows-msvc   }
+    - {name: Info,    run: scripts\info-nightly                                           }
+    - {name: Test,    run: scripts\test-nightly                                           }
+    - {name: Docs,    run: scripts\doc                                                    }
+  build-windows-stable-x64:
+    name: Windows 2019 Server (Stable, x64)
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - {name: Install, run: rustup update stable                                           }
+    - {name: Info,    run: scripts\info-stable                                            }
+    - {name: Test,    run: scripts\test-stable                                            }
+  build-windows-msrv-x64:
+    name: Windows 2019 Server (MSRV, x64)
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - {name: Install, run: rustup target add x86_64-pc-windows-msvc                       }
+    - {name: Info,    run: scripts\info-msrv                                              }
+    - {name: Test,    run: scripts\test-msrv                                              }
+  build-windows-msrv-i686:
+    name: Windows 2019 Server (MSRV, i686)
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - {name: Install, run: rustup target add i686-pc-windows-msvc                         }
+    - {name: Info,    run: scripts\info-msrv                                              }
+    - {name: Test,    run: scripts\test-msrv-i686                                         }
+  build-windows-msrv-wsl:
+    name: Windows 2019 Server (MSRV, WSL)
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - {name: Install, run: rustup target add x86_64-pc-windows-msvc                       }
+    - {name: Info,    run: scripts\info-msrv                                              }
+    - {name: Test,    run: scripts\test-msrv-wsl                                          }
