@@ -2,7 +2,7 @@
 
 [package]
 name                        = "ialloc"
-version                     = "0.0.0-2025-04-08"
+version                     = "0.0.0-2025-05-02"
 edition                     = "2021"
 rust-version                = "1.81.0" # MSRV: mcom = "0.1.5"
 
