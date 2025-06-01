@@ -11,7 +11,7 @@
 //! | [`ProcessHeap`]                           | [`HeapAlloc`]         | [`HeapReAlloc`]       | [`HeapFree`]      | [`HeapSize`]          |
 //! | <code>[IMalloc]\(\*IMalloc\)</code>†      | [`IMalloc::Alloc`]    | [`IMalloc::Realloc`]  | [`IMalloc::Free`] | [`IMalloc::GetSize`]  |
 //! | [`Local`]†                                | [`LocalAlloc`]        | [`LocalReAlloc`]      | [`LocalFree`]     | [`LocalSize`]         |
-//! | [`VirtualCommit`]                         | [`VirtualAlloc`]      | ❌                    | [`Virtualfree`]   | ❌                    |
+//! | [`VirtualCommit`]                         | [`VirtualAlloc`]      | ❌                    | [`VirtualFree`]   | ❌                    |
 //!
 //! ## Recommended Reading
 //! *   [Comparing Memory Allocation Methods](https://learn.microsoft.com/en-us/windows/win32/memory/comparing-memory-allocation-methods) (learn.microsoft.com)
