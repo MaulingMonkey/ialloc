@@ -53,7 +53,7 @@ unsafe impl Stateless for VirtualCommit {}
 /// | `exclusive`   | ✔️ Allocations by [`VirtualAlloc`] are exclusive/unique
 /// | `exceptions`  | ✔️ [`VirtualAlloc`] returns null on error per docs, page structures live outside of process memory where they're "incorruptable"
 /// | `threads`     | ⚠️ As everything builds upon `Virtual*`, and Microsoft isn't a bunch of dummies, [`VirtualAlloc`] *should* should be thread safe, although it's poorly documented
-/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`], correct use of [`HEAP_ZERO_MEMORY`]
+/// | `zeroed`      | ✔️ Validated via [`thin::test::zeroed_alloc`].  Allocations of commited memory by [`VirtualAlloc`] are documented to always be zero.
 ///
 #[doc = include_str!("_refs.md")]
 // SAFETY: per above
